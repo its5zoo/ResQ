@@ -340,13 +340,31 @@ export default function CalendarPage({ tasks }) {
             
             {/* Days Column Headers */}
             <div className="grid grid-cols-8 gap-4 border-b border-white/5 pb-4 mb-4 sticky top-0 bg-[#090909] z-20">
-              <div className="text-xs font-tech font-bold uppercase tracking-wider text-white/35 text-center bg-[#090909] py-1">Time</div>
-              {weekDates.map((d) => (
-                <div key={d.dayOfWeek} className="text-center bg-[#090909] py-1 flex flex-col items-center">
-                  <span className="text-[10px] font-tech font-bold uppercase tracking-wider text-white/35">{d.dayOfWeek}</span>
-                  <span className="text-xs font-bold text-white mt-0.5">{d.dateNum}</span>
-                </div>
-              ))}
+              <div className="text-xs font-tech font-bold uppercase tracking-wider text-white/35 text-center bg-[#090909] py-2 flex items-center justify-center">Time</div>
+              {weekDates.map((d) => {
+                const isToday = new Date(d.fullDate).toDateString() === new Date().toDateString();
+                return (
+                  <div 
+                    key={d.dayOfWeek} 
+                    className={`text-center py-1.5 px-1 flex flex-col items-center rounded-xl transition-all duration-300 ${
+                      isToday 
+                        ? 'bg-[#E5B842]/10 border border-[#E5B842]/20 shadow-[0_0_10px_rgba(229,184,66,0.05)]' 
+                        : 'border border-transparent'
+                    }`}
+                  >
+                    <span className={`text-[9px] font-tech font-bold uppercase tracking-wider ${isToday ? 'text-[#E5B842]' : 'text-white/35'}`}>
+                      {d.dayOfWeek}
+                    </span>
+                    <span className={`text-xs font-black mt-0.5 w-6 h-6 flex items-center justify-center rounded-full transition-all duration-300 ${
+                      isToday 
+                        ? 'bg-[#E5B842] text-black shadow-[0_0_10px_rgba(229,184,66,0.4)]' 
+                        : 'text-white'
+                    }`}>
+                      {d.dateNum}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
 
             {/* Time Grid Rows */}
@@ -366,11 +384,11 @@ export default function CalendarPage({ tasks }) {
                         className={`min-h-[52px] rounded-xl border transition-all duration-300 flex flex-col justify-center relative group cursor-pointer ${
                           match 
                             ? isAiBlock
-                              ? 'bg-cyan-500/10 border-cyan-500/30 hover:border-[#E5B842]/60 text-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.1)]'
+                              ? 'bg-[#E5B842]/10 border-[#E5B842]/30 hover:border-[#E5B842]/60 text-[#E5B842] shadow-[0_0_15px_rgba(229,184,66,0.1)]'
                               : match.type === 'deadline'
                                 ? 'bg-status-red/[0.05] border border-status-red/20 hover:border-status-red/40 text-status-red shadow-[0_4px_12px_rgba(255,95,95,0.04)]'
                                 : 'bg-status-blue/[0.05] border border-status-blue/20 hover:border-status-blue/40 text-status-blue shadow-[0_4px_12px_rgba(74,158,255,0.04)]'
-                            : 'bg-transparent border border-white/[0.015] hover:border-white/10 hover:bg-white/[0.01]'
+                            : 'bg-transparent border border-white/[0.03] hover:border-white/[0.15] hover:bg-white/[0.02] hover:scale-[1.01] hover:shadow-[0_0_8px_rgba(255,255,255,0.02)]'
                         }`}
                       >
                         {match ? (
@@ -378,7 +396,7 @@ export default function CalendarPage({ tasks }) {
                             <div className="absolute inset-0 rounded-xl overflow-hidden pointer-events-none">
                               <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${
                                 isAiBlock 
-                                  ? 'bg-gradient-to-b from-cyan-400 to-[#E5B842]' 
+                                  ? 'bg-gradient-to-b from-[#E5B842] to-[#FFF2CC]' 
                                   : match.type === 'deadline' 
                                     ? 'bg-status-red' 
                                     : 'bg-status-blue'
@@ -386,7 +404,7 @@ export default function CalendarPage({ tasks }) {
                               <div className="pl-3.5 pr-2 py-1.5 min-w-0 flex flex-col justify-center h-full">
                                 <h5 className="text-[10px] font-bold uppercase truncate leading-tight tracking-wider">{match.title}</h5>
                                 <span className="text-[8px] opacity-60 font-semibold uppercase mt-0.5 block">
-                                  {isAiBlock ? '🤖 AI Focus' : match.type.replace('_', ' ')}
+                                  {isAiBlock ? '🤖 AI Scheduled' : match.type.replace('_', ' ')}
                                 </span>
                               </div>
                             </div>
@@ -395,12 +413,12 @@ export default function CalendarPage({ tasks }) {
                             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:flex flex-col w-52 p-3 bg-[#0D0D0E]/95 border border-white/10 rounded-2xl shadow-[0_12px_32px_rgba(0,0,0,0.95)] backdrop-blur-md text-left z-50 pointer-events-none transition-all">
                               <span className={`text-[8px] font-tech font-bold uppercase tracking-[0.2em] mb-1 ${
                                 isAiBlock 
-                                  ? 'text-cyan-400' 
+                                  ? 'text-[#E5B842]' 
                                   : match.type === 'deadline' 
                                     ? 'text-status-red' 
                                     : 'text-status-blue'
                               }`}>
-                                {isAiBlock ? '🤖 AI Focus Layer' : match.type === 'deadline' ? '⚠️ Deadline Layer' : '👤 Sync Layer'}
+                                {isAiBlock ? '🤖 AI Scheduled Layer' : match.type === 'deadline' ? '⚠️ Deadline Layer' : '👤 Sync Layer'}
                               </span>
                               <h6 className="text-[10px] font-bold text-white leading-snug mb-1.5 break-words">
                                 {match.title}
@@ -446,7 +464,7 @@ export default function CalendarPage({ tasks }) {
                   className="w-4 h-4 rounded border-white/10 text-[#E5B842] focus:ring-0 focus:ring-offset-0 bg-black cursor-pointer"
                 />
                 <span className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-[10px]">
-                  <span className="w-2.5 h-2.5 rounded bg-gradient-to-r from-cyan-400 to-[#E5B842] inline-block shadow-[0_0_8px_rgba(34,211,238,0.4)]"></span>
+                  <span className="w-2.5 h-2.5 rounded bg-gradient-to-r from-[#E5B842] to-[#FFF2CC] inline-block shadow-[0_0_8px_rgba(229,184,66,0.4)]"></span>
                   AI Scheduled Tasks
                 </span>
               </label>
@@ -584,7 +602,7 @@ export default function CalendarPage({ tasks }) {
                 <label className="text-[10px] font-tech font-bold uppercase tracking-wider text-white/40 block mb-2">Layer Type</label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { key: 'ai_block', label: '🤖 AI Block', activeClass: 'border-cyan-500 bg-cyan-500/10 text-cyan-400 shadow-[0_0_12px_rgba(34,211,238,0.1)]', inactiveClass: 'border-white/5 bg-white/[0.02] text-white/40 hover:text-white hover:bg-white/[0.04]' },
+                    {key: 'ai_block', label: '🤖 AI Scheduled', activeClass: 'border-[#E5B842] bg-[#E5B842]/10 text-[#E5B842] shadow-[0_0_12px_rgba(229,184,66,0.1)]', inactiveClass: 'border-white/5 bg-white/[0.02] text-white/40 hover:text-white hover:bg-white/[0.04]' },
                     { key: 'user_block', label: '👤 User Block', activeClass: 'border-status-blue bg-status-blue/10 text-status-blue shadow-[0_0_12px_rgba(74,158,255,0.1)]', inactiveClass: 'border-white/5 bg-white/[0.02] text-white/40 hover:text-white hover:bg-white/[0.04]' },
                     { key: 'deadline', label: '⚠️ Deadline', activeClass: 'border-status-red bg-status-red/10 text-status-red shadow-[0_0_12px_rgba(255,95,95,0.1)]', inactiveClass: 'border-white/5 bg-white/[0.02] text-white/40 hover:text-white hover:bg-white/[0.04]' }
                   ].map(tab => (
