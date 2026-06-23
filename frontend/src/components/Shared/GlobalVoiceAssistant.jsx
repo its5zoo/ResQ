@@ -730,6 +730,24 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
     setFocusActive(false);
   };
 
+  // Alt+V shortcut to wake/close assistant
+  useEffect(() => {
+    const handleAltVShortcut = (e) => {
+      if (e.altKey && e.key.toLowerCase() === 'v') {
+        e.preventDefault();
+        if (isWoken) {
+          closeAssistant();
+        } else {
+          triggerWakeUp();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleAltVShortcut);
+    return () => {
+      window.removeEventListener('keydown', handleAltVShortcut);
+    };
+  }, [isWoken]);
+
   // Cleanup on component unmount and handle Proactive/Idle triggers
   useEffect(() => {
     const updateActivity = () => {
@@ -986,6 +1004,33 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
                 )}
               </div>
             )}
+
+            {/* Text Input Fallback when SpeechRecognition is offline or for keyboard use */}
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                const input = e.target.elements.voiceInput.value.trim();
+                if (input) {
+                  setTranscript(input);
+                  sendTranscriptToBackend(input);
+                  e.target.elements.voiceInput.value = '';
+                }
+              }}
+              className="flex gap-2 border-t border-white/5 pt-3"
+            >
+              <input
+                name="voiceInput"
+                type="text"
+                placeholder="Type a command..."
+                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/40 focus:outline-none focus:border-[var(--orb-gold)] transition-all font-sans"
+              />
+              <button
+                type="submit"
+                className="px-4 py-2 bg-[var(--orb-gold)] hover:bg-[#FFF2CC] text-black font-tech font-bold text-[10px] uppercase tracking-wider rounded-xl transition-all cursor-pointer"
+              >
+                Send
+              </button>
+            </form>
 
             {/* "Powered by Gemini" micro-badge at bottom in subtle gold */}
             <div className="flex items-center justify-center pt-2 border-t border-white/5">

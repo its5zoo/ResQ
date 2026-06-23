@@ -11,6 +11,7 @@ class WakeWordEngine {
     this.limitReached = false;
     this.cooldown = false;
     this.permissionStatus = null;
+    this.consecutiveNetworkErrors = 0;
     
     // Recognition instances
     this.recognition = null;
@@ -178,6 +179,20 @@ class WakeWordEngine {
     }, 5000);
   }
 
+  showNetworkErrorToast() {
+    const existing = document.getElementById('resq-network-toast');
+    if (existing) return;
+
+    const toast = document.createElement('div');
+    toast.id = 'resq-network-toast';
+    toast.className = 'fixed bottom-6 right-6 z-[99999] px-5 py-3.5 rounded-2xl border border-amber-500/30 bg-black/90 text-amber-500 backdrop-blur-md shadow-2xl animate-fade-in font-sans text-xs font-bold uppercase';
+    toast.innerText = '⚠️ Speech Recognition Offline (Google speech servers blocked by VPN/firewall)';
+    document.body.appendChild(toast);
+    setTimeout(() => {
+      toast.remove();
+    }, 8000);
+  }
+
   async requestMicPermissionGracefully() {
     try {
       // Prompt native permission dialog
@@ -243,6 +258,7 @@ class WakeWordEngine {
       };
 
       recognition.onresult = (event) => {
+        this.consecutiveNetworkErrors = 0; // Reset network error count on successful result
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const transcript = event.results[i][0].transcript.toLowerCase().trim();
           console.log('[WakeWordEngine] Background heard:', transcript);
@@ -256,6 +272,14 @@ class WakeWordEngine {
 
       recognition.onerror = (event) => {
         console.warn('[WakeWordEngine] Background listener error:', event.error);
+        if (event.error === 'network') {
+          this.consecutiveNetworkErrors++;
+          if (this.consecutiveNetworkErrors >= 3) {
+            console.error('[WakeWordEngine] Speech recognition unreachable. Google speech servers might be blocked by your network/firewall.');
+            this.showNetworkErrorToast();
+            this.isListening = false; // Stop restarting to prevent infinite loop
+          }
+        }
         if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
           this.isListening = false;
         }
