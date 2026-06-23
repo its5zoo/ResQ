@@ -149,25 +149,27 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
   
   const executorRef = useRef(null);
   if (!executorRef.current) {
-    executorRef.current = new VoiceActionExecutor((target) => {
-      if (setCurrentTab) {
-        setCurrentTab(target);
-      }
-      navigate(`/dashboard?tab=${target}`);
-    }, null);
-  }
-
-  // Update VoiceActionExecutor callback if navigate/setCurrentTab changes
-  useEffect(() => {
-    if (executorRef.current) {
-      executorRef.current.navigationCallback = (target) => {
+    executorRef.current = new VoiceActionExecutor(
+      (target) => {
         if (setCurrentTab) {
           setCurrentTab(target);
         }
         navigate(`/dashboard?tab=${target}`);
-      };
-    }
-  }, [setCurrentTab, navigate]);
+      },
+      (text) => speakBack(text)
+    );
+  }
+
+  // Keep executor callbacks fresh on every render
+  if (executorRef.current) {
+    executorRef.current.navigationCallback = (target) => {
+      if (setCurrentTab) {
+        setCurrentTab(target);
+      }
+      navigate(`/dashboard?tab=${target}`);
+    };
+    executorRef.current.speakCallback = (text) => speakBack(text);
+  }
 
   // Check Microphone Permission status on mount
   useEffect(() => {

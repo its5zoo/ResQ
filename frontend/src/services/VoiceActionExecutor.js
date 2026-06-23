@@ -4,11 +4,19 @@ import { tasks as apiTasks, calendar as apiCalendar, ai as apiAi, voice as apiVo
 import { socket } from './socket.js';
 
 export class VoiceActionExecutor {
-  constructor(navigationCallback, queryClient) {
+  constructor(navigationCallback, speakCallback) {
     this.navigationCallback = navigationCallback;
-    this.queryClient = queryClient; // Might be null/mocked as app uses custom hooks or direct fetch
+    this.speakCallback = speakCallback;
     this.awaitingClarification = false;
     this.onClarificationTimeout = null;
+  }
+
+  speak(text) {
+    if (typeof this.speakCallback === 'function') {
+      this.speakCallback(text);
+    } else {
+      voicePersonality.speak(text);
+    }
   }
 
   async execute(intentObject) {
@@ -17,8 +25,9 @@ export class VoiceActionExecutor {
     const { intent, confidence, extractedData, missingFields, clarificationQuestion, voiceResponse, uiAction, navigationTarget, suggestAlternative } = intentObject;
 
     // 1. Speak the voice response IMMEDIATELY (don't wait for actions)
-    if (voiceResponse) {
-      voicePersonality.speak(voiceResponse);
+    const responseText = voiceResponse || intentObject.response || clarificationQuestion;
+    if (responseText) {
+      this.speak(responseText);
     }
 
     // 2. Navigate if needed
@@ -70,9 +79,9 @@ export class VoiceActionExecutor {
             window.dispatchEvent(new CustomEvent('resq:refetch-tasks'));
             // Trigger strikethrough + fade styling
             window.dispatchEvent(new CustomEvent('resq:task-completed-animation', { detail: { taskId } }));
-            voicePersonality.speak("Marked as done. Great work.");
+            this.speak("Marked as done. Great work.");
           } else {
-            voicePersonality.speak("I couldn't find that task in your list.");
+            this.speak("I couldn't find that task in your list.");
           }
           
           if (socket && socket.connected) {
@@ -135,7 +144,7 @@ export class VoiceActionExecutor {
           } else {
             window.dispatchEvent(new CustomEvent('resq:navigate', { detail: { target: 'calendar' } }));
           }
-          voicePersonality.speak("I've blocked out focus time for your top priorities.");
+          this.speak("I've blocked out focus time for your top priorities.");
         } catch (e) {
           console.error('[VoiceActionExecutor] auto_schedule_tasks failed:', e);
         }
@@ -159,11 +168,11 @@ export class VoiceActionExecutor {
               return `${start} to ${end}`;
             });
             const slotsText = `You have ${freeSlots.length} free blocks today: ${slotDescriptions.slice(0, 3).join(', and ')}.`;
-            voicePersonality.speak(slotsText);
+            this.speak(slotsText);
             window.dispatchEvent(new CustomEvent('resq:display-free-time', { detail: { text: slotsText } }));
           } else {
             const noFreeText = "Your schedule looks fully blocked today.";
-            voicePersonality.speak(noFreeText);
+            this.speak(noFreeText);
             window.dispatchEvent(new CustomEvent('resq:display-free-time', { detail: { text: noFreeText } }));
           }
         } catch (e) {
@@ -187,7 +196,7 @@ export class VoiceActionExecutor {
         try {
           const summaryData = await apiAi.getDailySummary();
           if (summaryData?.summary) {
-            voicePersonality.speak(summaryData.summary);
+            this.speak(summaryData.summary);
             window.dispatchEvent(new CustomEvent('resq:show-summary', { detail: { summary: summaryData.summary } }));
           }
         } catch (e) {
@@ -204,13 +213,13 @@ export class VoiceActionExecutor {
           } else {
             window.dispatchEvent(new CustomEvent('resq:navigate', { detail: { target } }));
           }
-          voicePersonality.speak(`Opening your ${target}.`);
+          this.speak(`Opening your ${target}.`);
         }
         break;
       }
 
       case 'permission_denied': {
-        voicePersonality.speak(intentObject.voiceResponse || voiceResponse);
+        this.speak(intentObject.voiceResponse || voiceResponse || intentObject.response);
         break;
       }
 
@@ -238,15 +247,16 @@ export class VoiceActionExecutor {
             console.error('[VoiceActionExecutor] Failed to persist theme:', e);
           }
 
-          voicePersonality.speak(`Switched to ${theme} mode. Looks great.`);
+          this.speak(`Switched to ${theme} mode. Looks great.`);
         }
         break;
       }
 
       case 'out_of_scope': {
         // Speak voiceResponse (polite decline + redirects)
-        if (voiceResponse) {
-          voicePersonality.speak(voiceResponse);
+        const scopeText = voiceResponse || intentObject.response;
+        if (scopeText) {
+          this.speak(scopeText);
         }
         break;
       }
@@ -270,9 +280,9 @@ export class VoiceActionExecutor {
           const critical = allTasks.filter(t => !t.completed && t.urgency >= 9);
           if (critical.length > 0) {
             const summary = `You have ${critical.length} critical deadlines remaining today. I recommend engaging your focus shield.`;
-            voicePersonality.speak(summary);
+            this.speak(summary);
           } else {
-            voicePersonality.speak("Excellent news, you have no critical task deadlines looming today.");
+            this.speak("Excellent news, you have no critical task deadlines looming today.");
           }
         } catch (e) {
           console.error('[VoiceActionExecutor] show_deadlines failed:', e);
