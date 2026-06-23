@@ -1,6 +1,5 @@
 import express from 'express';
 import http from 'http';
-import { Server } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -8,7 +7,7 @@ import dotenv from 'dotenv';
 
 import connectDB from './config/db.js';
 import { errorHandler } from './middleware/errorHandler.js';
-import { handleSocketEvents } from './socket/socketHandler.js';
+import { handleSocketEvents, io } from './socket/socketHandler.js';
 
 // Route Imports
 import authRoutes from './routes/auth.js';
@@ -30,16 +29,8 @@ connectDB();
 const app = express();
 const server = http.createServer(app);
 
-// Mount Socket.IO
-const io = new Server(server, {
-  cors: {
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE']
-  }
-});
-
 // Bind Socket events
-handleSocketEvents(io);
+handleSocketEvents(server);
 
 // Global Middlewares
 app.use(helmet());

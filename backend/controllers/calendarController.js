@@ -1,6 +1,7 @@
 import CalendarEvent from '../models/CalendarEvent.js';
 import Task from '../models/Task.js';
 import { generateAutoSchedule } from '../services/geminiService.js';
+import { io } from '../socket/socketHandler.js';
 
 // Helper to parse day/time into Date object
 const parseDayTimeToDate = (dayName, timeStr) => {
@@ -170,6 +171,10 @@ export const autoSchedule = async (req, res) => {
         const savedEvent = await newEvent.save();
         createdEvents.push(savedEvent);
       }
+    }
+
+    if (io) {
+      io.to(`user_${req.user._id}`).emit('calendar:new-events', createdEvents);
     }
 
     res.json(createdEvents);

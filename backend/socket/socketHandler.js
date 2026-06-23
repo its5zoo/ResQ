@@ -1,161 +1,120 @@
-import { handleVoiceCommand } from '../services/geminiService.js';
+import { Server } from 'socket.io';
+import jwt from 'jsonwebtoken';
 import Task from '../models/Task.js';
-import Habit from '../models/Habit.js';
-import CalendarEvent from '../models/CalendarEvent.js';
-import Goal from '../models/Goal.js';
+import { reprioritizeTasksForUser } from '../controllers/taskController.js';
+import { executeVoiceCommand } from '../controllers/voiceController.js';
 
-// Helper to parse day/time into Date object
-const parseDayTimeToDate = (dayName, timeStr) => {
-  const days = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
-  const targetDayNum = days[dayName.toLowerCase().substring(0, 3)];
-  const date = new Date();
-  if (targetDayNum === undefined) return date;
+export let io = null;
 
-  const currentDayNum = date.getDay();
-  let diff = targetDayNum - currentDayNum;
-  if (diff < 0) {
-    diff += 7;
-  }
-  date.setDate(date.getDate() + diff);
-
-  let hours = 9;
-  let minutes = 0;
-  
-  const ampmMatch = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
-  if (ampmMatch) {
-    hours = parseInt(ampmMatch[1]);
-    minutes = parseInt(ampmMatch[2]);
-    const ampm = ampmMatch[3].toUpperCase();
-    if (ampm === 'PM' && hours < 12) hours += 12;
-    if (ampm === 'AM' && hours === 12) hours = 0;
-  } else {
-    const plainMatch = timeStr.match(/(\d+):(\d+)/);
-    if (plainMatch) {
-      hours = parseInt(plainMatch[1]);
-      minutes = parseInt(plainMatch[2]);
+export const handleSocketEvents = (server) => {
+  io = new Server(server, {
+    cors: {
+      origin: process.env.CLIENT_URL || '*',
+      methods: ['GET', 'POST', 'PUT', 'DELETE']
     }
-  }
-  
-  date.setHours(hours, minutes, 0, 0);
-  return date;
-};
+  });
 
-export const handleSocketEvents = (io) => {
+  // Authenticate socket connections using JWT from handshake.auth.token
+  io.use((socket, next) => {
+    const token = socket.handshake.auth?.token;
+    if (!token) {
+      return next(new Error('Authentication error: Token required'));
+    }
+
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_super_secret_key_12345');
+      socket.user = decoded; // decoded contains the user ID under decoded.id
+      next();
+    } catch (err) {
+      console.error('Socket authentication failed:', err.message);
+      return next(new Error('Authentication error: Invalid token'));
+    }
+  });
+
   io.on('connection', (socket) => {
-    console.log(`Socket connected: ${socket.id}`);
+    const userId = socket.user.id;
+    const roomName = `user_${userId}`;
+    
+    // Join user to room user_${userId} on connect
+    socket.join(roomName);
+    console.log(`Socket ${socket.id} authenticated and joined room ${roomName}`);
 
-    // Join user-specific socket rooms for scoped notifications
-    socket.on('join-room', (userId) => {
-      socket.join(userId);
-      console.log(`Socket ${socket.id} joined room ${userId}`);
-    });
-
-    // Handle real-time Voice command transcriptions
-    socket.on('voice-command', async (data) => {
-      const { userId, commandText } = data;
-      console.log(`Voice command from user ${userId}: ${commandText}`);
+    // voice:transcript event
+    socket.on('voice:transcript', async (data) => {
+      const { transcript } = data;
+      if (!transcript) return;
 
       try {
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
-        const todayEnd = new Date();
-        todayEnd.setHours(23, 59, 59, 999);
-
-        // Fetch user context
-        const tasks = await Task.find({ userId });
-        const todayEvents = await CalendarEvent.find({
-          userId,
-          startTime: { $gte: todayStart, $lte: todayEnd }
-        });
-        const habits = await Habit.find({ userId });
-        const goals = await Goal.find({ userId });
-
-        const userContext = {
-          tasks,
-          todayEvents,
-          habits,
-          goals
-        };
-
-        const geminiResult = await handleVoiceCommand(commandText, userContext);
-        const resultObj = typeof geminiResult === 'string' ? JSON.parse(geminiResult) : geminiResult;
-
-        const { action, response, navigationTarget } = resultObj;
-
-        // Process action in DB
-        if (action && action.type) {
-          const payload = action.payload || {};
-
-          if (action.type === 'add_task') {
-            const newTask = new Task({
-              userId,
-              title: payload.title || 'New Task from Voice',
-              description: payload.description || '',
-              urgency: payload.urgency || 5,
-              category: payload.category || 'General',
-              completed: false,
-              dueDate: payload.dueDate ? new Date(payload.dueDate) : new Date(),
-              estimatedMinutes: payload.estimatedMinutes || 30
-            });
-            await newTask.save();
-            console.log(`[Socket Voice Action] Created task: ${newTask.title}`);
-          } 
-          else if (action.type === 'complete_task') {
-            const taskId = payload.taskId || payload.id;
-            if (taskId) {
-              await Task.findOneAndUpdate({ _id: taskId, userId }, { completed: true });
-            } else if (payload.title) {
-              await Task.findOneAndUpdate({ title: payload.title, userId }, { completed: true });
-            }
-            console.log('[Socket Voice Action] Marked task complete');
-          } 
-          else if (action.type === 'schedule_task') {
-            let start = payload.startTime ? new Date(payload.startTime) : null;
-            let end = payload.endTime ? new Date(payload.endTime) : null;
-            if (!start && payload.day && payload.timeSlot) {
-              start = parseDayTimeToDate(payload.day, payload.timeSlot);
-              const dur = payload.duration || 45;
-              end = new Date(start.getTime() + dur * 60000);
-            }
-            if (!start) {
-              start = new Date();
-              end = new Date(start.getTime() + 45 * 60000);
-            }
-
-            const newEvent = new CalendarEvent({
-              userId,
-              title: payload.title || 'Scheduled by Voice',
-              startTime: start,
-              endTime: end || new Date(start.getTime() + 45 * 60000),
-              type: payload.type || 'ai_block',
-              layer: 'default',
-              notes: 'Scheduled via ResQ Socket Voice Assistant',
-              aiGenerated: true
-            });
-            await newEvent.save();
-            console.log(`[Socket Voice Action] Scheduled event: ${newEvent.title}`);
-          }
-        }
-
-        // Return parsed NLP command response to the client
-        socket.emit('voice-response', {
-          response: response || 'Command processed.',
-          action: action || null,
-          navigationTarget: navigationTarget || null
-        });
-
-      } catch (error) {
-        console.error('Socket voice-command processing error:', error);
-        socket.emit('voice-response', {
-          action: 'error',
-          response: 'Sorry, I encountered an issue processing your voice request.',
+        console.log(`[Socket Voice] Transcript from ${userId}: ${transcript}`);
+        const result = await executeVoiceCommand(userId, transcript);
+        
+        // Emit voice:response to the user
+        socket.emit('voice:response', result);
+      } catch (err) {
+        console.error('[Socket Voice] Error processing transcript:', err);
+        socket.emit('voice:response', {
+          response: 'Error processing voice command.',
+          action: null,
           navigationTarget: null
         });
       }
     });
 
+    // task:create event
+    socket.on('task:create', async (data) => {
+      try {
+        const { title, description, urgency, category, estimatedMinutes, duration, dueDate } = data;
+        
+        const newTask = new Task({
+          userId,
+          title: title || 'New Task',
+          description: description || '',
+          urgency: urgency || 5,
+          category: category || 'General',
+          completed: false,
+          estimatedMinutes: estimatedMinutes || duration || 30,
+          dueDate: dueDate ? new Date(dueDate) : new Date()
+        });
+
+        await newTask.save();
+        console.log(`[Socket Task] Created task for user ${userId}: ${newTask.title}`);
+        
+        // Re-prioritize all tasks
+        await reprioritizeTasksForUser(userId);
+
+        // Emit tasks:updated to user's room
+        const updatedTasks = await Task.find({ userId }).sort({ aiPriorityRank: 1, urgency: -1 });
+        io.to(roomName).emit('tasks:updated', updatedTasks);
+      } catch (err) {
+        console.error('[Socket Task] Error creating task:', err);
+      }
+    });
+
+    // task:complete event
+    socket.on('task:complete', async (data) => {
+      try {
+        const { id, taskId } = data;
+        const targetId = id || taskId;
+        if (!targetId) return;
+
+        await Task.findOneAndUpdate({ _id: targetId, userId }, { completed: true });
+        console.log(`[Socket Task] Completed task ${targetId} for user ${userId}`);
+
+        // Re-prioritize
+        await reprioritizeTasksForUser(userId);
+
+        // Emit tasks:updated to user's room
+        const updatedTasks = await Task.find({ userId }).sort({ aiPriorityRank: 1, urgency: -1 });
+        io.to(roomName).emit('tasks:updated', updatedTasks);
+      } catch (err) {
+        console.error('[Socket Task] Error completing task:', err);
+      }
+    });
+
     socket.on('disconnect', () => {
-      console.log(`Socket disconnected: ${socket.id}`);
+      console.log(`Socket disconnected: ${socket.id} (user ${userId})`);
     });
   });
+
+  return io;
 };

@@ -1,10 +1,19 @@
 import Task from '../models/Task.js';
 import { generateTaskPriority } from '../services/geminiService.js';
+import { io } from '../socket/socketHandler.js';
 
 export const reprioritizeTasksForUser = async (userId) => {
   try {
     const tasks = await Task.find({ userId, completed: false });
-    if (tasks.length === 0) return;
+    if (tasks.length === 0) {
+      if (io) {
+        const room = `user_${userId}`;
+        const updatedTasks = await Task.find({ userId }).sort({ aiPriorityRank: 1, urgency: -1 });
+        io.to(room).emit('tasks:updated', updatedTasks);
+        io.to(room).emit('ai:priority-update', []);
+      }
+      return;
+    }
 
     const prioritized = await generateTaskPriority(tasks);
     if (Array.isArray(prioritized)) {
@@ -18,6 +27,16 @@ export const reprioritizeTasksForUser = async (userId) => {
           );
         }
       }
+    }
+
+    // Emit real-time events to user's room
+    if (io) {
+      const room = `user_${userId}`;
+      const updatedTasks = await Task.find({ userId }).sort({ aiPriorityRank: 1, urgency: -1 });
+      io.to(room).emit('tasks:updated', updatedTasks);
+
+      const incompleteTasks = await Task.find({ userId, completed: false }).sort({ aiPriorityRank: 1, urgency: -1 });
+      io.to(room).emit('ai:priority-update', incompleteTasks);
     }
   } catch (error) {
     console.error('Error in reprioritizeTasksForUser:', error);
@@ -51,7 +70,7 @@ export const createTask = async (req, res) => {
 
     const createdTask = await task.save();
 
-    // Re-rank all tasks for this user
+    // Re-rank all tasks for this user (this will also emit Socket.IO events)
     await reprioritizeTasksForUser(req.user._id);
 
     const refetchedTask = await Task.findById(createdTask._id);
@@ -66,6 +85,10 @@ export const updateTask = async (req, res) => {
     const task = await Task.findById(req.params.id);
 
     if (task && task.userId.toString() === req.user._id.toString()) {
+      const urgencyChanged = req.body.urgency !== undefined && req.body.urgency !== task.urgency;
+      const dueDateChanged = req.body.dueDate !== undefined && req.body.dueDate !== task.dueDate;
+      const completedChanged = req.body.completed !== undefined && req.body.completed !== task.completed;
+
       task.title = req.body.title !== undefined ? req.body.title : task.title;
       task.description = req.body.description !== undefined ? req.body.description : task.description;
       task.urgency = req.body.urgency !== undefined ? req.body.urgency : task.urgency;
@@ -80,10 +103,17 @@ export const updateTask = async (req, res) => {
       const updatedTask = await task.save();
 
       // Trigger automatic reprioritization if key fields changed
-      if (req.body.urgency !== undefined || req.body.dueDate !== undefined || req.body.completed !== undefined) {
+      if (urgencyChanged || dueDateChanged || completedChanged) {
         await reprioritizeTasksForUser(req.user._id);
         const refetchedTask = await Task.findById(updatedTask._id);
         return res.json(refetchedTask);
+      }
+
+      // If no re-ranking occurred, still emit task update event
+      if (io) {
+        const room = `user_${req.user._id}`;
+        const updatedTasks = await Task.find({ userId: req.user._id }).sort({ aiPriorityRank: 1, urgency: -1 });
+        io.to(room).emit('tasks:updated', updatedTasks);
       }
 
       res.json(updatedTask);
