@@ -1,0 +1,52 @@
+import React, { useEffect } from 'react';
+import Navbar from '../components/Landing/Navbar';
+import Hero from '../components/Landing/Hero';
+import FeatureStrip from '../components/Landing/FeatureStrip';
+import FeaturesGrid from '../components/Landing/FeaturesGrid';
+import DashboardPreview from '../components/Landing/DashboardPreview';
+import VoiceSection from '../components/Landing/VoiceSection';
+import MobileSection from '../components/Landing/MobileSection';
+import CTASection from '../components/Landing/CTASection';
+import Footer from '../components/Landing/Footer';
+
+import Lenis from 'lenis';
+
+export default function Landing() {
+  useEffect(() => {
+    // Initialize Lenis Smooth Scroll
+    const lenis = new Lenis({
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // easeOutExpo
+      gestureDirection: 'vertical',
+      smooth: true,
+    });
+
+    let rafId;
+    const scrollRAF = (time) => {
+      lenis.raf(time);
+      rafId = requestAnimationFrame(scrollRAF);
+    };
+
+    rafId = requestAnimationFrame(scrollRAF);
+
+    // Cleanup
+    return () => {
+      lenis.destroy();
+      cancelAnimationFrame(rafId);
+    };
+  }, []);
+
+  return (
+    <div className="bg-[#080808] text-white min-h-screen relative bg-noise overflow-x-hidden">
+      <Navbar />
+      <Hero />
+      <FeatureStrip />
+      <FeaturesGrid />
+      <DashboardPreview />
+      <VoiceSection />
+      <MobileSection />
+      <CTASection />
+      <Footer />
+    </div>
+  );
+}

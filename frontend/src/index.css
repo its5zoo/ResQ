@@ -1,0 +1,272 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    --bg-primary: #050505;
+    --bg-secondary: #090909;
+    --bg-surface: #0F0F0F;
+    --bg-elevated: #151515;
+    --border-color: rgba(255,255,255,0.08);
+    --orange-primary: #FF8A00;
+    --orange-glow: #FFAA33;
+    --orange-highlight: #FFC266;
+    
+    --gold-primary: #E5B842;
+    --gold-glow: #F5C75D;
+    --gold-highlight: #FFF2CC;
+    
+    --platinum-primary: #EAEAEA;
+    --platinum-glow: #FFFFFF;
+  }
+
+  body {
+    background-color: var(--bg-primary);
+    color: #ffffff;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    letter-spacing: -0.01em;
+  }
+
+  /* Headings styled like Stripe, Vercel, Linear ($100M SaaS) */
+  h1, h2, h3 {
+    font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 900;
+    letter-spacing: -0.06em;
+    color: #ffffff;
+  }
+
+  h4, h5, h6, button, label, nav, span {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing: -0.02em;
+  }
+}
+
+/* Premium white-to-silver text gradients */
+.text-silver-gradient {
+  background: linear-gradient(180deg, #ffffff 40%, #a3a3a3 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Premium gold text gradients */
+.text-gold-gradient {
+  background: linear-gradient(180deg, #FFF2CC 0%, #E5B842 50%, #B8860B 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gold-sweep {
+  position: relative;
+  background: linear-gradient(
+    110deg,
+    #b38612 0%,
+    #e5b842 25%,
+    #ffffff 50%,
+    #e5b842 75%,
+    #b38612 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: goldGlowFlow 3s linear infinite;
+  filter: drop-shadow(0 0 3px rgba(229, 184, 66, 0.65)) drop-shadow(0 0 8px rgba(229, 184, 66, 0.25));
+}
+
+/* Diagonal shine sweep repeating over text */
+.text-shine-sweep {
+  position: relative;
+  background: linear-gradient(
+    110deg,
+    #ffffff 30%,
+    rgba(255, 255, 255, 0.4) 40%,
+    #ffffff 50%,
+    #a3a3a3 80%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shineSweep 12s linear infinite;
+}
+
+@keyframes shineSweep {
+  0% { background-position: -100% 0; }
+  10% { background-position: 100% 0; }
+  100% { background-position: 100% 0; }
+}
+
+@keyframes goldGlowFlow {
+  0% { background-position: 200% 0; }
+  100% { background-position: 0% 0; }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.font-display {
+  font-family: 'Outfit', sans-serif;
+}
+
+.text-glow-amber {
+  text-shadow: 0 0 45px rgba(255, 138, 0, 0.35);
+}
+
+.text-glow-gold {
+  text-shadow: 0 0 45px rgba(229, 184, 66, 0.35);
+}
+
+.bg-noise {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.02'/%3E%3C/svg%3E");
+}
+
+/* Subtle grid line distortion styling overlay */
+.bg-grid-lines {
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.015) 1px, transparent 1px);
+}
+
+/* Layered depth styles */
+.layered-shadow-lg {
+  box-shadow: 
+    0 10px 30px -10px rgba(0,0,0,0.8),
+    0 1px 0 0 rgba(255,255,255,0.05) inset;
+}
+
+.layered-shadow-xl {
+  box-shadow: 
+    0 20px 50px -15px rgba(0,0,0,0.9),
+    0 0 0 1px rgba(255,255,255,0.05),
+    0 1px 0 0 rgba(255,255,255,0.08) inset;
+}
+
+/* Easing curves */
+.ease-spring {
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Letter reveal stagger */
+.reveal-char {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(12px);
+  animation: revealCharKey 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes revealCharKey {
+  0% { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Ambient glow movement - loops over 45s */
+@keyframes ambientGlowMove {
+  0% { transform: translate(-50%, -50%) rotate(0deg) scale(1); }
+  50% { transform: translate(-30%, -40%) rotate(180deg) scale(1.15); }
+  100% { transform: translate(-50%, -50%) rotate(360deg) scale(1); }
+}
+
+.animate-ambient-glow {
+  animation: ambientGlowMove 50s infinite linear;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-elevated);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-color);
+}
+
+/* Premium Card Shining/Shimmer Sweep Overlay */
+.card-shine-sweep {
+  position: relative;
+  overflow: hidden;
+}
+
+.card-shine-sweep::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -150%;
+  width: 150%;
+  height: 200%;
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.03) 45%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.03) 55%,
+    transparent 65%
+  );
+  transform: rotate(-15deg);
+  pointer-events: none;
+  z-index: 10;
+  animation: cardShine 7s infinite cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+@keyframes cardShine {
+  0% { left: -150%; }
+  18% { left: 100%; }
+  100% { left: 100%; }
+}
+
+/* Lenis smooth scroll & hardware acceleration styles */
+html.lenis, html.lenis body {
+  height: auto;
+}
+
+.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis-scrolling iframe {
+  pointer-events: none;
+}
+
+.scroll-section {
+  will-change: transform;
+}
+
+.scroll-inner {
+  will-change: transform, opacity;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+}
+
+
