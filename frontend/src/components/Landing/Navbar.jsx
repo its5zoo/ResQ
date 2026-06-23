@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Shield, Sun, Moon } from 'lucide-react';
+import { useAuthContext } from '../../context/AuthContext.jsx';
+import LogoutModal from '../Shared/LogoutModal.jsx';
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState('');
-  const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('resq-theme') || 'dark';
-  });
+  const themeFromStorage = typeof window !== 'undefined' ? localStorage.getItem('resq-theme') : null;
+  const [theme, setTheme] = useState(() => themeFromStorage || 'dark');
   const navigate = useNavigate();
+  const { isAuthenticated, logout } = useAuthContext();
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -122,21 +125,41 @@ export default function Navbar() {
             )}
           </button>
 
-          <button 
-            onClick={() => navigate('/auth')}
-            className="px-5 py-2.5 rounded-lg text-sm font-semibold tracking-wider uppercase text-white/60 hover:text-[#E5B842] transition-all duration-300 focus:outline-hidden cursor-pointer"
-          >
-            Sign In
-          </button>
-          <button 
-            onClick={() => navigate('/auth')}
-            className="px-6 py-3 rounded-lg text-sm font-semibold tracking-wider uppercase bg-transparent text-white border border-white/40 hover:border-[#E5B842] hover:text-[#E5B842] transition-all duration-500 hover:-translate-y-0.5 active:translate-y-0 focus:outline-hidden cursor-pointer"
-          >
-            Get Started
-          </button>
+          {isAuthenticated ? (
+            <button 
+              onClick={() => setIsLogoutModalOpen(true)}
+              className="px-5 py-2.5 rounded-lg text-sm font-semibold tracking-wider uppercase text-white border border-white/20 hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-400 transition-all duration-300 focus:outline-hidden cursor-pointer"
+            >
+              Logout
+            </button>
+          ) : (
+            <>
+              <button 
+                onClick={() => navigate('/auth')}
+                className="px-5 py-2.5 rounded-lg text-sm font-semibold tracking-wider uppercase text-white/60 hover:text-[#E5B842] transition-all duration-300 focus:outline-hidden cursor-pointer"
+              >
+                Sign In
+              </button>
+              <button 
+                onClick={() => navigate('/auth')}
+                className="px-6 py-3 rounded-lg text-sm font-semibold tracking-wider uppercase bg-transparent text-white border border-white/40 hover:border-[#E5B842] hover:text-[#E5B842] transition-all duration-500 hover:-translate-y-0.5 active:translate-y-0 focus:outline-hidden cursor-pointer"
+              >
+                Get Started
+              </button>
+            </>
+          )}
         </div>
 
       </div>
+
+      <LogoutModal 
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={async () => {
+          await logout();
+          navigate('/');
+        }}
+      />
     </nav>
   );
 }

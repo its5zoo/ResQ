@@ -6,14 +6,10 @@ import {
   LayoutGrid, 
   Volume2, 
   CreditCard, 
-  Database, 
   HardDrive, 
   Shield, 
-  Key, 
-  Lock, 
   Heart, 
   User, 
-  Keyboard,
   Check,
   AlertCircle,
   X
@@ -461,14 +457,10 @@ export default function SettingsPage() {
     { id: 'apps', label: 'Apps', icon: LayoutGrid },
     { id: 'voice', label: 'Voice AI', icon: Volume2 },
     { id: 'billing', label: 'Billing', icon: CreditCard },
-    { id: 'data', label: 'Data controls', icon: Database },
     { id: 'storage', label: 'Storage', icon: HardDrive },
     { id: 'safety', label: 'Safety', icon: Shield },
-    { id: 'security', label: 'Security and login', icon: Key },
-    { id: 'parental', label: 'Parental controls', icon: Lock },
     { id: 'trusted', label: 'Trusted contact', icon: Heart },
-    { id: 'account', label: 'Account', icon: User },
-    { id: 'keyboard', label: 'Keyboard', icon: Keyboard }
+    { id: 'account', label: 'Account', icon: User }
   ];
 
   // Render content area based on active tab
@@ -675,36 +667,23 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              {/* Accent Color selection */}
-              <div>
-                <label className="text-[10px] font-tech font-bold uppercase tracking-wider text-white/40 block mb-2.5">System Accent Color</label>
-                <div className="flex gap-3">
-                  {[
-                    { key: 'gold', color: 'bg-[#E5B842]', label: 'Gold' },
-                    { key: 'platinum', color: 'bg-[#EAEAEA]', label: 'Platinum' },
-                    { key: 'red', color: 'bg-status-red', label: 'Red' },
-                    { key: 'blue', color: 'bg-status-blue', label: 'Blue' }
-                  ].map(item => (
-                    <button
-                      key={item.key}
-                      type="button"
-                      onClick={() => setAccentColor(item.key)}
-                      className={`w-8 h-8 rounded-xl flex items-center justify-center border transition-all cursor-pointer ${
-                        accentColor === item.key ? 'border-white bg-white/5 scale-105' : 'border-white/5 bg-black/40 opacity-60 hover:opacity-100'
-                      }`}
-                      title={item.label}
-                    >
-                      <span className={`w-3.5 h-3.5 rounded-full ${item.color}`} />
-                    </button>
-                  ))}
-                </div>
-              </div>
 
               {/* Font Size slider */}
               <div className="space-y-2.5 pt-2">
                 <div className="flex justify-between items-center text-xs">
                   <span className="text-white/50">Interface Font Size:</span>
-                  <span className="text-[#E5B842] font-bold uppercase">{fontSize}px</span>
+                  <div className="flex items-center gap-3">
+                    {fontSize !== 16 && (
+                      <button 
+                        type="button"
+                        onClick={() => handleFontSizeChange(16)}
+                        className="text-[9px] font-tech text-white/40 hover:text-white uppercase tracking-wider border border-white/10 hover:border-white/30 px-2 py-0.5 rounded transition-colors cursor-pointer focus:outline-hidden"
+                      >
+                        Reset
+                      </button>
+                    )}
+                    <span className="text-[#E5B842] font-bold uppercase w-8 text-right">{fontSize}px</span>
+                  </div>
                 </div>
                 <input 
                   type="range" 
@@ -1139,51 +1118,7 @@ export default function SettingsPage() {
           </div>
         );
 
-      case 'data':
-        return (
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-display font-black text-white">Data Controls</h3>
-              <p className="text-xs text-white/50">Export your local databases or opt-in to system backup syncs.</p>
-            </div>
 
-            <div className="space-y-5 max-w-lg">
-              <div className="p-5 bg-black/40 border border-white/[0.03] rounded-3xl space-y-4">
-                <h4 className="text-xs font-bold text-white uppercase tracking-wider">Local Workspace Data Package</h4>
-                <p className="text-[10px] text-white/50 leading-relaxed">
-                  Export all dynamic events, completed habits, streak stats, and local profile configurations into an encrypted JSON backup folder.
-                </p>
-                <div className="flex gap-3">
-                  <button 
-                    onClick={handleExportData}
-                    className="px-4 py-2 bg-transparent text-[#E5B842] border border-[#E5B842]/40 hover:bg-[#E5B842] hover:text-black hover:border-transparent text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer"
-                  >
-                    Export Workspace (JSON)
-                  </button>
-                  <button 
-                    onClick={() => showToast("Browse metadata package trigger.")}
-                    className="px-4 py-2 border border-white/10 rounded-xl text-[10px] font-bold uppercase tracking-wider text-white/60 hover:text-white hover:border-white/20 transition-all cursor-pointer"
-                  >
-                    Import Backup
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between p-4 bg-black/40 border border-white/[0.03] rounded-2xl">
-                <div className="flex flex-col">
-                  <span className="text-xs font-semibold text-white/85">Automatic Cloud Backups</span>
-                  <span className="text-[10px] text-white/40">Secure sync to ResQ Cloud servers hourly</span>
-                </div>
-                <button 
-                  onClick={() => showToast("Cloud backup toggled")}
-                  className="w-9 h-5 rounded-full p-0.5 bg-[#E5B842] border border-[#E5B842] relative cursor-pointer"
-                >
-                  <div className="w-3.5 h-3.5 rounded-full bg-black translate-x-4 transition-transform duration-300" />
-                </button>
-              </div>
-            </div>
-          </div>
-        );
 
       case 'storage':
         return (
@@ -1262,88 +1197,8 @@ export default function SettingsPage() {
           </div>
         );
 
-      case 'security':
-        return (
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-display font-black text-white">Security & API Access</h3>
-              <p className="text-xs text-white/50">Generate authorization credentials and configure two-factor authentication.</p>
-            </div>
 
-            <div className="space-y-5 max-w-lg">
-              <div className="p-5 bg-black/40 border border-white/[0.03] rounded-3xl space-y-3">
-                <h4 className="text-xs font-bold text-white uppercase tracking-wider">Developer API Token</h4>
-                <p className="text-[10px] text-white/50 leading-relaxed">
-                  Authorize third-party scripts or automate notifications via ResQ webhooks. Keep this token private.
-                </p>
-                <button 
-                  type="button"
-                  onClick={handleGenerateApiKey}
-                  className="w-full py-2.5 bg-transparent text-[#E5B842] border border-[#E5B842]/40 hover:bg-[#E5B842] hover:text-black hover:border-transparent text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all duration-300 cursor-pointer"
-                >
-                  Generate Live API Key
-                </button>
-              </div>
 
-              <div className="flex items-center justify-between p-4 bg-black/40 border border-white/[0.03] rounded-2xl">
-                <div className="flex flex-col">
-                  <span className="text-xs font-semibold text-white/85">Two-Factor Authentication (2FA)</span>
-                  <span className="text-[10px] text-white/40">Secure login checks via companion app authentication</span>
-                </div>
-                <button 
-                  onClick={() => setTwoFactor(!twoFactor)}
-                  className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-300 relative cursor-pointer border ${twoFactor ? 'bg-[#E5B842] border-[#E5B842]' : 'bg-transparent border-white/20'}`}
-                >
-                  <div className={`w-3.5 h-3.5 rounded-full bg-black transition-transform duration-300 ${twoFactor ? 'translate-x-4 bg-black' : 'translate-x-0 bg-white/40'}`} />
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'parental':
-        return (
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-display font-black text-white">Focus & Parental Controls</h3>
-              <p className="text-xs text-white/50">Enforce workspace usage timers and restrict distractive habits.</p>
-            </div>
-
-            <div className="space-y-5 max-w-lg">
-              <div className="space-y-3">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-white/50">Daily Dashboard Access Cap:</span>
-                  <span className="text-[#E5B842] font-bold uppercase">{screenLimit} hours</span>
-                </div>
-                <input 
-                  type="range" 
-                  min="1" 
-                  max="12"
-                  step="1"
-                  value={screenLimit} 
-                  onChange={(e) => setScreenLimit(parseInt(e.target.value))}
-                  className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#E5B842]"
-                />
-                <p className="text-[10px] text-white/40 leading-relaxed">
-                  Enforces a lockout after reaching daily usage caps to ensure a healthy work-life integration.
-                </p>
-              </div>
-
-              <div className="flex items-center justify-between p-4 bg-black/40 border border-white/[0.03] rounded-2xl">
-                <div className="flex flex-col">
-                  <span className="text-xs font-semibold text-white/85">Hard Focus Lockout passcode</span>
-                  <span className="text-[10px] text-white/40">Require delegate passcode override to change goals</span>
-                </div>
-                <button 
-                  onClick={() => setHardFocusLock(!hardFocusLock)}
-                  className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-300 relative cursor-pointer border ${hardFocusLock ? 'bg-[#E5B842] border-[#E5B842]' : 'bg-transparent border-white/20'}`}
-                >
-                  <div className={`w-3.5 h-3.5 rounded-full bg-black transition-transform duration-300 ${hardFocusLock ? 'translate-x-4 bg-black' : 'translate-x-0 bg-white/40'}`} />
-                </button>
-              </div>
-            </div>
-          </div>
-        );
 
       case 'trusted':
         return (
@@ -1422,44 +1277,6 @@ export default function SettingsPage() {
           </div>
         );
 
-      case 'keyboard':
-        return (
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-display font-black text-white">Keyboard Shortcuts</h3>
-              <p className="text-xs text-white/50">Configure keys to trigger features instantly without cursor clicks.</p>
-            </div>
-
-            <div className="space-y-5 max-w-lg">
-              <div className="p-4 bg-black/40 border border-white/[0.03] rounded-2xl space-y-3.5">
-                {[
-                  { action: 'Go to Dashboard Home', keys: 'G' },
-                  { action: 'Switch to Tasks Tab', keys: 'T' },
-                  { action: 'Switch to Calendar Tab', keys: 'C' },
-                  { action: 'Dismiss Active Modals / Popups', keys: 'Esc' }
-                ].map((item) => (
-                  <div key={item.action} className="flex justify-between items-center text-xs">
-                    <span className="text-white/70">{item.action}</span>
-                    <span className="px-2 py-1 bg-black/60 border border-white/10 rounded-lg text-[9px] font-tech font-bold text-white/60">{item.keys}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex justify-between items-center p-4 bg-black/40 border border-white/[0.03] rounded-2xl">
-                <div className="flex flex-col">
-                  <span className="text-xs font-semibold text-white/95">Voice Listener Activation</span>
-                  <span className="text-[10px] text-white/40">Toggle micro voice recorder activation</span>
-                </div>
-                <input 
-                  type="text" 
-                  value={voiceShortcut}
-                  onChange={(e) => setVoiceShortcut(e.target.value)}
-                  className="w-24 bg-black/60 border border-white/10 focus:border-[#E5B842]/40 rounded-lg px-2.5 py-1.5 text-center text-[10px] font-tech font-bold text-[#E5B842] outline-none"
-                />
-              </div>
-            </div>
-          </div>
-        );
 
       default:
         return null;

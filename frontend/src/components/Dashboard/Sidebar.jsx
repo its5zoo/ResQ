@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   LayoutDashboard, 
   CheckSquare, 
@@ -13,10 +13,12 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../../context/AuthContext.jsx';
+import LogoutModal from '../Shared/LogoutModal.jsx';
 
 export default function Sidebar({ currentTab, setCurrentTab }) {
   const navigate = useNavigate();
   const { logout } = useAuthContext();
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   const menuItems = [
     { id: 'dashboard', name: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
@@ -26,7 +28,6 @@ export default function Sidebar({ currentTab, setCurrentTab }) {
     { id: 'habits', name: 'Habits', icon: <Flame className="w-4 h-4" /> },
     { id: 'voice', name: 'Voice AI', icon: <Mic className="w-4 h-4" /> },
     { id: 'notifications', name: 'Notifications', icon: <Bell className="w-4 h-4" /> },
-    { id: 'settings', name: 'Settings', icon: <Settings className="w-4 h-4" /> },
   ];
 
   return (
@@ -69,17 +70,6 @@ export default function Sidebar({ currentTab, setCurrentTab }) {
 
       {/* Bottom Section */}
       <div className="p-4 border-t border-white/5 space-y-4">
-        {/* AI Status */}
-        <div className="flex items-center justify-between p-3.5 bg-[#0a0a0a] border border-white/5 rounded-xl">
-          <div>
-            <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider block mb-0.5">AI Companion</span>
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-bold text-[#E5B842] uppercase tracking-wider">Active</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-[#E5B842] shadow-[0_0_8px_rgba(229,184,66,0.8)]"></span>
-            </div>
-          </div>
-          <span className="text-[10px] text-white/50 font-bold uppercase tracking-wider">V1.0</span>
-        </div>
 
         {/* User Profile Info */}
         <div className="flex items-center justify-between">
@@ -93,18 +83,36 @@ export default function Sidebar({ currentTab, setCurrentTab }) {
             </div>
           </div>
           <button 
-            onClick={async () => {
-              await logout();
-              navigate('/');
-            }}
+            onClick={() => setIsLogoutModalOpen(true)}
             className="text-white/40 hover:text-status-red transition-colors focus:outline-hidden cursor-pointer"
             title="Log Out"
           >
             <LogOut className="w-4 h-4" />
           </button>
         </div>
+
+        {/* Settings button */}
+        <button
+          onClick={() => setCurrentTab('settings')}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold uppercase tracking-wider transition-all focus:outline-hidden cursor-pointer ${
+            currentTab === 'settings' 
+              ? 'bg-white/[0.07] text-white' 
+              : 'text-white/60 hover:text-white hover:bg-white/[0.02]'
+          }`}
+        >
+          <Settings className="w-4 h-4" />
+          <span>Settings</span>
+        </button>
       </div>
 
+      <LogoutModal 
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={async () => {
+          await logout();
+          navigate('/');
+        }}
+      />
     </aside>
   );
 }
