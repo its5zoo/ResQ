@@ -27,8 +27,15 @@ class VoicePersonality {
     if (!voices || voices.length === 0) return null;
 
     // 1. Prioritize Microsoft Edge Online (Natural) Voices - extremely realistic human voice
-    const edgeNaturalVoice = voices.find(v => v.name.includes('Online (Natural)') && v.lang.startsWith('en'));
+    const edgeNaturalVoice = voices.find(v => 
+      v.name.includes('Online (Natural)') && v.lang.startsWith('en')
+    ) || voices.find(v => 
+      v.name.includes('Microsoft') && v.name.includes('Natural') && v.lang.startsWith('en')
+    ) || voices.find(v => 
+      v.name.toLowerCase().includes('edge') && v.lang.startsWith('en')
+    );
     if (edgeNaturalVoice) return edgeNaturalVoice;
+
 
     // 2. Google Cloud High-Quality Voices in Chrome
     const googleUSVoice = voices.find(v => v.name === 'Google US English');
