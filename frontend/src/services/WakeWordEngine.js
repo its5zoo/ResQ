@@ -10,6 +10,7 @@ class WakeWordEngine {
     this.userId = null;
     this.limitReached = false;
     this.cooldown = false;
+    this.permissionStatus = null;
     
     // Recognition instances
     this.recognition = null;
@@ -25,7 +26,7 @@ class WakeWordEngine {
     this.clarificationTimeoutTimer = null;
 
     // Wake words for fuzzy matching
-    this.wakeWords = ["hey resq", "hey rescue", "hey res q", "hey resk", "hey risq", "a resq", "hey risk", "hey wreck", "hey wresq"];
+    this.wakeWords = ["hey resq", "hey rescue", "hey res q", "hey resk", "hey risq", "a resq", "hey risk", "hey wreck", "hey wresq", "hey raceq", "hey race q", "hey raise key", "hey raise cue"];
 
     // Bind event handlers
     this.handleVisibilityChange = this.handleVisibilityChange.bind(this);
@@ -41,6 +42,7 @@ class WakeWordEngine {
 
   initialize(user) {
     console.log('[WakeWordEngine] Initializing voice node for user:', user._id);
+    console.log('ResQ Wake Word Engine initialized');
     this.userId = user._id;
     this.isAuthorized = true;
 
@@ -117,18 +119,18 @@ class WakeWordEngine {
     }
 
     try {
-      const result = await navigator.permissions.query({ name: 'microphone' });
-      console.log('[WakeWordEngine] Microphone permission state query:', result.state);
+      this.permissionStatus = await navigator.permissions.query({ name: 'microphone' });
+      console.log('[WakeWordEngine] Microphone permission state query:', this.permissionStatus.state);
 
-      if (result.state === 'granted') {
+      if (this.permissionStatus.state === 'granted') {
         this.startBackgroundListening();
       } else {
-        console.warn('[WakeWordEngine] Microphone permission is:', result.state, '- Deferring background listening.');
+        console.warn('[WakeWordEngine] Microphone permission is:', this.permissionStatus.state, '- Deferring background listening.');
         
         // Listen for change events
-        result.onchange = () => {
-          console.log('[WakeWordEngine] Microphone permission status changed to:', result.state);
-          if (result.state === 'granted' && this.isAuthorized) {
+        this.permissionStatus.onchange = () => {
+          console.log('[WakeWordEngine] Microphone permission status changed to:', this.permissionStatus.state);
+          if (this.permissionStatus.state === 'granted' && this.isAuthorized) {
             this.startBackgroundListening();
           } else {
             this.stopBackgroundListening();
@@ -146,7 +148,10 @@ class WakeWordEngine {
       console.warn('ResQ: Voice AI blocked — user not authenticated');
       return;
     }
-    if (this.isInitialized) return;
+    if (this.isInitialized) {
+      this.checkPermissionAndStart();
+      return;
+    }
     this.isInitialized = true;
 
     if (!this.speechSupported) {

@@ -73,7 +73,13 @@ class VoicePersonality {
           }
         }
 
+        let speakTimeout = null;
+
         const handleEnd = () => {
+          if (speakTimeout) {
+            clearTimeout(speakTimeout);
+            speakTimeout = null;
+          }
           if (options.onEnd) {
             try {
               options.onEnd();
@@ -89,6 +95,12 @@ class VoicePersonality {
           console.warn('[VoicePersonality] Speech synthesis error:', e);
           handleEnd();
         };
+
+        // Fallback safety timeout in case the browser SpeechSynthesis gets stuck
+        speakTimeout = setTimeout(() => {
+          console.warn('[VoicePersonality] Speech synthesis got stuck or timed out. Forcing end event recovery.');
+          handleEnd();
+        }, Math.max(6000, text.length * 100)); // minimum 6 seconds, or 100ms per character
 
         this.synth.speak(utterance);
       }, 120);
