@@ -78,6 +78,7 @@ class WakeWordEngine {
 
     if (this.recognition) {
       this.recognition.onend = null;
+      this.recognition.onerror = null;
       try {
         this.recognition.abort();
       } catch (e) {}
@@ -86,6 +87,7 @@ class WakeWordEngine {
 
     if (this.commandRecognition) {
       this.commandRecognition.onend = null;
+      this.commandRecognition.onerror = null;
       try {
         this.commandRecognition.abort();
       } catch (e) {}
@@ -150,7 +152,9 @@ class WakeWordEngine {
       return;
     }
     if (this.isInitialized) {
-      this.checkPermissionAndStart();
+      if (!this.isListening && !this.isWoken) {
+        this.checkPermissionAndStart();
+      }
       return;
     }
     this.isInitialized = true;
@@ -247,13 +251,14 @@ class WakeWordEngine {
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
 
     try {
+      this.isListening = true; // Set synchronously immediately to prevent concurrent start triggers
+      
       const recognition = new SpeechRecognition();
       recognition.continuous = true;
       recognition.interimResults = true;
       recognition.lang = 'en-US';
 
       recognition.onstart = () => {
-        this.isListening = true;
         console.log('[WakeWordEngine] Always-listening background word listener active...');
       };
 
@@ -262,8 +267,7 @@ class WakeWordEngine {
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const transcript = event.results[i][0].transcript.toLowerCase().trim();
           console.log('[WakeWordEngine] Background heard:', transcript);
-          const wakeWords = ["hey resq", "hey rescue", "hey res q", "hey resk", "hey risq", "a resq", "hey risk", "hey wreck", "hey wresq"];
-          const detected = wakeWords.some(w => transcript.includes(w));
+          const detected = this.wakeWords.some(w => transcript.includes(w));
           if (detected && !this.isWoken && !this.cooldown) {
             this.onWakeWordDetected();
           }
@@ -272,6 +276,16 @@ class WakeWordEngine {
 
       recognition.onerror = (event) => {
         console.warn('[WakeWordEngine] Background listener error:', event.error);
+        if (event.error === 'aborted') {
+          this.isListening = false; // Prevent restarting on the same instance
+          // Schedule a clean restart after a short delay
+          if (this.isAuthorized && !this.isWoken && !this.limitReached) {
+            if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+            this.reconnectTimer = setTimeout(() => {
+              this.startBackgroundListening();
+            }, 1000);
+          }
+        }
         if (event.error === 'network') {
           this.consecutiveNetworkErrors++;
           if (this.consecutiveNetworkErrors >= 3) {
@@ -292,6 +306,12 @@ class WakeWordEngine {
               recognition.start();
             } catch (err) {
               console.warn('[WakeWordEngine] Error restarting background listener:', err);
+              // Fallback: reset and schedule fresh restart
+              this.isListening = false;
+              this.recognition = null;
+              if (this.isAuthorized && !this.isWoken && !this.limitReached) {
+                this.startBackgroundListening();
+              }
             }
           }, 300);
         }
@@ -300,6 +320,8 @@ class WakeWordEngine {
       this.recognition = recognition;
       recognition.start();
     } catch (e) {
+      this.isListening = false;
+      this.recognition = null;
       console.error('[WakeWordEngine] Failed to start background listener:', e);
     }
   }
@@ -309,8 +331,9 @@ class WakeWordEngine {
     this.isListening = false;
     if (this.recognition) {
       this.recognition.onend = null;
+      this.recognition.onerror = null; // Clean up error handler to prevent abort restarts
       try {
-        this.recognition.stop();
+        this.recognition.abort(); // Use abort for immediate stop
       } catch (e) {}
       this.recognition = null;
     }
