@@ -55,9 +55,10 @@ export const executeVoiceCommand = async (userId, transcript) => {
         dueDate: payload.dueDate ? new Date(payload.dueDate) : new Date(Date.now() + 86400000), // Default to tomorrow
         estimatedMinutes: payload.estimatedMinutes || payload.durationMinutes || 30
       });
-      await newTask.save();
+      const savedTask = await newTask.save();
       await reprioritizeTasksForUser(userId);
       taskModified = true;
+      resultObj.createdTaskId = savedTask._id;
     }
     else if (intent === 'complete_task') {
       const taskId = payload.taskId;
@@ -108,6 +109,7 @@ export const executeVoiceCommand = async (userId, transcript) => {
       const savedEvent = await newEvent.save();
       createdEvents.push(savedEvent);
       calendarModified = true;
+      resultObj.createdEventId = savedEvent._id;
     }
     else if (intent === 'reschedule_event') {
       const eventId = payload.eventId;
@@ -246,7 +248,9 @@ export const executeVoiceCommand = async (userId, transcript) => {
     response: resultObj.voiceResponse || 'Command processed.',
     action: resultObj.uiAction || (resultObj.suggestAlternative ? { type: 'suggest_alternative', payload: { alternative: resultObj.suggestAlternative } } : null),
     navigationTarget: resultObj.navigationTarget,
-    suggestAlternative: resultObj.suggestAlternative
+    suggestAlternative: resultObj.suggestAlternative,
+    createdTaskId: resultObj.createdTaskId,
+    createdEventId: resultObj.createdEventId
   };
 };
 

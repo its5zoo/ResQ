@@ -43,59 +43,40 @@ export class VoiceActionExecutor {
     switch (intent) {
       case 'create_task': {
         try {
-          const created = await apiTasks.create(extractedData || {});
-          // Invalidate/Refetch
+          // Refetch tasks lists to render the newly created task
           window.dispatchEvent(new CustomEvent('resq:refetch-tasks'));
-          if (created && created._id) {
+          
+          const createdTaskId = intentObject.createdTaskId;
+          if (createdTaskId) {
             // Briefly highlight task card in gold
             setTimeout(() => {
-              window.dispatchEvent(new CustomEvent('resq:highlight-task', { detail: { taskId: created._id } }));
+              window.dispatchEvent(new CustomEvent('resq:highlight-task', { detail: { taskId: createdTaskId } }));
             }, 500);
           }
-          // Emit socket 'tasks:updated'
-          if (socket && socket.connected) {
-            socket.emit('tasks:updated');
-          }
         } catch (e) {
-          console.error('[VoiceActionExecutor] create_task failed:', e);
+          console.error('[VoiceActionExecutor] create_task UI update failed:', e);
         }
         break;
       }
 
       case 'complete_task': {
         try {
-          let taskId = extractedData?.taskId || extractedData?.id;
-          const allTasks = await apiTasks.getAll();
+          // Refetch tasks lists
+          window.dispatchEvent(new CustomEvent('resq:refetch-tasks'));
           
-          // Fuzzy match task by title if no ID
-          if (!taskId && extractedData?.title && allTasks) {
-            const matchTitle = extractedData.title.toLowerCase();
-            const matched = allTasks.find(t => t.title.toLowerCase().includes(matchTitle));
-            if (matched) taskId = matched._id;
-          }
-
+          let taskId = extractedData?.taskId || extractedData?.id;
           if (taskId) {
-            await apiTasks.update(taskId, { completed: true });
-            window.dispatchEvent(new CustomEvent('resq:refetch-tasks'));
             // Trigger strikethrough + fade styling
             window.dispatchEvent(new CustomEvent('resq:task-completed-animation', { detail: { taskId } }));
-            this.speak("Marked as done. Great work.");
-          } else {
-            this.speak("I couldn't find that task in your list.");
-          }
-          
-          if (socket && socket.connected) {
-            socket.emit('tasks:updated');
           }
         } catch (e) {
-          console.error('[VoiceActionExecutor] complete_task failed:', e);
+          console.error('[VoiceActionExecutor] complete_task UI update failed:', e);
         }
         break;
       }
 
       case 'schedule_event': {
         try {
-          const created = await apiCalendar.create(extractedData || {});
           window.dispatchEvent(new CustomEvent('resq:refetch-calendar'));
           
           // Switch to calendar
@@ -105,14 +86,15 @@ export class VoiceActionExecutor {
             window.dispatchEvent(new CustomEvent('resq:navigate', { detail: { target: 'calendar' } }));
           }
 
-          if (created && created._id) {
+          const createdEventId = intentObject.createdEventId;
+          if (createdEventId) {
             // Highlight new event slot with pulse animation
             setTimeout(() => {
-              window.dispatchEvent(new CustomEvent('resq:highlight-event', { detail: { eventId: created._id } }));
+              window.dispatchEvent(new CustomEvent('resq:highlight-event', { detail: { eventId: createdEventId } }));
             }, 600);
           }
         } catch (e) {
-          console.error('[VoiceActionExecutor] schedule_event failed:', e);
+          console.error('[VoiceActionExecutor] schedule_event UI update failed:', e);
         }
         break;
       }
