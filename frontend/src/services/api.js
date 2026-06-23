@@ -311,6 +311,14 @@ export const settings = {
       return handleRequestError(error);
     }
   },
+  updateGoogleCalendarDefaultIntegrated: async (googleCalendarDefaultIntegrated) => {
+    try {
+      const response = await api.patch('/settings/google-default-integrated', { googleCalendarDefaultIntegrated });
+      return response.data;
+    } catch (error) {
+      return handleRequestError(error);
+    }
+  },
 };
 
 export const google = {

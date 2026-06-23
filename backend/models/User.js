@@ -51,6 +51,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  googleCalendarDefaultIntegrated: {
+    type: Boolean,
+    default: true
+  },
   createdAt: {
     type: Date,
     default: Date.now

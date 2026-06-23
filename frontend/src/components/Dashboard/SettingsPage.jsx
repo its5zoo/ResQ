@@ -23,6 +23,7 @@ import { settings as apiSettings, auth, google as apiGoogle } from '../../servic
 export default function SettingsPage() {
   const [activeSubTab, setActiveSubTab] = useState('general');
   const [isGoogleConnected, setIsGoogleConnected] = useState(false);
+  const [googleCalendarDefaultIntegrated, setGoogleCalendarDefaultIntegrated] = useState(true);
   const [syncLoading, setSyncLoading] = useState(false);
 
   const [selectedPlan, setSelectedPlan] = useState(() => {
@@ -135,6 +136,7 @@ export default function SettingsPage() {
           setSelectedPlan(data.plan || 'free');
           setFontSize(data.fontSize || 16);
           setIsGoogleConnected(!!data.googleAccessToken);
+          setGoogleCalendarDefaultIntegrated(data.googleCalendarDefaultIntegrated !== false);
           if (data.workingHours) {
             setWorkingHours({
               start: data.workingHours.start || '09:00',
@@ -205,6 +207,18 @@ export default function SettingsPage() {
         console.error('Google Disconnect Error:', err);
         showToast('Failed to disconnect Google Calendar.', 'error');
       }
+    }
+  };
+
+  const handleToggleGoogleDefaultIntegrated = async () => {
+    try {
+      const newValue = !googleCalendarDefaultIntegrated;
+      await apiSettings.updateGoogleCalendarDefaultIntegrated(newValue);
+      setGoogleCalendarDefaultIntegrated(newValue);
+      showToast(newValue ? 'Google Calendar auto-sync enabled by default' : 'Google Calendar auto-sync disabled by default');
+    } catch (err) {
+      console.error('Failed to update integration preference:', err);
+      showToast('Failed to update integration preference', 'error');
     }
   };
 
@@ -601,6 +615,21 @@ export default function SettingsPage() {
                     <span>Connected account: <strong className="text-white">{profile.googleEmail}</strong></span>
                   </div>
                 )}
+
+                {/* Auto-Integrate Toggle */}
+                <div className="flex items-center justify-between p-3.5 bg-black/40 border border-white/[0.03] rounded-2xl mt-2">
+                  <div className="flex flex-col pr-4">
+                    <span className="text-[11px] font-semibold text-white/85">Integrate Google Calendar by Default</span>
+                    <span className="text-[9px] text-white/40 leading-normal">Automatically sync events in the background when viewing the calendar.</span>
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={handleToggleGoogleDefaultIntegrated}
+                    className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-300 relative cursor-pointer border shrink-0 ${googleCalendarDefaultIntegrated ? 'bg-[#E5B842] border-[#E5B842]' : 'bg-transparent border-white/20'}`}
+                  >
+                    <div className={`w-3.5 h-3.5 rounded-full bg-black transition-transform duration-300 ${googleCalendarDefaultIntegrated ? 'translate-x-4 bg-black' : 'translate-x-0 bg-white/40'}`} />
+                  </button>
+                </div>
 
                 <div className="flex flex-wrap gap-2 pt-2">
                   {isGoogleConnected ? (

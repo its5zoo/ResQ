@@ -30,6 +30,7 @@ export const registerUser = async (req, res) => {
         email: user.email,
         theme: user.theme,
         plan: user.plan,
+        googleCalendarDefaultIntegrated: user.googleCalendarDefaultIntegrated,
         token: generateToken(user._id),
       });
     } else {
@@ -53,6 +54,7 @@ export const authUser = async (req, res) => {
         email: user.email,
         theme: user.theme,
         plan: user.plan,
+        googleCalendarDefaultIntegrated: user.googleCalendarDefaultIntegrated,
         token: generateToken(user._id),
       });
     } else {
@@ -78,6 +80,7 @@ export const getUserProfile = async (req, res) => {
         workingHours: user.workingHours,
         googleEmail: user.googleEmail,
         googleAccessToken: user.googleAccessToken,
+        googleCalendarDefaultIntegrated: user.googleCalendarDefaultIntegrated,
         createdAt: user.createdAt,
       });
     } else {

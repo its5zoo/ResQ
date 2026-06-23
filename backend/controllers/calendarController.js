@@ -2,6 +2,8 @@ import CalendarEvent from '../models/CalendarEvent.js';
 import Task from '../models/Task.js';
 import { generateAutoSchedule } from '../services/geminiService.js';
 import { io } from '../socket/socketHandler.js';
+import User from '../models/User.js';
+import { syncGoogleCalendar } from '../services/googleCalendarService.js';
 
 // Helper to parse day/time into Date object
 const parseDayTimeToDate = (dayName, timeStr) => {
@@ -41,6 +43,17 @@ const parseDayTimeToDate = (dayName, timeStr) => {
 
 export const getEvents = async (req, res) => {
   try {
+    // Check if user has Google Calendar enabled and wants default auto-sync integration
+    const user = await User.findById(req.user._id);
+    if (user && user.googleAccessToken && user.googleCalendarDefaultIntegrated !== false) {
+      try {
+        console.log(`[Auto-Sync] Running background Google Calendar sync for user ${user._id}`);
+        await syncGoogleCalendar(user);
+      } catch (syncErr) {
+        console.error('[Auto-Sync] Failed background Google Calendar sync:', syncErr.message);
+      }
+    }
+
     const events = await CalendarEvent.find({ userId: req.user._id });
     res.json(events);
   } catch (error) {

@@ -56,3 +56,21 @@ export const updateWorkingHours = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+export const updateGoogleCalendarDefaultIntegrated = async (req, res) => {
+  const { googleCalendarDefaultIntegrated } = req.body;
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    user.googleCalendarDefaultIntegrated = !!googleCalendarDefaultIntegrated;
+    await user.save();
+    res.json({ 
+      message: 'Google Calendar default integration preference updated successfully', 
+      googleCalendarDefaultIntegrated: user.googleCalendarDefaultIntegrated 
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
