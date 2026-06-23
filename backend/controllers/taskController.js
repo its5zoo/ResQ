@@ -1,8 +1,32 @@
 import Task from '../models/Task.js';
+import { generateTaskPriority } from '../services/geminiService.js';
+
+export const reprioritizeTasksForUser = async (userId) => {
+  try {
+    const tasks = await Task.find({ userId, completed: false });
+    if (tasks.length === 0) return;
+
+    const prioritized = await generateTaskPriority(tasks);
+    if (Array.isArray(prioritized)) {
+      for (let i = 0; i < prioritized.length; i++) {
+        const item = prioritized[i];
+        const taskId = item.id || item._id || item.taskId;
+        if (taskId) {
+          await Task.findOneAndUpdate(
+            { _id: taskId, userId },
+            { aiPriorityRank: i + 1, aiReason: item.reason || '' }
+          );
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error in reprioritizeTasksForUser:', error);
+  }
+};
 
 export const getTasks = async (req, res) => {
   try {
-    const tasks = await Task.find({ user: req.user._id }).sort({ urgency: -1 });
+    const tasks = await Task.find({ userId: req.user._id }).sort({ aiPriorityRank: 1, urgency: -1 });
     res.json(tasks);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -10,21 +34,28 @@ export const getTasks = async (req, res) => {
 };
 
 export const createTask = async (req, res) => {
-  const { title, urgency, dueDate, duration, category } = req.body;
+  const { title, description, urgency, category, completed, subtasks, estimatedMinutes, duration, dueDate } = req.body;
 
   try {
     const task = new Task({
-      user: req.user._id,
+      userId: req.user._id,
       title,
-      urgency,
-      dueDate,
-      duration,
-      category,
-      subtasks: []
+      description: description || '',
+      urgency: urgency || 5,
+      category: category || 'General',
+      completed: completed || false,
+      subtasks: subtasks || [],
+      estimatedMinutes: estimatedMinutes || duration || 30,
+      dueDate: dueDate || new Date()
     });
 
     const createdTask = await task.save();
-    res.status(201).json(createdTask);
+
+    // Re-rank all tasks for this user
+    await reprioritizeTasksForUser(req.user._id);
+
+    const refetchedTask = await Task.findById(createdTask._id);
+    res.status(201).json(refetchedTask);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -34,16 +65,27 @@ export const updateTask = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
 
-    if (task && task.user.toString() === req.user._id.toString()) {
-      task.title = req.body.title || task.title;
+    if (task && task.userId.toString() === req.user._id.toString()) {
+      task.title = req.body.title !== undefined ? req.body.title : task.title;
+      task.description = req.body.description !== undefined ? req.body.description : task.description;
       task.urgency = req.body.urgency !== undefined ? req.body.urgency : task.urgency;
-      task.dueDate = req.body.dueDate || task.dueDate;
-      task.duration = req.body.duration !== undefined ? req.body.duration : task.duration;
-      task.category = req.body.category || task.category;
+      task.category = req.body.category !== undefined ? req.body.category : task.category;
       task.completed = req.body.completed !== undefined ? req.body.completed : task.completed;
-      task.subtasks = req.body.subtasks || task.subtasks;
+      task.subtasks = req.body.subtasks !== undefined ? req.body.subtasks : task.subtasks;
+      task.estimatedMinutes = req.body.estimatedMinutes !== undefined ? req.body.estimatedMinutes : (req.body.duration !== undefined ? req.body.duration : task.estimatedMinutes);
+      task.dueDate = req.body.dueDate !== undefined ? req.body.dueDate : task.dueDate;
+      task.aiPriorityRank = req.body.aiPriorityRank !== undefined ? req.body.aiPriorityRank : task.aiPriorityRank;
+      task.aiReason = req.body.aiReason !== undefined ? req.body.aiReason : task.aiReason;
 
       const updatedTask = await task.save();
+
+      // Trigger automatic reprioritization if key fields changed
+      if (req.body.urgency !== undefined || req.body.dueDate !== undefined || req.body.completed !== undefined) {
+        await reprioritizeTasksForUser(req.user._id);
+        const refetchedTask = await Task.findById(updatedTask._id);
+        return res.json(refetchedTask);
+      }
+
       res.json(updatedTask);
     } else {
       res.status(404).json({ message: 'Task not found or unauthorized' });
@@ -57,12 +99,23 @@ export const deleteTask = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
 
-    if (task && task.user.toString() === req.user._id.toString()) {
+    if (task && task.userId.toString() === req.user._id.toString()) {
       await task.deleteOne();
+      await reprioritizeTasksForUser(req.user._id);
       res.json({ message: 'Task removed' });
     } else {
       res.status(404).json({ message: 'Task not found or unauthorized' });
     }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const manualReprioritize = async (req, res) => {
+  try {
+    await reprioritizeTasksForUser(req.user._id);
+    const tasks = await Task.find({ userId: req.user._id }).sort({ aiPriorityRank: 1, urgency: -1 });
+    res.json(tasks);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

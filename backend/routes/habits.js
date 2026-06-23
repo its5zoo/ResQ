@@ -1,5 +1,5 @@
 import express from 'express';
-import { getHabits, createHabit, updateHabit, deleteHabit } from '../controllers/habitController.js';
+import { getHabits, createHabit, completeHabit, deleteHabit } from '../controllers/habitController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -10,8 +10,9 @@ router.route('/')
   .get(getHabits)
   .post(createHabit);
 
+router.patch('/:id/complete', completeHabit);
+
 router.route('/:id')
-  .put(updateHabit)
   .delete(deleteHabit);
 
 export default router;

@@ -19,6 +19,7 @@ import calendarRoutes from './routes/calendar.js';
 import notificationRoutes from './routes/notifications.js';
 import aiAdvisorRoutes from './routes/aiAdvisor.js';
 import voiceRoutes from './routes/voice.js';
+import settingsRoutes from './routes/settings.js';
 
 // Initialize environment variables
 dotenv.config();
@@ -59,8 +60,9 @@ app.use('/api/habits', habitRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/calendar', calendarRoutes);
 app.use('/api/notifications', notificationRoutes);
-app.use('/api/advisor', aiAdvisorRoutes);
+app.use('/api/ai', aiAdvisorRoutes);
 app.use('/api/voice', voiceRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Base health check route
 app.get('/api/health', (req, res) => {

@@ -13,6 +13,7 @@ router.route('/')
   .post(createEvent);
 
 router.route('/:id')
+  .patch(updateEvent)
   .put(updateEvent)
   .delete(deleteEvent);
 

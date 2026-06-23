@@ -11,7 +11,8 @@ router.route('/')
   .post(createGoal);
 
 router.route('/:id')
-  .put(updateGoal)
+  .patch(updateGoal)
+  .put(updateGoal) // Allow PUT as a fallback
   .delete(deleteGoal);
 
 export default router;

@@ -1,5 +1,5 @@
 import express from 'express';
-import { getNotifications, markAsRead, markAllRead } from '../controllers/notificationController.js';
+import { getNotifications, markAsRead, clearReadNotifications } from '../controllers/notificationController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -7,10 +7,11 @@ const router = express.Router();
 router.use(protect);
 
 router.route('/')
-  .get(getNotifications)
-  .put(markAllRead);
+  .get(getNotifications);
 
-router.route('/:id')
-  .put(markAsRead);
+router.delete('/clear', clearReadNotifications);
+
+router.patch('/:id/read', markAsRead);
+router.put('/:id/read', markAsRead); // Allow PUT as a fallback
 
 export default router;

@@ -2,7 +2,7 @@ import Notification from '../models/Notification.js';
 
 export const getNotifications = async (req, res) => {
   try {
-    const notifications = await Notification.find({ user: req.user._id }).sort({ createdAt: -1 });
+    const notifications = await Notification.find({ userId: req.user._id }).sort({ read: 1, createdAt: -1 });
     res.json(notifications);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -13,8 +13,8 @@ export const markAsRead = async (req, res) => {
   try {
     const notification = await Notification.findById(req.params.id);
 
-    if (notification && notification.user.toString() === req.user._id.toString()) {
-      notification.read = req.body.read !== undefined ? req.body.read : true;
+    if (notification && notification.userId.toString() === req.user._id.toString()) {
+      notification.read = true;
       const updatedNotification = await notification.save();
       res.json(updatedNotification);
     } else {
@@ -25,10 +25,10 @@ export const markAsRead = async (req, res) => {
   }
 };
 
-export const markAllRead = async (req, res) => {
+export const clearReadNotifications = async (req, res) => {
   try {
-    await Notification.updateMany({ user: req.user._id, read: false }, { read: true });
-    res.json({ message: 'All notifications marked as read' });
+    const result = await Notification.deleteMany({ userId: req.user._id, read: true });
+    res.json({ message: 'Cleared all read notifications', deletedCount: result.deletedCount });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

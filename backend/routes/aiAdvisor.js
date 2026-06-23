@@ -1,9 +1,12 @@
 import express from 'express';
-import { getAdvisorPrompt } from '../controllers/aiAdvisorController.js';
+import { getDailySummary, askAdvisor } from '../controllers/aiAdvisorController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-router.get('/', protect, getAdvisorPrompt);
+router.use(protect);
+
+router.get('/daily-summary', getDailySummary);
+router.post('/ask', askAdvisor);
 
 export default router;

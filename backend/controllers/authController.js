@@ -20,7 +20,7 @@ export const registerUser = async (req, res) => {
     const user = await User.create({
       name,
       email,
-      password,
+      passwordHash: password,
     });
 
     if (user) {
@@ -74,6 +74,9 @@ export const getUserProfile = async (req, res) => {
         email: user.email,
         theme: user.theme,
         plan: user.plan,
+        fontSize: user.fontSize,
+        workingHours: user.workingHours,
+        createdAt: user.createdAt,
       });
     } else {
       res.status(404).json({ message: 'User not found' });
