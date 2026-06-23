@@ -353,6 +353,8 @@ const getLocalFallbackResult = (transcript, context) => {
   }
 
   // 4. Calendar event / Study scheduling fallback
+  const timeMatch = clean.match(/(\d+)(?::(\d+))?\s*(a\.m\.|p\.m\.|am|pm)/i) || clean.match(/at\s+(\d+)(?::(\d+))?/i);
+  
   if (
     clean.includes('schedule') || 
     clean.includes('meeting') || 
@@ -360,22 +362,47 @@ const getLocalFallbackResult = (transcript, context) => {
     clean.includes('calendar') || 
     clean.includes('book') || 
     clean.includes('study') || 
-    clean.includes('timetable')
+    clean.includes('timetable') ||
+    clean.includes('time table') ||
+    clean.includes('slot') ||
+    (timeMatch && !clean.includes('focus'))
   ) {
-    // Try to extract time (e.g. 6:00 p.m. or 6 pm or at 6)
-    const timeMatch = clean.match(/(\d+)(?::(\d+))?\s*(a\.m\.|p\.m\.|am|pm)/i) || clean.match(/at\s+(\d+)(?::(\d+))?/i);
     const dayTomorrow = clean.includes('tomorrow');
     
     // Title extraction helper
     let title = 'Study Session';
-    if (clean.includes('meeting')) title = 'Meeting';
-    else if (clean.includes('event')) title = 'Calendar Event';
+    const commonSubjects = {
+      'study': 'Study Session',
+      'meeting': 'Meeting',
+      'running': 'Running',
+      'run': 'Running',
+      'gym': 'Workout',
+      'workout': 'Workout',
+      'class': 'Class',
+      'lunch': 'Lunch Break',
+      'dinner': 'Dinner',
+      'break': 'Break',
+      'sync': 'Sync Meeting',
+      'work': 'Deep Work'
+    };
     
-    const titleMatch = clean.match(/(?:schedule|book|create)\s+(?:a\s+)?([^0-9]+?)(?:\s+at|\s+for|\s+tomorrow|\s+today|$)/);
-    if (titleMatch && titleMatch[1]) {
-      const matchWord = titleMatch[1].trim();
-      if (!['study', 'timetable', 'meeting', 'event', 'calendar', 'slot'].includes(matchWord)) {
-        title = matchWord;
+    let subjectFound = false;
+    for (const [key, val] of Object.entries(commonSubjects)) {
+      if (clean.includes(key)) {
+        title = val;
+        subjectFound = true;
+        break;
+      }
+    }
+
+    if (!subjectFound) {
+      const titleMatch = clean.match(/(?:schedule|book|create|set|timetable|time table)\s+(?:a\s+)?([^0-9]+?)(?:\s+at|\s+for|\s+tomorrow|\s+today|\s+6:|\s+1|\s+2|\s+3|\s+4|\s+5|\s+6|\s+7|\s+8|\s+9|\s+0|$)/);
+      if (titleMatch && titleMatch[1]) {
+        const matchWord = titleMatch[1].trim();
+        const cleanedWord = matchWord.replace(/^(a|an|the|my|our)\s+/, '').trim();
+        if (cleanedWord && !['study', 'timetable', 'time table', 'meeting', 'event', 'calendar', 'slot'].includes(cleanedWord)) {
+          title = cleanedWord.charAt(0).toUpperCase() + cleanedWord.slice(1);
+        }
       }
     }
 
