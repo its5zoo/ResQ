@@ -35,6 +35,22 @@ const userSchema = new mongoose.Schema({
     start: { type: String, default: '09:00' },
     end: { type: String, default: '18:00' }
   },
+  googleAccessToken: {
+    type: String,
+    default: null
+  },
+  googleRefreshToken: {
+    type: String,
+    default: null
+  },
+  googleTokenExpiry: {
+    type: Date,
+    default: null
+  },
+  googleEmail: {
+    type: String,
+    default: null
+  },
   createdAt: {
     type: Date,
     default: Date.now

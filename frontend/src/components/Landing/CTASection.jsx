@@ -35,7 +35,7 @@ export default function CTASection() {
 
         {/* Action Button */}
         <button 
-          onClick={() => navigate('/dashboard')}
+          onClick={() => navigate('/auth')}
           className="px-8 py-4 rounded-xl text-xs font-bold tracking-wider uppercase bg-transparent text-white border border-[#E5B842] hover:bg-[#E5B842] hover:text-black shadow-lg shadow-[#E5B842]/10 hover:shadow-[#E5B842]/30 transition-all duration-500 hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 cursor-pointer font-tech active:scale-[0.98]"
         >
           Sign in with Google Workspace &rarr;

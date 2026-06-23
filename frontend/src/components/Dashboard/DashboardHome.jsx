@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Sparkles, 
   Cpu, 
@@ -13,36 +13,121 @@ import {
   Inbox,
   MoreVertical
 } from 'lucide-react';
+import { ai, tasks as apiTasks, habits as apiHabits, calendar as apiCalendar } from '../../services/api.js';
+import { useSocket } from '../../services/socket.js';
 
-export default function DashboardHome({ 
-  tasks, 
-  toggleTask, 
-  habits, 
-  toggleHabit, 
-  setCurrentTab 
-}) {
-  const pendingTasks = tasks.filter(t => !t.completed);
-  const completedTasks = tasks.filter(t => t.completed);
-  const completedRate = tasks.length > 0 ? Math.round((completedTasks.length / tasks.length) * 100) : 0;
+export default function DashboardHome({ setCurrentTab }) {
+  const [localTasks, setLocalTasks] = useState([]);
+  const [summary, setSummary] = useState('');
+  const [localHabits, setLocalHabits] = useState([]);
+  const [localEvents, setLocalEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState(null);
+
+  const fetchDashboardData = async () => {
+    try {
+      const [tasksData, summaryData, habitsData, eventsData] = await Promise.all([
+        apiTasks.getAll().catch(() => []),
+        ai.getDailySummary().catch(() => ({ summary: 'No summary available today.' })),
+        apiHabits.getAll().catch(() => []),
+        apiCalendar.getAll().catch(() => [])
+      ]);
+      
+      setLocalTasks(tasksData || []);
+      setSummary(summaryData?.summary || 'No summary available today.');
+      setLocalHabits(habitsData || []);
+      setLocalEvents(eventsData || []);
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  // Listen to 'ai:priority-update' to re-render tasks
+  useSocket('ai:priority-update', (newIncompleteTasks) => {
+    console.log('[Socket] ai:priority-update received');
+    apiTasks.getAll().then(data => {
+      setLocalTasks(data || []);
+    });
+  });
+
+  // Listen to 'notification:new' to show toast
+  useSocket('notification:new', (notification) => {
+    console.log('[Socket] notification:new received:', notification);
+    setToast(notification);
+    setTimeout(() => {
+      setToast(null);
+    }, 5000);
+  });
+
+  const handleToggleTask = async (id) => {
+    try {
+      const task = localTasks.find(t => t._id === id);
+      if (!task) return;
+      const updated = await apiTasks.update(id, { completed: !task.completed });
+      setLocalTasks(prev => prev.map(t => t._id === id ? updated : t));
+    } catch (err) {
+      console.error('Error toggling task:', err);
+    }
+  };
+
+  const handleToggleHabit = async (id) => {
+    try {
+      const updated = await apiHabits.markComplete(id);
+      setLocalHabits(prev => prev.map(h => h._id === id ? updated : h));
+    } catch (err) {
+      console.error('Error toggling habit:', err);
+    }
+  };
+
+  const pendingTasks = localTasks.filter(t => !t.completed);
+  const completedTasks = localTasks.filter(t => t.completed);
+  const completedRate = localTasks.length > 0 ? Math.round((completedTasks.length / localTasks.length) * 100) : 0;
   
-  // Calculate highest priority task
   const topTask = pendingTasks.length > 0 
-    ? [...pendingTasks].sort((a, b) => b.urgency - a.urgency)[0] 
+    ? [...pendingTasks].sort((a, b) => (a.aiPriorityRank || 99) - (b.aiPriorityRank || 99))[0] 
     : null;
 
-  // Deadline Risk calculation
   const hasCritical = pendingTasks.some(t => t.urgency >= 9);
   const riskText = hasCritical ? 'URGENT HAZARD' : pendingTasks.length > 0 ? 'MODERATE' : 'OPTIMIZED';
 
-  // Mock Calendar events
-  const calendarEvents = [
-    { time: '10:00 AM', title: 'Sync with Team (Vibe2Ship)', duration: '30m', type: 'meeting' },
-    { time: '01:30 PM', title: 'PostgreSQL Database migration', duration: '60m', type: 'work' },
-    { time: '04:00 PM', title: '🤖 AI Focus block: React UI integration', duration: '45m', type: 'focus' }
-  ];
+  // Calculate habit streak summation or average
+  const totalStreak = localHabits.reduce((acc, h) => acc + (h.streak || 0), 0);
+
+  // Format events to display cleanly
+  const formattedEvents = localEvents.map(e => {
+    const start = new Date(e.startTime);
+    let timeString = start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    let durationMin = Math.round((new Date(e.endTime) - start) / 60000);
+    return {
+      time: timeString,
+      title: e.title,
+      duration: `${durationMin}m`,
+      type: e.type
+    };
+  }).slice(0, 5);
 
   return (
     <div className="space-y-10 animate-fade-in py-6">
+      
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 max-w-sm p-5 bg-[#0a0a0a] border border-[#E5B842]/30 rounded-2xl shadow-[0_4px_30px_rgba(229,184,66,0.15)] flex items-start gap-4 animate-slide-in font-sans">
+          <div className="w-8 h-8 rounded-full bg-[#E5B842]/10 border border-[#E5B842]/20 flex items-center justify-center shrink-0">
+            <Sparkles className="w-4.5 h-4.5 text-[#E5B842] animate-pulse" />
+          </div>
+          <div className="flex-1">
+            <h5 className="text-xs font-bold text-white uppercase tracking-wider">{toast.title || 'New System Alert'}</h5>
+            <p className="text-xs text-white/60 mt-1 leading-relaxed">{toast.message || ''}</p>
+          </div>
+          <button onClick={() => setToast(null)} className="text-white/20 hover:text-white/40 text-xs shrink-0 cursor-pointer">✕</button>
+        </div>
+      )}
       
       {/* Header Info */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-white/5 pb-8 font-sans">
@@ -119,7 +204,7 @@ export default function DashboardHome({
           <div className="flex justify-between items-start mb-4">
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-1">Habit Streak</span>
-              <span className="text-2xl font-bold text-white">7 Days</span>
+              <span className="text-2xl font-bold text-white">{totalStreak} Days</span>
             </div>
             <Flame className="w-6 h-6 text-white/20 group-hover:text-white/40 transition-colors" />
           </div>
@@ -137,7 +222,6 @@ export default function DashboardHome({
           
           {/* AI Advisor Panel */}
           <div className="p-8 bg-white/[0.01] border border-white/10 rounded-3xl relative overflow-hidden layered-shadow-lg card-shine-sweep">
-            {/* Embedded Microchip with AI */}
             <div className="absolute top-1/2 -translate-y-1/2 right-12 opacity-15 hidden md:block select-none pointer-events-none">
               <div className="relative flex items-center justify-center">
                 <Cpu className="w-24 h-24 text-[#E5B842]" />
@@ -151,13 +235,14 @@ export default function DashboardHome({
             </div>
 
             <div className="min-h-[80px]">
-              {topTask ? (
-                <p className="text-sm text-white/70 leading-relaxed font-normal mb-6 tracking-normal">
-                  "You have an upcoming deadline for <span className="font-bold text-white">'{topTask.title}'</span> which carries an urgency factor of {topTask.urgency}. I recommend jumping onto this immediately. I've automatically reserved 45 minutes on your Google Calendar to tackle it."
-                </p>
+              {loading ? (
+                <div className="animate-pulse space-y-2">
+                  <div className="h-4 bg-white/10 rounded w-3/4"></div>
+                  <div className="h-4 bg-white/10 rounded w-5/6"></div>
+                </div>
               ) : (
-                <p className="text-sm text-[#E5B842] leading-relaxed font-normal mb-6 tracking-normal">
-                  "No pending high-priority tasks found. All deadlines are securely buffered. It's an excellent window to focus on habit accumulation or career upskilling."
+                <p className="text-sm text-white/70 leading-relaxed font-normal mb-6 tracking-normal">
+                  {summary ? `"${summary}"` : `"Analyze your tasks and schedule with the Advisor to construct plans."`}
                 </p>
               )}
             </div>
@@ -167,7 +252,7 @@ export default function DashboardHome({
                 onClick={() => setCurrentTab('calendar')}
                 className="px-5 py-3 bg-transparent text-[#E5B842] border border-[#E5B842]/40 hover:bg-[#E5B842] hover:text-black hover:border-transparent text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center gap-1.5 cursor-pointer font-sans active:scale-[0.98]"
               >
-                <Calendar className="w-4 h-4" /> Open Calendar block
+                <Calendar className="w-4 h-4" /> Open Calendar
               </button>
               <button 
                 onClick={() => setCurrentTab('voice')}
@@ -195,52 +280,57 @@ export default function DashboardHome({
 
             {/* List */}
             <div className="space-y-4">
-              {pendingTasks.slice(0, 4).map((task) => (
-                <div 
-                  key={task.id} 
-                  className="p-5 bg-black border border-white/[0.03] rounded-2xl hover:border-white/10 transition-all duration-300"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 min-w-0">
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleTask(task.id);
-                        }}
-                        className="text-white/30 hover:text-white transition-colors focus:outline-hidden cursor-pointer"
-                      >
-                        <Circle className="w-5 h-5" />
-                      </button>
-                      <span className="text-sm font-medium text-white/80 truncate">
-                        {task.title}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-4 shrink-0">
-                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#E5B842]/5 border border-[#E5B842]/20 text-[#E5B842]">
-                        Priority {task.urgency}
-                      </span>
-                      <span className="text-xs text-white/45 flex items-center gap-1">
-                        <Calendar className="w-3.5 h-3.5" /> {task.dueDate}
-                      </span>
-                      <button className="text-white/30 hover:text-white cursor-pointer">
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Task Progress Bar */}
-                  <div className="mt-4">
-                    <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                      <div className="h-full bg-gradient-to-r from-[#E5B842] to-[#C97D2E] rounded-full" style={{ width: '25%' }}></div>
-                    </div>
-                  </div>
+              {loading ? (
+                <div className="space-y-4 animate-pulse">
+                  {[1, 2, 3].map(n => (
+                    <div key={n} className="h-16 bg-white/5 rounded-2xl"></div>
+                  ))}
                 </div>
-              ))}
+              ) : (
+                pendingTasks.slice(0, 4).map((task) => (
+                  <div 
+                    key={task._id} 
+                    className="p-5 bg-black border border-white/[0.03] rounded-2xl hover:border-white/10 transition-all duration-300"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4 min-w-0">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleTask(task._id);
+                          }}
+                          className="text-white/30 hover:text-white transition-colors focus:outline-hidden cursor-pointer"
+                        >
+                          <Circle className="w-5 h-5" />
+                        </button>
+                        <span className="text-sm font-medium text-white/80 truncate">
+                          {task.title}
+                        </span>
+                      </div>
 
-              {pendingTasks.length === 0 && (
+                      <div className="flex items-center gap-4 shrink-0">
+                        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#E5B842]/5 border border-[#E5B842]/20 text-[#E5B842]">
+                          AI Rank {task.aiPriorityRank || 'N/A'}
+                        </span>
+                        <span className="text-xs text-white/45 flex items-center gap-1">
+                          <Calendar className="w-3.5 h-3.5" /> {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'Today'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Task Progress Bar */}
+                    <div className="mt-4">
+                      <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-[#E5B842] to-[#C97D2E] rounded-full" style={{ width: `${task.urgency * 10}%` }}></div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+
+              {!loading && pendingTasks.length === 0 && (
                 <div className="text-center py-12">
-                  <CheckCircle2 className="w-8 h-8 text-status-green/30 mx-auto mb-3" />
+                  <CheckCircle2 className="w-8 h-8 text-emerald-500/30 mx-auto mb-3" />
                   <p className="text-xs text-white/35 font-light">Zero high priority tasks pending. Excellent job!</p>
                 </div>
               )}
@@ -258,24 +348,29 @@ export default function DashboardHome({
               <h4 className="text-[10px] font-bold uppercase tracking-wider text-white/40 flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-[#E5B842]" /> Today's Focus Slots
               </h4>
-              <button className="text-white/30 hover:text-white cursor-pointer">
-                <MoreVertical className="w-4 h-4" />
-              </button>
             </div>
             
             <div className="space-y-4">
-              {calendarEvents.map((evt, idx) => (
-                <div key={idx} className="flex gap-4 items-start relative pl-4 border-l-2 border-[#E5B842]/20 py-1">
-                  {/* Glowing gold dot exactly on the line */}
-                  <div className="absolute top-[10px] -left-[6px] w-2.5 h-2.5 rounded-full bg-[#E5B842] border-2 border-black shadow-[0_0_6px_rgba(229,184,66,0.6)]"></div>
-                  <div>
-                    <span className="text-[10px] text-white/40 font-bold block mb-0.5">{evt.time} ({evt.duration})</span>
-                    <h5 className={`text-xs font-semibold ${evt.type === 'focus' ? 'text-white' : 'text-white/80'}`}>
-                      {evt.title}
-                    </h5>
-                  </div>
+              {loading ? (
+                <div className="space-y-4 animate-pulse">
+                  <div className="h-10 bg-white/5 rounded-xl"></div>
+                  <div className="h-10 bg-white/5 rounded-xl"></div>
                 </div>
-              ))}
+              ) : formattedEvents.length > 0 ? (
+                formattedEvents.map((evt, idx) => (
+                  <div key={idx} className="flex gap-4 items-start relative pl-4 border-l-2 border-[#E5B842]/20 py-1">
+                    <div className="absolute top-[10px] -left-[6px] w-2.5 h-2.5 rounded-full bg-[#E5B842] border-2 border-black shadow-[0_0_6px_rgba(229,184,66,0.6)]"></div>
+                    <div>
+                      <span className="text-[10px] text-white/40 font-bold block mb-0.5">{evt.time} ({evt.duration})</span>
+                      <h5 className="text-xs font-semibold text-white/80">
+                        {evt.title}
+                      </h5>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs text-white/30 text-center py-6">No scheduled focus blocks for today.</p>
+              )}
             </div>
           </div>
 
@@ -292,44 +387,45 @@ export default function DashboardHome({
             </h4>
 
             <div className="space-y-5">
-              {habits.map((habit) => {
-                const isGym = habit.title.toLowerCase().includes('gym');
-                const progressFill = isGym ? '100%' : '40%';
-                const streakText = isGym ? '7 days streak' : '3 days streak';
+              {loading ? (
+                <div className="space-y-4 animate-pulse">
+                  <div className="h-14 bg-white/5 rounded-2xl"></div>
+                  <div className="h-14 bg-white/5 rounded-2xl"></div>
+                </div>
+              ) : localHabits.length > 0 ? (
+                localHabits.slice(0, 3).map((habit) => {
+                  const today = new Date().setHours(0, 0, 0, 0);
+                  const isCompletedToday = habit.completions?.some(c => {
+                    const compDate = new Date(c.date).setHours(0, 0, 0, 0);
+                    return compDate === today && c.completed;
+                  });
 
-                return (
-                  <div key={habit.id} className="space-y-2.5">
-                    <div className="flex items-center justify-between p-4 bg-black border border-white/[0.03] rounded-2xl">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <button 
-                          onClick={() => toggleHabit(habit.id)}
-                          className="focus:outline-hidden cursor-pointer"
-                        >
-                          {habit.completedToday ? (
-                            <CheckCircle2 className="w-4.5 h-4.5 text-[#E5B842]" />
-                          ) : (
-                            <Circle className="w-4.5 h-4.5 text-white/20 hover:text-white/40" />
-                          )}
-                        </button>
-                        <span className={`text-xs font-medium truncate ${habit.completedToday ? 'line-through text-white/30' : 'text-white/70'}`}>
-                          {habit.title}
-                        </span>
+                  return (
+                    <div key={habit._id} className="space-y-2.5">
+                      <div className="flex items-center justify-between p-4 bg-black border border-white/[0.03] rounded-2xl">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <button 
+                            onClick={() => handleToggleHabit(habit._id)}
+                            className="focus:outline-hidden cursor-pointer"
+                          >
+                            {isCompletedToday ? (
+                              <CheckCircle2 className="w-4.5 h-4.5 text-[#E5B842]" />
+                            ) : (
+                              <Circle className="w-4.5 h-4.5 text-white/20 hover:text-white/40" />
+                            )}
+                          </button>
+                          <span className={`text-xs font-medium truncate ${isCompletedToday ? 'line-through text-white/30' : 'text-white/70'}`}>
+                            {habit.name}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-[#E5B842] font-bold shrink-0">🔥 {habit.streak || 0}d</span>
                       </div>
-                      <span className="text-[10px] text-[#E5B842] font-bold shrink-0">🔥 {habit.streak}d</span>
                     </div>
-
-                    {/* Progress Bar & Subtext */}
-                    <div className="px-1 space-y-1">
-                      <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-[#E5B842] to-[#C97D2E] rounded-full" style={{ width: progressFill }}></div>
-                      </div>
-                      <span className="text-[9px] text-white/35 font-medium block">
-                        {streakText}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              ) : (
+                <p className="text-xs text-white/30 text-center py-6">No habits configured yet.</p>
+              )}
             </div>
           </div>
         </div>

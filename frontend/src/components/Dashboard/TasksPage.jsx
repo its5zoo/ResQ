@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Plus, 
   Trash2, 
@@ -13,15 +13,15 @@ import {
   FileText,
   Calendar
 } from 'lucide-react';
+import { tasks as apiTasks } from '../../services/api.js';
 
 export default function TasksPage({ 
   tasks, 
-  setTasks, 
-  toggleTask, 
-  deleteTask 
+  setTasks 
 }) {
   const [filter, setFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('urgency');
+  const [sortBy, setSortBy] = useState('priorityRank');
+  const [loading, setLoading] = useState(true);
   
   // Task Creation States
   const [title, setTitle] = useState('');
@@ -34,8 +34,24 @@ export default function TasksPage({
   const [selectedTask, setSelectedTask] = useState(null);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
 
+  const fetchTasks = async () => {
+    try {
+      setLoading(true);
+      const data = await apiTasks.getAll();
+      setTasks(data || []);
+    } catch (err) {
+      console.error('Error fetching tasks:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
   // Filtering Logic
-  const filteredTasks = tasks.filter((t) => {
+  const filteredTasks = (tasks || []).filter((t) => {
     if (filter === 'completed') return t.completed;
     if (filter === 'pending') return !t.completed;
     if (filter === 'critical') return !t.completed && t.urgency >= 9;
@@ -44,32 +60,82 @@ export default function TasksPage({
 
   // Sorting Logic
   const sortedTasks = [...filteredTasks].sort((a, b) => {
+    if (sortBy === 'priorityRank') {
+      const rankA = a.aiPriorityRank !== undefined && a.aiPriorityRank !== null ? a.aiPriorityRank : 999;
+      const rankB = b.aiPriorityRank !== undefined && b.aiPriorityRank !== null ? b.aiPriorityRank : 999;
+      if (rankA !== rankB) return rankA - rankB;
+      return b.urgency - a.urgency;
+    }
     if (sortBy === 'urgency') return b.urgency - a.urgency;
-    if (sortBy === 'duration') return b.duration - a.duration;
+    if (sortBy === 'duration') return (b.estimatedMinutes || b.duration || 0) - (a.estimatedMinutes || a.duration || 0);
     return 0;
   });
 
-  const handleCreateTask = (e) => {
+  const handleCreateTask = async (e) => {
     e.preventDefault();
     if (!title.trim()) return;
-    const newTask = {
-      id: Date.now(),
-      title,
-      urgency: parseInt(urgency),
-      dueDate,
-      duration: parseInt(duration),
-      category,
-      completed: false,
-      subtasks: [
-        { title: 'Deconstruct project requirements', completed: true },
-        { title: 'Formulate core structure', completed: false }
-      ]
-    };
-    setTasks([newTask, ...tasks]);
-    setTitle('');
+
+    try {
+      let resolvedDueDate = new Date();
+      if (dueDate === 'Tomorrow') {
+        resolvedDueDate.setDate(resolvedDueDate.getDate() + 1);
+      } else if (dueDate === 'In 2 Days') {
+        resolvedDueDate.setDate(resolvedDueDate.getDate() + 2);
+      } else if (dueDate === 'In 3 Days') {
+        resolvedDueDate.setDate(resolvedDueDate.getDate() + 3);
+      }
+
+      const taskData = {
+        title,
+        urgency: parseInt(urgency),
+        dueDate: resolvedDueDate,
+        estimatedMinutes: parseInt(duration),
+        category,
+        subtasks: [
+          { title: 'Formulate core structure', completed: false }
+        ]
+      };
+
+      const created = await apiTasks.create(taskData);
+      setTasks(prev => [created, ...prev]);
+      setTitle('');
+
+      // Run AI Reprioritization and fetch new priorities
+      await apiTasks.reprioritize();
+      const refetched = await apiTasks.getAll();
+      setTasks(refetched);
+    } catch (err) {
+      console.error('Error creating task:', err);
+    }
   };
 
-  const handleAddSubtask = (e) => {
+  const handleToggleTask = async (id) => {
+    try {
+      const task = tasks.find(t => t._id === id);
+      if (!task) return;
+      const updated = await apiTasks.update(id, { completed: !task.completed });
+      setTasks(prev => prev.map(t => t._id === id ? updated : t));
+      
+      // Update selectedTask panel too if it's currently open
+      if (selectedTask?._id === id) {
+        setSelectedTask(updated);
+      }
+    } catch (err) {
+      console.error('Error toggling task:', err);
+    }
+  };
+
+  const handleDeleteTask = async (id) => {
+    try {
+      await apiTasks.delete(id);
+      setTasks(prev => prev.filter(t => t._id !== id));
+      if (selectedTask?._id === id) setSelectedTask(null);
+    } catch (err) {
+      console.error('Error deleting task:', err);
+    }
+  };
+
+  const handleAddSubtask = async (e) => {
     e.preventDefault();
     if (!newSubtaskTitle.trim() || !selectedTask) return;
     
@@ -78,32 +144,30 @@ export default function TasksPage({
       { title: newSubtaskTitle, completed: false }
     ];
 
-    setTasks(tasks.map(t => 
-      t.id === selectedTask.id ? { ...t, subtasks: updatedSubtasks } : t
-    ));
-
-    setSelectedTask({
-      ...selectedTask,
-      subtasks: updatedSubtasks
-    });
-    setNewSubtaskTitle('');
+    try {
+      const updated = await apiTasks.update(selectedTask._id, { subtasks: updatedSubtasks });
+      setTasks(prev => prev.map(t => t._id === selectedTask._id ? updated : t));
+      setSelectedTask(updated);
+      setNewSubtaskTitle('');
+    } catch (err) {
+      console.error('Error adding subtask:', err);
+    }
   };
 
-  const toggleSubtask = (subtaskIdx) => {
+  const toggleSubtask = async (subtaskIdx) => {
     if (!selectedTask) return;
 
     const updatedSubtasks = selectedTask.subtasks.map((st, sIdx) => 
       sIdx === subtaskIdx ? { ...st, completed: !st.completed } : st
     );
 
-    setTasks(tasks.map(t => 
-      t.id === selectedTask.id ? { ...t, subtasks: updatedSubtasks } : t
-    ));
-
-    setSelectedTask({
-      ...selectedTask,
-      subtasks: updatedSubtasks
-    });
+    try {
+      const updated = await apiTasks.update(selectedTask._id, { subtasks: updatedSubtasks });
+      setTasks(prev => prev.map(t => t._id === selectedTask._id ? updated : t));
+      setSelectedTask(updated);
+    } catch (err) {
+      console.error('Error toggling subtask:', err);
+    }
   };
 
   return (
@@ -210,7 +274,8 @@ export default function TasksPage({
             onChange={(e) => setSortBy(e.target.value)}
             className="bg-[#0B0B0B] border border-white/10 hover:border-white/20 focus:border-[#E5B842]/40 rounded-lg px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white/70 focus:outline-hidden cursor-pointer transition-all duration-300"
           >
-            <option value="urgency">Urgency</option>
+            <option value="priorityRank">AI Priority Rank</option>
+            <option value="urgency">Manual Urgency</option>
             <option value="duration">Focus Duration</option>
           </select>
         </div>
@@ -221,68 +286,81 @@ export default function TasksPage({
         
         {/* Main list */}
         <div className={`space-y-3 transition-all duration-300 ${selectedTask ? 'lg:col-span-7' : 'lg:col-span-12'}`}>
-          {sortedTasks.map((task) => (
-            <div 
-              key={task.id} 
-              onClick={() => setSelectedTask(task)}
-              className={`p-5 border rounded-2xl hover:border-white/10 transition-all duration-300 cursor-pointer layered-shadow-lg ${
-                task.completed ? 'opacity-50' : ''
-              } ${selectedTask?.id === task.id ? 'border-[#E5B842]/40 bg-[#E5B842]/[0.01]' : 'border-white/[0.03] bg-black'}`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4 min-w-0">
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleTask(task.id);
-                    }}
-                    className="text-white/30 hover:text-[#E5B842] transition-colors focus:outline-hidden cursor-pointer"
-                  >
-                    {task.completed ? (
-                      <CheckCircle2 className="w-5 h-5 text-[#E5B842]" />
-                    ) : (
-                      <Circle className="w-5 h-5 text-white/20 hover:text-white/40" />
-                    )}
-                  </button>
-                  <div className="min-w-0">
-                    <h4 className={`text-sm font-semibold truncate ${task.completed ? 'line-through text-white/40' : 'text-white/80'}`}>
-                      {task.title}
-                    </h4>
-                    <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">{task.category || 'WORK'}</span>
+          {loading ? (
+            <div className="space-y-4 animate-pulse">
+              {[1, 2, 3].map(n => (
+                <div key={n} className="h-16 bg-white/5 rounded-2xl"></div>
+              ))}
+            </div>
+          ) : (
+            sortedTasks.map((task) => (
+              <div 
+                key={task._id} 
+                onClick={() => setSelectedTask(task)}
+                className={`p-5 border rounded-2xl hover:border-white/10 transition-all duration-300 cursor-pointer layered-shadow-lg ${
+                  task.completed ? 'opacity-50' : ''
+                } ${selectedTask?._id === task._id ? 'border-[#E5B842]/40 bg-[#E5B842]/[0.01]' : 'border-white/[0.03] bg-black'} animate-fade-in`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4 min-w-0">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleTask(task._id);
+                      }}
+                      className="text-white/30 hover:text-[#E5B842] transition-colors focus:outline-hidden cursor-pointer"
+                    >
+                      {task.completed ? (
+                        <CheckCircle2 className="w-5 h-5 text-[#E5B842]" />
+                      ) : (
+                        <Circle className="w-5 h-5 text-white/20 hover:text-white/40" />
+                      )}
+                    </button>
+                    <div className="min-w-0">
+                      <h4 className={`text-sm font-semibold truncate ${task.completed ? 'line-through text-white/40' : 'text-white/80'}`}>
+                        {task.title}
+                      </h4>
+                      <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">{task.category || 'WORK'}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <span 
+                      title={task.aiReason || 'AI Re-ranking is pending...'}
+                      className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#E5B842]/5 border border-[#E5B842]/20 text-[#E5B842] cursor-help relative group"
+                    >
+                      Priority {task.urgency}
+                      {task.aiReason && (
+                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-56 p-2 bg-[#090909] border border-white/10 text-[9px] text-white/80 rounded-lg shadow-lg z-50 normal-case font-normal text-center leading-normal">
+                          {task.aiReason}
+                        </span>
+                      )}
+                    </span>
+                    
+                    <span className="text-xs text-white/45 flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-white/40" /> {task.estimatedMinutes || task.duration || 30}m
+                    </span>
+
+                    <button 
+                      onClick={() => handleDeleteTask(task._id)}
+                      className="text-white/20 hover:text-red-500 transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4 shrink-0" onClick={(e) => e.stopPropagation()}>
-                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#E5B842]/5 border border-[#E5B842]/20 text-[#E5B842]">
-                    Priority {task.urgency}
-                  </span>
-                  
-                  <span className="text-xs text-white/45 flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5 text-white/40" /> {task.duration}m
-                  </span>
-
-                  <button 
-                    onClick={() => {
-                      deleteTask(task.id);
-                      if (selectedTask?.id === task.id) setSelectedTask(null);
-                    }}
-                    className="text-white/20 hover:text-status-red transition-colors cursor-pointer"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                {/* Progress Line */}
+                <div className="mt-4">
+                  <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-[#E5B842] to-[#C97D2E] rounded-full" style={{ width: task.completed ? '100%' : `${(task.urgency || 5) * 10}%` }}></div>
+                  </div>
                 </div>
               </div>
+            ))
+          )}
 
-              {/* Progress Line */}
-              <div className="mt-4">
-                <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-[#E5B842] to-[#C97D2E] rounded-full" style={{ width: task.completed ? '100%' : '25%' }}></div>
-                </div>
-              </div>
-            </div>
-          ))}
-
-          {sortedTasks.length === 0 && (
+          {!loading && sortedTasks.length === 0 && (
             <div className="text-center py-20 bg-[#090909] border border-white/[0.04] rounded-2xl layered-shadow-lg">
               <CheckCircle2 className="w-10 h-10 text-[#E5B842]/30 mx-auto mb-3" />
               <p className="text-sm text-white/40 font-light">No tasks matched your filter rules.</p>
@@ -312,7 +390,7 @@ export default function TasksPage({
                 Priority: {selectedTask.urgency}
               </span>
               <h3 className="text-sm font-bold text-white leading-snug">{selectedTask.title}</h3>
-              <p className="text-[10px] text-white/40 mt-1">Due {selectedTask.dueDate} · Estimated {selectedTask.duration} Mins</p>
+              <p className="text-[10px] text-white/40 mt-1">Due {selectedTask.dueDate ? new Date(selectedTask.dueDate).toLocaleDateString() : 'Today'} · Estimated {selectedTask.estimatedMinutes || selectedTask.duration || 30} Mins</p>
             </div>
 
             {/* Subtask Section */}
@@ -361,19 +439,15 @@ export default function TasksPage({
               </form>
             </div>
 
-            {/* Automated Actions */}
-            <div className="border-t border-white/5 pt-5 space-y-3">
-              <h5 className="text-[9px] font-bold uppercase tracking-wider text-white/30">AI Automation Nodes</h5>
-              <div className="flex gap-2">
-                <button className="flex-1 py-2 bg-transparent border border-[#E5B842]/40 text-[#E5B842] hover:bg-[#E5B842] hover:text-black text-[9px] font-bold uppercase tracking-widest rounded-lg transition-all duration-300 flex items-center justify-center gap-1 cursor-pointer">
-                  <Sparkles className="w-3 h-3" /> Draft Content
-                </button>
-                <button className="flex-1 py-2 bg-black border border-white/10 text-white/50 hover:text-white hover:bg-white/5 text-[9px] font-bold uppercase tracking-widest rounded-lg transition-all duration-300 flex items-center justify-center gap-1 cursor-pointer">
-                  <FileText className="w-3 h-3" /> Get Summaries
-                </button>
+            {/* AI Advisor Context Explanation */}
+            {selectedTask.aiReason && (
+              <div className="border-t border-white/5 pt-5 space-y-2">
+                <h5 className="text-[9px] font-bold uppercase tracking-wider text-[#E5B842]">AI Advice Reason</h5>
+                <p className="text-[11px] text-white/60 leading-relaxed bg-[#E5B842]/5 border border-[#E5B842]/10 p-3.5 rounded-xl">
+                  {selectedTask.aiReason}
+                </p>
               </div>
-            </div>
-
+            )}
           </div>
         )}
 
@@ -382,4 +456,3 @@ export default function TasksPage({
     </div>
   );
 }
-

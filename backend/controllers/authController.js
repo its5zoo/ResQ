@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET || 'your_jwt_super_secret_key_12345', {
-    expiresIn: '30d',
+    expiresIn: '7d',
   });
 };
 
@@ -76,6 +76,8 @@ export const getUserProfile = async (req, res) => {
         plan: user.plan,
         fontSize: user.fontSize,
         workingHours: user.workingHours,
+        googleEmail: user.googleEmail,
+        googleAccessToken: user.googleAccessToken,
         createdAt: user.createdAt,
       });
     } else {
@@ -109,5 +111,22 @@ export const updateUserSettings = async (req, res) => {
     }
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+export const refreshUserToken = async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'No token provided' });
+  }
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_super_secret_key_12345', {
+      ignoreExpiration: true
+    });
+    const newToken = generateToken(decoded.id);
+    res.json({ token: newToken });
+  } catch (error) {
+    res.status(401).json({ message: 'Invalid token' });
   }
 };

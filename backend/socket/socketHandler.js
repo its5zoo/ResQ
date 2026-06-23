@@ -7,10 +7,18 @@ import { executeVoiceCommand } from '../controllers/voiceController.js';
 export let io = null;
 
 export const handleSocketEvents = (server) => {
+  const allowedOrigins = Array.from(new Set([
+    process.env.CLIENT_URL,
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175'
+  ].filter(Boolean)));
+
   io = new Server(server, {
     cors: {
-      origin: process.env.CLIENT_URL || '*',
-      methods: ['GET', 'POST', 'PUT', 'DELETE']
+      origin: allowedOrigins,
+      methods: ['GET', 'POST', 'PUT', 'DELETE'],
+      credentials: true
     }
   });
 

@@ -96,13 +96,13 @@ export default function Navbar() {
         {/* Right Actions */}
         <div className="flex items-center gap-5">
           <button 
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/auth')}
             className="px-5 py-2.5 rounded-lg text-sm font-semibold tracking-wider uppercase text-white/60 hover:text-[#E5B842] transition-all duration-300 focus:outline-hidden cursor-pointer"
           >
             Sign In
           </button>
           <button 
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/auth')}
             className="px-6 py-3 rounded-lg text-sm font-semibold tracking-wider uppercase bg-transparent text-white border border-white/40 hover:border-[#E5B842] hover:text-[#E5B842] transition-all duration-500 hover:-translate-y-0.5 active:translate-y-0 focus:outline-hidden cursor-pointer"
           >
             Get Started

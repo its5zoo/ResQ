@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import Sidebar from '../components/Dashboard/Sidebar';
 import DashboardHome from '../components/Dashboard/DashboardHome';
 import TasksPage from '../components/Dashboard/TasksPage';
@@ -11,9 +12,24 @@ import NotificationsPage from '../components/Dashboard/NotificationsPage';
 
 export default function Dashboard() {
   const [currentTab, setCurrentTab] = useState('dashboard');
+  const location = useLocation();
+
+  // Sync tab with URL search parameter
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get('tab');
+    if (tab) {
+      setCurrentTab(tab);
+    }
+  }, [location.search]);
 
   // Load and apply theme and plan states on mount
   useEffect(() => {
+    if (!localStorage.getItem('token')) {
+      window.location.href = '/auth';
+      return;
+    }
+
     const savedTheme = localStorage.getItem('resq-theme') || 'dark';
     const savedPlan = localStorage.getItem('resq-plan') || 'free';
     

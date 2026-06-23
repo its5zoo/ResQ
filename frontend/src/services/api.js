@@ -21,13 +21,13 @@ api.interceptors.request.use(
   }
 );
 
-// If response status is 401, clear token and redirect to /
+// If response status is 401, clear token and redirect to /auth
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
       localStorage.removeItem('token');
-      window.location.href = '/';
+      window.location.href = '/auth';
     }
     return Promise.reject(error);
   }
@@ -311,4 +311,39 @@ export const settings = {
       return handleRequestError(error);
     }
   },
+};
+
+export const google = {
+  getAuthUrl: async () => {
+    try {
+      const response = await api.get('/google/auth-url');
+      return response.data;
+    } catch (error) {
+      return handleRequestError(error);
+    }
+  },
+  getLoginUrl: async () => {
+    try {
+      const response = await api.get('/google/login-url');
+      return response.data;
+    } catch (error) {
+      return handleRequestError(error);
+    }
+  },
+  sync: async () => {
+    try {
+      const response = await api.post('/google/sync');
+      return response.data;
+    } catch (error) {
+      return handleRequestError(error);
+    }
+  },
+  disconnect: async () => {
+    try {
+      const response = await api.post('/google/disconnect');
+      return response.data;
+    } catch (error) {
+      return handleRequestError(error);
+    }
+  }
 };

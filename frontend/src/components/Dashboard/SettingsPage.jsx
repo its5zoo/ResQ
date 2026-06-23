@@ -18,9 +18,12 @@ import {
   AlertCircle,
   X
 } from 'lucide-react';
+import { settings as apiSettings, auth, google as apiGoogle } from '../../services/api.js';
 
 export default function SettingsPage() {
   const [activeSubTab, setActiveSubTab] = useState('general');
+  const [isGoogleConnected, setIsGoogleConnected] = useState(false);
+  const [syncLoading, setSyncLoading] = useState(false);
 
   const [selectedPlan, setSelectedPlan] = useState(() => {
     const saved = localStorage.getItem('resq-plan');
@@ -40,6 +43,12 @@ export default function SettingsPage() {
     name: 'Faizaan Khan',
     email: 'faizaan@gmail.com',
     role: 'Developer Account'
+  });
+
+  // Working Hours State
+  const [workingHours, setWorkingHours] = useState({
+    start: '09:00',
+    end: '18:00'
   });
 
   // AI Guardian Settings
@@ -110,11 +119,118 @@ export default function SettingsPage() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  // Fetch settings from API on mount
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const data = await auth.getMe();
+        if (data) {
+          setProfile({
+            name: data.name || 'Faizaan Khan',
+            email: data.email || 'faizaan@gmail.com',
+            role: data.plan === 'premium' ? 'Premium Account' : 'Developer Account',
+            googleEmail: data.googleEmail || null
+          });
+          setTheme(data.theme || 'dark');
+          setSelectedPlan(data.plan || 'free');
+          setFontSize(data.fontSize || 16);
+          setIsGoogleConnected(!!data.googleAccessToken);
+          if (data.workingHours) {
+            setWorkingHours({
+              start: data.workingHours.start || '09:00',
+              end: data.workingHours.end || '18:00'
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load user profile settings:', err);
+      }
+    };
+    fetchUserProfile();
+  }, []);
+
+  // Check URL query parameters for Google sync status
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('sync') === 'success') {
+      showToast('Google Calendar linked and synchronized successfully!');
+      window.history.replaceState({}, document.title, window.location.pathname + (activeSubTab !== 'general' ? `?tab=${activeSubTab}` : ''));
+    } else if (params.get('sync') === 'email_mismatch') {
+      showToast('Google account email must match your ResQ registration email.', 'error');
+      window.history.replaceState({}, document.title, window.location.pathname + (activeSubTab !== 'general' ? `?tab=${activeSubTab}` : ''));
+    } else if (params.get('sync') === 'error') {
+      showToast('Failed to link Google Calendar. Please try again.', 'error');
+      window.history.replaceState({}, document.title, window.location.pathname + (activeSubTab !== 'general' ? `?tab=${activeSubTab}` : ''));
+    }
+  }, []);
+
+  const handleLinkGoogle = async () => {
+    try {
+      const response = await apiGoogle.getAuthUrl();
+      if (response && response.url) {
+        window.location.href = response.url; // Redirect to Google OAuth
+      } else {
+        showToast('Could not retrieve Google Authorization URL.', 'error');
+      }
+    } catch (err) {
+      console.error('Google Link Error:', err);
+      showToast('Failed to retrieve authorization URL.', 'error');
+    }
+  };
+
+  const handleSyncGoogle = async () => {
+    try {
+      setSyncLoading(true);
+      showToast('Syncing Google Calendar events...', 'info');
+      const response = await apiGoogle.sync();
+      if (response && response.success) {
+        showToast(`Sync complete! Synced ${response.googleEventCount} events.`);
+      }
+    } catch (err) {
+      console.error('Google Sync Error:', err);
+      showToast('Failed to sync Google Calendar.', 'error');
+    } finally {
+      setSyncLoading(false);
+    }
+  };
+
+  const handleDisconnectGoogle = async () => {
+    if (window.confirm('Are you sure you want to disconnect Google Calendar?')) {
+      try {
+        await apiGoogle.disconnect();
+        setIsGoogleConnected(false);
+        setProfile(prev => ({ ...prev, googleEmail: null }));
+        showToast('Google Calendar disconnected.');
+      } catch (err) {
+        console.error('Google Disconnect Error:', err);
+        showToast('Failed to disconnect Google Calendar.', 'error');
+      }
+    }
+  };
+
   // Apply root font-size change
-  const handleFontSizeChange = (size) => {
-    setFontSize(size);
-    localStorage.setItem('resq-font-size', size);
-    document.documentElement.style.fontSize = `${size}px`;
+  const handleFontSizeChange = async (size) => {
+    try {
+      await apiSettings.updateFontSize(size);
+      setFontSize(size);
+      localStorage.setItem('resq-font-size', size);
+      document.documentElement.style.fontSize = `${size}px`;
+      document.documentElement.style.setProperty('--base-font-size', `${size}px`);
+    } catch (err) {
+      console.error('Error updating font size:', err);
+      showToast('Failed to update font size', 'error');
+    }
+  };
+
+  const handleThemeChange = async (newTheme) => {
+    try {
+      await apiSettings.updateTheme(newTheme);
+      setTheme(newTheme);
+      showToast(`Theme updated to ${newTheme} successfully!`);
+    } catch (err) {
+      console.error('Error updating theme:', err);
+      showToast('Failed to update theme', 'error');
+    }
   };
 
   // Apply font size on mount
@@ -122,6 +238,7 @@ export default function SettingsPage() {
     const saved = localStorage.getItem('resq-font-size');
     if (saved) {
       document.documentElement.style.fontSize = `${saved}px`;
+      document.documentElement.style.setProperty('--base-font-size', `${saved}px`);
     }
   }, []);
 
@@ -152,9 +269,15 @@ export default function SettingsPage() {
     }
   }, [theme, selectedPlan]);
 
-  const handleProfileSave = (e) => {
+  const handleProfileSave = async (e) => {
     e.preventDefault();
-    showToast("Profile settings updated successfully!");
+    try {
+      await apiSettings.updateWorkingHours(workingHours.start, workingHours.end);
+      showToast("Profile settings and working hours updated successfully!");
+    } catch (err) {
+      console.error('Error saving settings:', err);
+      showToast("Failed to save settings", "error");
+    }
   };
 
   const handleResetData = () => {
@@ -229,6 +352,29 @@ export default function SettingsPage() {
                   onChange={(e) => setProfile({ ...profile, role: e.target.value })}
                   className="w-full bg-[#0B0B0B] border border-white/10 hover:border-white/20 focus:border-[#E5B842]/40 rounded-xl px-4 py-2.5 text-xs text-white/50 outline-none transition-colors"
                 />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-tech font-bold uppercase tracking-wider text-white/40 block mb-1.5">Working Hours Start</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. 09:00"
+                    value={workingHours.start}
+                    onChange={(e) => setWorkingHours({ ...workingHours, start: e.target.value })}
+                    className="w-full bg-[#0B0B0B] border border-white/10 hover:border-white/20 focus:border-[#E5B842]/40 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-tech font-bold uppercase tracking-wider text-white/40 block mb-1.5">Working Hours End</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. 18:00"
+                    value={workingHours.end}
+                    onChange={(e) => setWorkingHours({ ...workingHours, end: e.target.value })}
+                    className="w-full bg-[#0B0B0B] border border-white/10 hover:border-white/20 focus:border-[#E5B842]/40 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-colors"
+                  />
+                </div>
               </div>
 
               <div className="pt-4 border-t border-white/5 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -328,8 +474,8 @@ export default function SettingsPage() {
 
               <div className="flex items-center justify-between p-4 bg-black/40 border border-white/[0.03] rounded-2xl">
                 <div className="flex flex-col">
-                  <span className="text-xs font-semibold text-white/85">Critical Deadline Hazards</span>
-                  <span className="text-[10px] text-white/40">Warning cues for upcoming deadlines</span>
+                  <span className="text-xs font-semibold text-white/85">Critical Deadline Warnings</span>
+                  <span className="text-[10px] text-white/40">Warning alerts for upcoming deadlines</span>
                 </div>
                 <button 
                   onClick={() => setAllowDeadlineAlerts(!allowDeadlineAlerts)}
@@ -359,7 +505,7 @@ export default function SettingsPage() {
                     <button
                       key={t}
                       type="button"
-                      onClick={() => setTheme(t)}
+                      onClick={() => handleThemeChange(t)}
                       className={`py-2.5 px-1 text-[10px] font-bold uppercase tracking-wider rounded-xl border text-center transition-all cursor-pointer ${
                         theme === t 
                           ? 'border-[#E5B842] bg-[#E5B842]/10 text-[#E5B842] shadow-[0_0_12px_rgba(229,184,66,0.1)]' 
@@ -431,28 +577,57 @@ export default function SettingsPage() {
             </div>
 
             <div className="space-y-5 max-w-lg">
-              {/* Connected Calendars */}
-              <div className="space-y-3">
-                <label className="text-[10px] font-tech font-bold uppercase tracking-wider text-white/40 block mb-1">Google Calendar Sync</label>
-                {[
-                  { id: 'primary', name: 'Primary Account (faizaan@gmail.com)' },
-                  { id: 'work', name: 'Work Calendar (CN Hackathon)' },
-                  { id: 'holidays', name: 'Indian Holidays' }
-                ].map((cal) => {
-                  const active = selectedCalendars.includes(cal.id);
-                  return (
-                    <div 
-                      key={cal.id}
-                      onClick={() => handleCalToggle(cal.id)}
-                      className="flex items-center justify-between p-3.5 bg-black/40 border border-white/[0.03] rounded-xl cursor-pointer hover:border-white/10 transition-all duration-300"
+              {/* Google Calendar Sync */}
+              <div className="space-y-3 p-5 bg-black/40 border border-white/[0.03] rounded-3xl">
+                <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                  <div>
+                    <span className="text-[9px] font-tech font-bold text-[#E5B842] uppercase tracking-wider">CALENDAR LAYERS</span>
+                    <h4 className="text-sm font-bold text-white mt-0.5">Google Calendar Sync</h4>
+                  </div>
+                  <span className={`px-2 py-0.5 font-tech font-bold text-[8px] uppercase tracking-wider rounded-lg ${
+                    isGoogleConnected ? 'bg-[#E5B842]/10 text-[#E5B842] border border-[#E5B842]/20' : 'bg-white/5 text-white/40 border border-white/10'
+                  }`}>
+                    {isGoogleConnected ? 'CONNECTED' : 'DISCONNECTED'}
+                  </span>
+                </div>
+
+                <p className="text-[10px] text-white/50 leading-relaxed font-normal">
+                  Link your Google Calendar to synchronize your schedule. Focus Blocks booked in ResQ will be automatically pushed to Google Calendar, and your external meetings will be synced back.
+                </p>
+
+                {isGoogleConnected && profile.googleEmail && (
+                  <div className="flex items-center gap-2 text-[10px] text-white/70 font-semibold bg-[#E5B842]/5 border border-[#E5B842]/10 rounded-xl px-3 py-2 mt-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#E5B842] animate-pulse" />
+                    <span>Connected account: <strong className="text-white">{profile.googleEmail}</strong></span>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-2 pt-2">
+                  {isGoogleConnected ? (
+                    <>
+                      <button 
+                        onClick={handleSyncGoogle}
+                        disabled={syncLoading}
+                        className="px-4 py-2 bg-[#E5B842] hover:bg-[#FFF2CC] disabled:opacity-50 text-black text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer"
+                      >
+                        {syncLoading ? 'Syncing...' : 'Sync Now'}
+                      </button>
+                      <button 
+                        onClick={handleDisconnectGoogle}
+                        className="px-4 py-2 bg-transparent text-red-400 border border-red-500/20 hover:bg-red-500/10 hover:border-transparent text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer"
+                      >
+                        Disconnect
+                      </button>
+                    </>
+                  ) : (
+                    <button 
+                      onClick={handleLinkGoogle}
+                      className="px-5 py-2.5 bg-transparent text-[#E5B842] border border-[#E5B842]/40 hover:bg-[#E5B842] hover:text-black hover:border-transparent text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer font-bold"
                     >
-                      <span className="text-xs text-white/85">{cal.name}</span>
-                      <div className={`w-9 h-5 rounded-full p-0.5 transition-all duration-300 border ${active ? 'bg-[#E5B842] border-[#E5B842]' : 'bg-transparent border-white/20'}`}>
-                        <div className={`w-3.5 h-3.5 rounded-full transition-all duration-300 ${active ? 'translate-x-4 bg-black' : 'translate-x-0 bg-white/40'}`}></div>
-                      </div>
-                    </div>
-                  );
-                })}
+                      Link Google Calendar
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Extra Integrations */}
@@ -580,9 +755,15 @@ export default function SettingsPage() {
                   </div>
                   {selectedPlan !== 'free' && (
                     <button 
-                      onClick={() => {
-                        setSelectedPlan('free');
-                        showToast("Switched to Free Plan.");
+                      onClick={async () => {
+                        try {
+                          await apiSettings.updatePlan('free');
+                          setSelectedPlan('free');
+                          showToast("Switched to Free Plan.");
+                        } catch (err) {
+                          console.error('Error downgrading plan:', err);
+                          showToast('Failed to downgrade plan', 'error');
+                        }
                       }}
                       className="w-full py-2 bg-transparent text-white border border-white/20 hover:bg-white/10 hover:border-transparent text-[9px] font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer mt-4"
                     >
@@ -1075,16 +1256,22 @@ export default function SettingsPage() {
             </div>
 
             {/* Modal Form */}
-            <form onSubmit={(e) => {
+            <form onSubmit={async (e) => {
               e.preventDefault();
               setPaymentLoading(true);
-              // Simulate loading spinner
-              setTimeout(() => {
+              try {
+                // Simulate secure payment processing
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                await apiSettings.updatePlan('premium');
                 setPaymentLoading(false);
                 setSelectedPlan('premium');
                 setIsPaymentModalOpen(false);
                 showToast("Payment successful! Premium activated.");
-              }, 2000);
+              } catch (err) {
+                setPaymentLoading(false);
+                console.error('Error upgrading plan:', err);
+                showToast('Failed to upgrade plan', 'error');
+              }
             }} className="space-y-4">
               
               <div>

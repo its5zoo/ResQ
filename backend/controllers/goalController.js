@@ -11,7 +11,7 @@ export const getGoals = async (req, res) => {
 };
 
 export const createGoal = async (req, res) => {
-  const { title, description, targetDate, progress, keyResults } = req.body;
+  const { title, description, targetDate, progress, keyResults, autoPlan, userPreferences } = req.body;
 
   try {
     const goal = new Goal({
@@ -28,24 +28,27 @@ export const createGoal = async (req, res) => {
 
     res.status(201).json(createdGoal);
 
-    // Call Gemini breakdown asynchronously
-    generateGoalBreakdown(createdGoal)
-      .then(async (milestones) => {
-        if (Array.isArray(milestones) && milestones.length > 0) {
-          await Goal.findByIdAndUpdate(createdGoal._id, {
-            milestones: milestones.map(m => ({
-              week: m.week,
-              milestone: m.milestone,
-              effort: m.effort || 'medium',
-              done: false
-            }))
-          });
-          console.log(`[Goal AI] Asynchronously updated milestones breakdown for goal ${createdGoal._id}`);
-        }
-      })
-      .catch(err => {
-        console.error('[Goal AI] Error generating goal breakdown in background:', err);
-      });
+    // Only run Gemini breakdown if autoPlan is explicitly enabled (or not false)
+    if (autoPlan !== false) {
+      // Call Gemini breakdown asynchronously
+      generateGoalBreakdown(createdGoal, userPreferences || '')
+        .then(async (milestones) => {
+          if (Array.isArray(milestones) && milestones.length > 0) {
+            await Goal.findByIdAndUpdate(createdGoal._id, {
+              milestones: milestones.map(m => ({
+                week: m.week,
+                milestone: m.milestone,
+                effort: m.effort || 'medium',
+                done: false
+              }))
+            });
+            console.log(`[Goal AI] Asynchronously updated milestones breakdown for goal ${createdGoal._id}`);
+          }
+        })
+        .catch(err => {
+          console.error('[Goal AI] Error generating goal breakdown in background:', err);
+        });
+    }
 
   } catch (error) {
     res.status(400).json({ message: error.message });

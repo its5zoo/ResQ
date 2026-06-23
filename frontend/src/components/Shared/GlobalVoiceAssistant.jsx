@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Mic, MicOff, X, Sparkles, AlertTriangle, CalendarDays, RefreshCw } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { voice, tasks as apiTasks, calendar as apiCalendar, ai } from '../../services/api.js';
+import { socket } from '../../services/socket.js';
 
 export default function GlobalVoiceAssistant() {
   const navigate = useNavigate();
@@ -15,6 +17,8 @@ export default function GlobalVoiceAssistant() {
   
   const recognitionRef = useRef(null);
   const synthRef = useRef(null);
+  const silenceTimeoutRef = useRef(null);
+  const isBlockedRef = useRef(false);
 
   // Initialize Speech Synthesis and Speech Recognition
   useEffect(() => {
@@ -39,32 +43,40 @@ export default function GlobalVoiceAssistant() {
 
       recognition.onresult = (event) => {
         const lastResultIndex = event.results.length - 1;
-        const speechText = event.results[lastResultIndex][0].transcript.toLowerCase().trim();
+        const speechText = event.results[lastResultIndex][0].transcript;
         console.log('Heard speech:', speechText);
 
+        const lowerText = speechText.toLowerCase().trim();
         if (!isWoken) {
-          // Listen for wake word
-          if (speechText.includes('hey resq') || speechText.includes('hey rescue') || speechText.includes('hey res') || speechText.includes('hey key')) {
+          if (lowerText.includes('hey resq') || lowerText.includes('hey rescue') || lowerText.includes('hey res') || lowerText.includes('hey key')) {
             triggerWakeUp();
           }
         } else {
-          // Process active commands
-          setTranscript(event.results[lastResultIndex][0].transcript);
-          processCommand(speechText);
+          setTranscript(speechText);
+          setMicState('processing');
+
+          if (silenceTimeoutRef.current) {
+            clearTimeout(silenceTimeoutRef.current);
+          }
+
+          silenceTimeoutRef.current = setTimeout(() => {
+            console.log('Silence detected. Sending transcript to backend:', speechText);
+            sendTranscriptToBackend(speechText);
+          }, 1500);
         }
       };
 
       recognition.onerror = (event) => {
         console.warn('Speech recognition error:', event.error);
-        if (event.error === 'not-allowed') {
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          isBlockedRef.current = true;
           setSpeechSupported(false);
         }
       };
 
       recognition.onend = () => {
         setIsListening(false);
-        // Restart background listening automatically if not woken
-        if (!isWoken) {
+        if (!isWoken && !isBlockedRef.current) {
           try {
             recognition.start();
           } catch (e) {
@@ -82,6 +94,9 @@ export default function GlobalVoiceAssistant() {
     }
 
     return () => {
+      if (silenceTimeoutRef.current) {
+        clearTimeout(silenceTimeoutRef.current);
+      }
       if (recognitionRef.current) {
         recognitionRef.current.onend = null;
         try {
@@ -93,6 +108,87 @@ export default function GlobalVoiceAssistant() {
       }
     };
   }, [isWoken]);
+
+  // Socket listener for voice:response
+  useEffect(() => {
+    const handleVoiceResponse = (result) => {
+      console.log('[Socket Voice] voice:response received:', result);
+      handleVoiceResult(result);
+    };
+
+    socket.on('voice:response', handleVoiceResponse);
+
+    return () => {
+      socket.off('voice:response', handleVoiceResponse);
+    };
+  }, []);
+
+  const handleVoiceResult = async (result) => {
+    if (!result) return;
+    
+    setAiResponse(result.response);
+    speakBack(result.response);
+
+    // ACTION EXECUTION
+    if (result.action) {
+      try {
+        switch (result.action.type) {
+          case 'add_task':
+            await apiTasks.create(result.action.payload);
+            socket.emit('task:create', result.action.payload);
+            break;
+          case 'complete_task':
+            const id = result.action.payload?.id || result.action.payload?.taskId;
+            if (id) {
+              await apiTasks.update(id, { completed: true });
+            }
+            break;
+          case 'schedule_task':
+            await apiCalendar.create(result.action.payload);
+            break;
+          case 'show_summary':
+            const summaryData = await ai.getDailySummary();
+            if (summaryData?.summary) {
+              setAiResponse(summaryData.summary);
+              speakBack(summaryData.summary);
+            }
+            break;
+          default:
+            break;
+        }
+      } catch (err) {
+        console.error('Failed to execute voice action:', err);
+      }
+    }
+
+    // NAVIGATION
+    if (result.navigationTarget) {
+      navigate(`/dashboard?tab=${result.navigationTarget}`);
+    }
+  };
+
+  const sendTranscriptToBackend = async (text) => {
+    if (!text) return;
+    setMicState('processing');
+    
+    // Check socket first for lower latency
+    if (socket && socket.connected) {
+      console.log('[Socket Voice] Emitting voice:transcript:', text);
+      socket.emit('voice:transcript', { transcript: text });
+    } else {
+      // HTTP fallback
+      console.log('[HTTP Voice] Sending voice command:', text);
+      try {
+        const result = await voice.sendCommand(text);
+        handleVoiceResult(result);
+      } catch (err) {
+        console.error('Error sending voice command via HTTP:', err);
+        setAiResponse("Sorry, I had trouble connecting to the server.");
+        speakBack("Sorry, I had trouble connecting to the server.");
+        setMicState('idle');
+      }
+    }
+  };
 
   // Voice synthesis feedback helper
   const speakBack = (text) => {
@@ -119,7 +215,7 @@ export default function GlobalVoiceAssistant() {
     setAiResponse("I'm here! What would you like me to do? You can check schedules, study blocks, or deadlines.");
     speakBack("I am here. How can I help you?");
 
-    // If speech recognition is active, reset it to active mode
+    isBlockedRef.current = false;
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
@@ -141,126 +237,19 @@ export default function GlobalVoiceAssistant() {
     if (synthRef.current) {
       synthRef.current.cancel();
     }
-    // Restart recognition in background mode
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
       } catch (e) {}
     }
-  };
-
-  // Pre-programmed Command Processor (Decision Tree)
-  const processCommand = (commandText) => {
-    setMicState('processing');
-    
-    // Scenario 1: Study timetables / scheduling block queries
-    if (commandText.includes('study') || commandText.includes('schedule study') || commandText.includes('time table') || commandText.includes('timetable')) {
-      const promptText = "I'd love to schedule a study block for you. Do you have a particular time in mind to study? If you choose a specific time, I will fix it on your calendar. Otherwise, we can keep the time flexible and only fix the day.";
-      setAiResponse(promptText);
-      speakBack(promptText);
-      setChoices([
-        { 
-          label: "Study at 10:00 AM (Fixed)", 
-          action: () => handleStudySelection("10:00 AM", true)
-        },
-        { 
-          label: "Study at 04:00 PM (Fixed)", 
-          action: () => handleStudySelection("04:00 PM", true)
-        },
-        { 
-          label: "Flexible (Only fix the day)", 
-          action: () => handleStudySelection(null, false)
-        }
-      ]);
-    }
-    // Scenario 2: Summarize today
-    else if (commandText.includes('today') || commandText.includes('summarize') || commandText.includes('todo') || commandText.includes('plan')) {
-      const summaryText = "Here is your plan for today: You have a team sync scheduled for 10:00 AM, and I have blocked out an AI Focus Block for React UI integration at 04:00 PM. Let's stay focused and make it a productive day!";
-      setAiResponse(summaryText);
-      speakBack(summaryText);
-      setChoices([
-        {
-          label: "View Calendar",
-          action: () => {
-            navigate('/dashboard?tab=calendar');
-            closeAssistant();
-          }
-        },
-        {
-          label: "View Tasks",
-          action: () => {
-            navigate('/dashboard?tab=tasks');
-            closeAssistant();
-          }
-        }
-      ]);
-    }
-    // Scenario 3: Deadlines
-    else if (commandText.includes('deadline') || commandText.includes('hazard') || commandText.includes('due')) {
-      const deadlineText = "Warning: Your Hackathon Project deadline is at 06:00 PM today. Our hazard radar registers zero schedule buffer remaining. Focus shield is fully active. Let's work smart.";
-      setAiResponse(deadlineText);
-      speakBack(deadlineText);
-      setChoices([
-        {
-          label: "Check Buffer Time",
-          action: () => {
-            navigate('/dashboard');
-            closeAssistant();
-          }
-        }
-      ]);
-    }
-    // Unknown commands
-    else {
-      const fallbackText = `I heard you say: "${commandText}". ResQ AI is ready to execute. I will connect this request to your backend logic when hooked up.`;
-      setAiResponse(fallbackText);
-      speakBack(fallbackText);
-      setChoices([
-        {
-          label: "Reset Conversation",
-          action: () => {
-            setAiResponse("What would you like me to do? You can check schedules, study blocks, or deadlines.");
-            setChoices([]);
-          }
-        }
-      ]);
+    if (silenceTimeoutRef.current) {
+      clearTimeout(silenceTimeoutRef.current);
     }
   };
 
-  // Study scheduling scenario branches
-  const handleStudySelection = (time, isFixed) => {
-    setMicState('processing');
-    if (isFixed) {
-      const text = `Perfect. I have booked your study block at ${time} on your calendar. Focus shielding will engage automatically.`;
-      setAiResponse(text);
-      speakBack(text);
-    } else {
-      const text = "Understood. The study block is set to flexible. I will register the day as a study target on your goals dashboard, and let the AI find the optimal focus window on the fly.";
-      setAiResponse(text);
-      speakBack(text);
-    }
-    setChoices([
-      {
-        label: "Go to Calendar",
-        action: () => {
-          navigate('/dashboard?tab=calendar');
-          closeAssistant();
-        }
-      },
-      {
-        label: "Go to Goals",
-        action: () => {
-          navigate('/dashboard?tab=goals');
-          closeAssistant();
-        }
-      }
-    ]);
-  };
-
-  // Interactive buttons to trigger queries without speaking (useful for testing)
   const triggerScenario = (phrase) => {
     setTranscript(`[Scenario Click]: "${phrase}"`);
-    processCommand(phrase.toLowerCase());
+    sendTranscriptToBackend(phrase);
   };
 
   return (
@@ -313,6 +302,9 @@ export default function GlobalVoiceAssistant() {
               <span className="text-xs font-tech font-bold text-[#E5B842] tracking-wider uppercase">ResQ Voice AI</span>
             </div>
             <div className="flex items-center gap-2">
+              <span className="text-[9px] font-tech px-2 py-0.5 rounded-full bg-[#E5B842]/10 border border-[#E5B842]/20 text-[#E5B842] uppercase font-bold tracking-wider animate-pulse">
+                Powered by Gemini
+              </span>
               <span className="text-[9px] font-tech px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/50 uppercase">
                 {micState === 'speaking' ? 'Speaking' : micState === 'processing' ? 'Processing' : 'Listening'}
               </span>

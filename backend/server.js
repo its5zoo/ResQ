@@ -8,6 +8,12 @@ import dotenv from 'dotenv';
 import connectDB from './config/db.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { handleSocketEvents, io } from './socket/socketHandler.js';
+import { startCronJobs } from './services/cronService.js';
+
+// Middleware Imports
+import { protect } from './middleware/authMiddleware.js';
+import { checkGeminiKey } from './middleware/geminiCheck.js';
+import { aiVoiceLimiter } from './middleware/rateLimiter.js';
 
 // Route Imports
 import authRoutes from './routes/auth.js';
@@ -19,12 +25,22 @@ import notificationRoutes from './routes/notifications.js';
 import aiAdvisorRoutes from './routes/aiAdvisor.js';
 import voiceRoutes from './routes/voice.js';
 import settingsRoutes from './routes/settings.js';
+import googleCalendarRoutes from './routes/googleCalendar.js';
 
 // Initialize environment variables
 dotenv.config();
 
+// Startup check for GEMINI_API_KEY
+const apiKey = process.env.GEMINI_API_KEY;
+if (!apiKey || apiKey.includes('your_google_gemini_api_key') || apiKey.includes('your_gemini_api_key_here')) {
+  console.warn('\x1b[33m%s\x1b[0m', '[Warning] GEMINI_API_KEY is missing or configured with a placeholder. AI and Voice features will return 503.');
+}
+
 // Connect to MongoDB
 connectDB();
+
+// Initialize cron scheduler
+startCronJobs();
 
 const app = express();
 const server = http.createServer(app);
@@ -34,7 +50,18 @@ handleSocketEvents(server);
 
 // Global Middlewares
 app.use(helmet());
-app.use(cors());
+
+const allowedOrigins = Array.from(new Set([
+  process.env.CLIENT_URL,
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175'
+].filter(Boolean)));
+
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true
+}));
 app.use(morgan('dev'));
 app.use(express.json());
 
@@ -51,9 +78,10 @@ app.use('/api/habits', habitRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/calendar', calendarRoutes);
 app.use('/api/notifications', notificationRoutes);
-app.use('/api/ai', aiAdvisorRoutes);
-app.use('/api/voice', voiceRoutes);
+app.use('/api/ai', protect, checkGeminiKey, aiVoiceLimiter, aiAdvisorRoutes);
+app.use('/api/voice', protect, checkGeminiKey, aiVoiceLimiter, voiceRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/google', googleCalendarRoutes);
 
 // Base health check route
 app.get('/api/health', (req, res) => {

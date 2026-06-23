@@ -78,7 +78,8 @@ export const createEvent = async (req, res) => {
       taskId: taskId || null,
       layer: layer || 'default',
       notes: notes || '',
-      aiGenerated: aiGenerated || false
+      aiGenerated: aiGenerated || false,
+      notificationsEnabled: req.body.notificationsEnabled !== undefined ? req.body.notificationsEnabled : true
     });
 
     const createdEvent = await event.save();
@@ -94,13 +95,22 @@ export const updateEvent = async (req, res) => {
 
     if (event && event.userId.toString() === req.user._id.toString()) {
       event.title = req.body.title !== undefined ? req.body.title : event.title;
-      event.startTime = req.body.startTime !== undefined ? new Date(req.body.startTime) : event.startTime;
+      
+      if (req.body.startTime !== undefined) {
+        const newStart = new Date(req.body.startTime);
+        if (event.startTime.getTime() !== newStart.getTime()) {
+          event.startTime = newStart;
+          event.notifiedIntervals = []; // Reset notifications if time changed
+        }
+      }
+      
       event.endTime = req.body.endTime !== undefined ? new Date(req.body.endTime) : event.endTime;
       event.type = req.body.type !== undefined ? req.body.type : event.type;
       event.taskId = req.body.taskId !== undefined ? req.body.taskId : event.taskId;
       event.layer = req.body.layer !== undefined ? req.body.layer : event.layer;
       event.notes = req.body.notes !== undefined ? req.body.notes : event.notes;
       event.aiGenerated = req.body.aiGenerated !== undefined ? req.body.aiGenerated : event.aiGenerated;
+      event.notificationsEnabled = req.body.notificationsEnabled !== undefined ? req.body.notificationsEnabled : event.notificationsEnabled;
 
       const updatedEvent = await event.save();
       res.json(updatedEvent);

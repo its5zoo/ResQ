@@ -109,7 +109,7 @@ ${eventList || 'None'}
 Habit Streaks:
 ${habitList || 'None'}
 
-Generate a concise motivational daily briefing in exactly 3 sentences. Include one actionable tip. Return plain text, no markdown bolding or styling.
+Generate a very brief, punchy daily briefing (maximum 2 short sentences, under 30 words total). Include one quick actionable tip. Return plain text, no markdown bolding or styling.
 `;
 
     return await queryGemini(prompt, false);
@@ -224,7 +224,7 @@ Return ONLY JSON:
 /**
  * 5. Breaks down a target goal into 4-6 weekly milestones.
  */
-export const generateGoalBreakdown = async (goal) => {
+export const generateGoalBreakdown = async (goal, userPreferences = '') => {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey || apiKey.includes('your_google_gemini_api_key') || apiKey.includes('your_gemini_api_key_here')) {
@@ -236,6 +236,7 @@ Break down this goal into 4-6 weekly milestones with estimated effort.
 Goal: ${goal.title}
 Target Date: ${goal.targetDate || 'Flexible'}
 Current Progress: ${goal.progress || 0}%
+${userPreferences ? `User Specific Preferences & Focus Areas: "${userPreferences}"` : ''}
 
 Return ONLY JSON. No explanations.
 JSON Output Format:
@@ -320,8 +321,7 @@ Keep it brief and punchy (under 15 words). Return only the message text.
 const getMockDailySummary = (user, tasks, habits) => {
   const name = user.name || 'User';
   const pendingTasks = tasks.filter(t => !t.completed).length;
-  const activeHabits = habits.length;
-  return `Good morning, ${name}. You have ${pendingTasks} pending tasks in your urgency queue and ${activeHabits} focus habits tracked today. Consider starting with your most critical task first to keep momentum and secure your streaks.`;
+  return `Good morning, ${name}! You have ${pendingTasks} pending tasks today. Focus on your top priority task first.`;
 };
 
 const getMockTaskPriority = (tasks) => {
