@@ -28,7 +28,7 @@ class WakeWordEngine {
     this.commandSilenceTimer = null;
 
     // Wake words for fuzzy matching
-    this.wakeWords = ["hey resq", "hey rescue", "hey res q", "hey resk", "hey risq", "a resq", "hey risk", "hey wreck", "hey wresq", "hey raceq", "hey race q", "hey raise key", "hey raise cue", "hey req", "hey rec", "hey rex", "hey reqs", "hey rack", "hair rescue", "hair res", "hair sq", "hair s q", "he rescue", "he resq"];
+    this.wakeWords = ["hey resq", "hey rescue", "hey res q", "hey resk", "hey risq", "a resq", "hey risk", "hey wreck", "hey wresq", "hey raceq", "hey race q", "hey raise key", "hey raise cue", "hey req", "hey rec", "hey rex", "hey reqs", "hey rack", "hair rescue", "hair res", "hair sq", "hair s q", "he rescue", "he resq", "hair is cute", "haris", "harris", "hair is", "is cute", "hey is cute", "he is cute", "here is cute", "harry is", "harry s", "harish"];
 
     // Bind event handlers
     this.handleVisibilityChange = this.handleVisibilityChange.bind(this);
@@ -259,6 +259,7 @@ class WakeWordEngine {
       recognition.continuous = true;
       recognition.interimResults = true;
       recognition.lang = 'en-US';
+      recognition.maxAlternatives = 5; // Enable up to 5 alternative transcriptions
 
       recognition.onstart = () => {
         console.log('[WakeWordEngine] Always-listening background word listener active...');
@@ -267,11 +268,15 @@ class WakeWordEngine {
       recognition.onresult = (event) => {
         this.consecutiveNetworkErrors = 0; // Reset network error count on successful result
         for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript.toLowerCase().trim();
-          console.log('[WakeWordEngine] Background heard:', transcript);
-          const detected = this.wakeWords.some(w => transcript.includes(w));
-          if (detected && !this.isWoken && !this.cooldown) {
-            this.onWakeWordDetected();
+          const result = event.results[i];
+          for (let j = 0; j < result.length; j++) {
+            const transcript = result[j].transcript.toLowerCase().trim();
+            console.log(`[WakeWordEngine] Background heard (alt ${j}):`, transcript);
+            const detected = this.wakeWords.some(w => transcript.includes(w));
+            if (detected && !this.isWoken && !this.cooldown) {
+              this.onWakeWordDetected();
+              return; // Stop processing further alternatives once wake sequence triggers
+            }
           }
         }
       };
