@@ -395,9 +395,13 @@ class WakeWordEngine {
       };
 
       recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        this.latestTranscript = transcript;
-        console.log('[WakeWordEngine] Command interim:', transcript);
+        let interimTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          interimTranscript += event.results[i][0].transcript;
+        }
+        this.latestTranscript = interimTranscript;
+        console.log('[WakeWordEngine] Command interim:', interimTranscript);
+        window.dispatchEvent(new CustomEvent('resq:interim-transcript', { detail: { transcript: interimTranscript } }));
       };
 
       recognition.onerror = (event) => {

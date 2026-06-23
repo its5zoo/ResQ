@@ -475,6 +475,10 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
       const { summary } = e.detail;
       setAiResponse(summary);
     };
+    const handleInterimTranscript = (e) => {
+      const { transcript } = e.detail;
+      setTranscript(transcript);
+    };
 
     if (executorRef.current) {
       executorRef.current.onClarificationTimeout = () => {
@@ -486,6 +490,7 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
 
     window.addEventListener('resq:awakened', handleAwakened);
     window.addEventListener('resq:command', handleCommand);
+    window.addEventListener('resq:interim-transcript', handleInterimTranscript);
     window.addEventListener('resq:start-focus', handleStartFocus);
     window.addEventListener('resq:stop-focus', handleStopFocus);
     window.addEventListener('resq:clarification-prompt', handleClarificationPrompt);
@@ -496,6 +501,7 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
     return () => {
       window.removeEventListener('resq:awakened', handleAwakened);
       window.removeEventListener('resq:command', handleCommand);
+      window.removeEventListener('resq:interim-transcript', handleInterimTranscript);
       window.removeEventListener('resq:start-focus', handleStartFocus);
       window.removeEventListener('resq:stop-focus', handleStopFocus);
       window.removeEventListener('resq:clarification-prompt', handleClarificationPrompt);
