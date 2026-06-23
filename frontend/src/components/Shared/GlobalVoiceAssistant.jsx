@@ -406,7 +406,7 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
       setChoices([]);
       const welcome = INSTANT_RESPONSES.wake_acknowledged;
       setAiResponse(welcome);
-      speakBack(welcome);
+      // DO NOT speak back "Yes? I'm listening" out loud to allow the user to speak immediately without interruption!
     };
 
     const handleCommand = (e) => {
@@ -452,6 +452,10 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
       sendTranscriptToBackend(transcript);
     };
 
+    const handleClose = () => {
+      closeAssistant();
+    };
+
     const handleStartFocus = (e) => {
       const { task, duration } = e.detail;
       startFocusSession(task, duration);
@@ -490,6 +494,7 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
 
     window.addEventListener('resq:awakened', handleAwakened);
     window.addEventListener('resq:command', handleCommand);
+    window.addEventListener('resq:close', handleClose);
     window.addEventListener('resq:interim-transcript', handleInterimTranscript);
     window.addEventListener('resq:start-focus', handleStartFocus);
     window.addEventListener('resq:stop-focus', handleStopFocus);
@@ -501,6 +506,7 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
     return () => {
       window.removeEventListener('resq:awakened', handleAwakened);
       window.removeEventListener('resq:command', handleCommand);
+      window.removeEventListener('resq:close', handleClose);
       window.removeEventListener('resq:interim-transcript', handleInterimTranscript);
       window.removeEventListener('resq:start-focus', handleStartFocus);
       window.removeEventListener('resq:stop-focus', handleStopFocus);

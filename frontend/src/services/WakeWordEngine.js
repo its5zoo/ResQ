@@ -485,8 +485,8 @@ class WakeWordEngine {
       this.startBackgroundListening();
     } else {
       console.log('[WakeWordEngine] No speech detected in 8 seconds');
+      window.dispatchEvent(new CustomEvent('resq:close'));
       this.speak("I'm here whenever you need me.");
-      this.startBackgroundListening();
     }
   }
 
