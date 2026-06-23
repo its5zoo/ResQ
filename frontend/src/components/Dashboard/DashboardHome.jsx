@@ -138,15 +138,6 @@ export default function DashboardHome({ setCurrentTab }) {
             <span className="text-white/40">Here's your status.</span>
           </h2>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold tracking-wider uppercase text-white/40">Active Scope:</span>
-          <div className="flex items-center gap-2 px-3.5 py-1.5 bg-black border border-white/[0.06] rounded-xl">
-            <span className="text-xs font-bold uppercase tracking-wider text-white/80">
-              Google Calendar Linked
-            </span>
-            <span className="w-1.5 h-1.5 rounded-full bg-[#E5B842] shadow-[0_0_8px_rgba(229,184,66,0.8)]"></span>
-          </div>
-        </div>
       </div>
 
       {/* Stats Row */}
