@@ -294,7 +294,7 @@ export default function CalendarPage({ tasks }) {
                       <div 
                         key={day} 
                         onClick={() => handleCellClick(day, hour)}
-                        className={`min-h-[52px] rounded-xl border transition-all duration-300 flex flex-col justify-center relative overflow-hidden cursor-pointer ${
+                        className={`min-h-[52px] rounded-xl border transition-all duration-300 flex flex-col justify-center relative group cursor-pointer ${
                           match 
                             ? match.type === 'ai'
                               ? 'bg-[#E5B842]/5 border border-[#E5B842]/20 hover:border-[#E5B842]/40 text-[#E5B842] shadow-[0_4px_12px_rgba(229,184,66,0.04)]'
@@ -306,17 +306,49 @@ export default function CalendarPage({ tasks }) {
                       >
                         {match ? (
                           <>
-                            {/* Left accent border line */}
-                            <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${
-                              match.type === 'ai' 
-                                ? 'bg-[#E5B842]' 
-                                : match.type === 'deadline' 
-                                  ? 'bg-status-red' 
-                                  : 'bg-status-blue'
-                            }`}></div>
-                            <div className="pl-3.5 pr-2 py-1.5 min-w-0">
-                              <h5 className="text-[10px] font-bold uppercase truncate leading-tight tracking-wider">{match.title}</h5>
-                              <span className="text-[8px] opacity-60 font-semibold uppercase mt-0.5 block">{match.type} block</span>
+                            {/* Inner clip container */}
+                            <div className="absolute inset-0 rounded-xl overflow-hidden pointer-events-none">
+                              {/* Left accent border line */}
+                              <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${
+                                match.type === 'ai' 
+                                  ? 'bg-[#E5B842]' 
+                                  : match.type === 'deadline' 
+                                    ? 'bg-status-red' 
+                                    : 'bg-status-blue'
+                              }`}></div>
+                              <div className="pl-3.5 pr-2 py-1.5 min-w-0 flex flex-col justify-center h-full">
+                                <h5 className="text-[10px] font-bold uppercase truncate leading-tight tracking-wider">{match.title}</h5>
+                                <span className="text-[8px] opacity-60 font-semibold uppercase mt-0.5 block">{match.type} block</span>
+                              </div>
+                            </div>
+
+                            {/* Floating Custom Tooltip */}
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:flex flex-col w-52 p-3 bg-[#0D0D0E]/95 border border-white/10 rounded-2xl shadow-[0_12px_32px_rgba(0,0,0,0.95)] backdrop-blur-md text-left z-50 pointer-events-none transition-all">
+                              <span className={`text-[8px] font-tech font-bold uppercase tracking-[0.2em] mb-1 ${
+                                match.type === 'ai' 
+                                  ? 'text-[#E5B842]' 
+                                  : match.type === 'deadline' 
+                                    ? 'text-status-red' 
+                                    : 'text-status-blue'
+                              }`}>
+                                {match.type === 'ai' ? '🤖 AI Focus Layer' : match.type === 'deadline' ? '⚠️ Deadline Layer' : '👤 User Layer'}
+                              </span>
+                              <h6 className="text-[10px] font-bold text-white leading-snug mb-1.5 break-words">
+                                {match.title}
+                              </h6>
+                              <div className="flex items-center gap-1 text-[8px] text-white/50 font-semibold mb-1">
+                                <Clock className="w-2.5 h-2.5" />
+                                <span>{match.day} at {match.hour}</span>
+                              </div>
+                              <p className="text-[8px] text-white/40 leading-relaxed font-normal border-t border-white/5 pt-1 mt-1">
+                                {match.type === 'ai' 
+                                  ? 'Automated focus block. Distractions shielded.' 
+                                  : match.type === 'deadline' 
+                                    ? 'Critical task milestone. Deliverable risk active.' 
+                                    : 'User meeting. Scheduled sync item.'}
+                              </p>
+                              {/* Small triangle arrow */}
+                              <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#0D0D0E]/95 z-50"></div>
                             </div>
                           </>
                         ) : null}

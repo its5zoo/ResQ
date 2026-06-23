@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Dashboard/Sidebar';
 import DashboardHome from '../components/Dashboard/DashboardHome';
 import TasksPage from '../components/Dashboard/TasksPage';
@@ -11,6 +11,30 @@ import NotificationsPage from '../components/Dashboard/NotificationsPage';
 
 export default function Dashboard() {
   const [currentTab, setCurrentTab] = useState('dashboard');
+
+  // Load and apply theme and plan states on mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('resq-theme') || 'dark';
+    const savedPlan = localStorage.getItem('resq-plan') || 'free';
+    
+    const root = document.documentElement;
+    
+    // Theme
+    root.classList.remove('light', 'matrix');
+    if (savedTheme === 'light') {
+      root.classList.add('light');
+    } else if (savedTheme === 'matrix') {
+      root.classList.add('matrix');
+    }
+    
+    // Plan
+    root.classList.remove('premium-active', 'free-active');
+    if (savedPlan === 'premium') {
+      root.classList.add('premium-active');
+    } else {
+      root.classList.add('free-active');
+    }
+  }, []);
 
   // Shared Task State
   const [tasks, setTasks] = useState([

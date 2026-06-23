@@ -3,12 +3,14 @@ import { Flame, Plus, Check, Award, AlertCircle } from 'lucide-react';
 
 export default function HabitsPage() {
   const [habits, setHabits] = useState([
-    { id: 1, title: 'Gym Workout Routine', streak: 7, longest: 14, completions: [0, 1, 1, 1, 1, 1, 1], doneToday: true },
-    { id: 2, title: 'Drink 3L of Water', streak: 12, longest: 30, completions: [1, 1, 1, 1, 0, 1, 1], doneToday: true },
-    { id: 3, title: 'Focus Reading (30m)', streak: 3, longest: 8, completions: [0, 0, 1, 0, 1, 1, 0], doneToday: false }
+    { id: 1, title: 'Gym Workout Routine', streak: 7, longest: 14, completions: [0, 1, 1, 1, 1, 1, 1], doneToday: true, targetDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] },
+    { id: 2, title: 'Drink 3L of Water', streak: 12, longest: 30, completions: [1, 1, 1, 1, 0, 1, 1], doneToday: true, targetDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] },
+    { id: 3, title: 'Focus Reading (30m)', streak: 3, longest: 8, completions: [0, 0, 1, 0, 1, 1, 0], doneToday: false, targetDays: ['Wed', 'Fri', 'Sun'] }
   ]);
 
   const [title, setTitle] = useState('');
+  const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const [selectedDays, setSelectedDays] = useState(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
 
   const toggleToday = (id) => {
     setHabits(habits.map(h => {
@@ -26,6 +28,14 @@ export default function HabitsPage() {
     }));
   };
 
+  const toggleDaySelection = (day) => {
+    if (selectedDays.includes(day)) {
+      setSelectedDays(selectedDays.filter(d => d !== day));
+    } else {
+      setSelectedDays([...selectedDays, day]);
+    }
+  };
+
   const handleAddHabit = (e) => {
     e.preventDefault();
     if (!title.trim()) return;
@@ -35,13 +45,13 @@ export default function HabitsPage() {
       streak: 0,
       longest: 0,
       completions: [0, 0, 0, 0, 0, 0, 0],
-      doneToday: false
+      doneToday: false,
+      targetDays: [...selectedDays]
     };
     setHabits([...habits, newHabit]);
     setTitle('');
+    setSelectedDays(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']); // Reset to daily
   };
-
-  const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   return (
     <div className="space-y-8 animate-fade-in font-sans">
@@ -57,78 +67,142 @@ export default function HabitsPage() {
       </div>
 
       {/* Add Habit Panel */}
-      <form onSubmit={handleAddHabit} className="p-6 bg-[#090909] border border-white/[0.04] rounded-2xl flex gap-3 layered-shadow-lg">
-        <input 
-          type="text"
-          placeholder="What habit are you locking in? (e.g. Meditate for 10m)"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="flex-1 bg-[#0B0B0B] border border-white/10 hover:border-white/20 focus:border-[#E5B842]/40 rounded-xl px-4 py-3 text-xs text-white placeholder-white/30 focus:outline-hidden transition-all duration-300"
-          required
-        />
-        <button 
-          type="submit"
-          className="px-6 py-3 bg-transparent text-[#E5B842] border border-[#E5B842]/40 hover:bg-[#E5B842] hover:text-black hover:border-transparent text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center gap-1.5 shrink-0 cursor-pointer active:scale-[0.98]"
-        >
-          <Plus className="w-4 h-4" /> Add Habit
-        </button>
+      <form onSubmit={handleAddHabit} className="p-6 bg-[#090909] border border-white/[0.04] rounded-2xl flex flex-col gap-4 layered-shadow-lg">
+        <div className="flex gap-3 w-full">
+          <input 
+            type="text"
+            placeholder="What habit are you locking in? (e.g. Meditate for 10m)"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="flex-1 bg-[#0B0B0B] border border-white/10 hover:border-white/20 focus:border-[#E5B842]/40 rounded-xl px-4 py-3 text-xs text-white placeholder-white/30 focus:outline-none transition-all duration-300"
+            required
+          />
+          <button 
+            type="submit"
+            className="px-6 py-3 bg-transparent text-[#E5B842] border border-[#E5B842]/40 hover:bg-[#E5B842] hover:text-black hover:border-transparent text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center gap-1.5 shrink-0 cursor-pointer active:scale-[0.98]"
+          >
+            <Plus className="w-4 h-4" /> Add Habit
+          </button>
+        </div>
+
+        {/* Selected Days Selector */}
+        <div className="flex flex-col gap-2 mt-2 pt-4 border-t border-white/5 w-full">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-tech font-bold uppercase tracking-wider text-white/40">Target Days Schedule</span>
+            <span className="text-[10px] text-white/30 font-bold uppercase tracking-wider">
+              {selectedDays.length === 7 ? 'Daily' : `${selectedDays.length} days a week`}
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {daysOfWeek.map(day => {
+              const isSelected = selectedDays.includes(day);
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  onClick={() => toggleDaySelection(day)}
+                  className={`px-3.5 py-2 rounded-xl border text-[10px] font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer ${
+                    isSelected 
+                      ? 'bg-[#E5B842]/10 border-[#E5B842]/30 text-[#E5B842] shadow-[0_0_12px_rgba(229,184,66,0.06)]' 
+                      : 'bg-black/40 border-white/5 text-white/40 hover:text-white hover:border-white/10'
+                  }`}
+                >
+                  {day}
+                </button>
+              );
+            })}
+            <div className="ml-auto flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setSelectedDays(daysOfWeek)}
+                className="px-3 py-1.5 rounded-lg border border-white/5 bg-white/[0.01] hover:bg-white/[0.04] text-[9px] font-bold uppercase tracking-wider text-white/50 hover:text-white transition-colors cursor-pointer"
+              >
+                All
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedDays([])}
+                className="px-3 py-1.5 rounded-lg border border-white/5 bg-white/[0.01] hover:bg-white/[0.04] text-[9px] font-bold uppercase tracking-wider text-white/50 hover:text-white transition-colors cursor-pointer"
+              >
+                None
+              </button>
+            </div>
+          </div>
+        </div>
       </form>
 
       {/* Habits rows listing */}
       <div className="space-y-6">
-        {habits.map((habit) => (
-          <div key={habit.id} className="p-6 bg-[#090909] border border-white/[0.04] rounded-3xl grid grid-cols-1 lg:grid-cols-12 gap-6 items-center layered-shadow-lg">
-            
-            {/* Left Col: Info details */}
-            <div className="lg:col-span-4 flex items-center justify-between lg:justify-start gap-4">
-              <button 
-                onClick={() => toggleToday(habit.id)}
-                className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-300 cursor-pointer ${
-                  habit.doneToday 
-                    ? 'bg-[#E5B842] border-[#E5B842] text-black shadow-lg shadow-[#E5B842]/20' 
-                    : 'bg-black border-white/10 text-white/30 hover:border-[#E5B842]/30 hover:text-white'
-                }`}
-              >
-                <Check className="w-5 h-5" />
-              </button>
+        {habits.map((habit) => {
+          const targetDaysLabel = habit.targetDays 
+            ? habit.targetDays.length === 7 
+              ? 'Daily' 
+              : `${habit.targetDays.length} days a week (${habit.targetDays.join(', ')})`
+            : 'Daily';
 
-              <div>
-                <h3 className={`text-xs font-bold ${habit.doneToday ? 'line-through text-white/40' : 'text-white/85'}`}>{habit.title}</h3>
-                <div className="flex items-center gap-3 text-[9px] font-bold uppercase tracking-wider text-white/30 mt-1.5">
-                  <span>Current: <span className="text-[#E5B842] font-extrabold">🔥 {habit.streak}d</span></span>
-                  <span>Longest: <span className="text-[#E5B842]/70">🏆 {habit.longest}d</span></span>
+          return (
+            <div key={habit.id} className="p-6 bg-[#090909] border border-white/[0.04] rounded-3xl grid grid-cols-1 lg:grid-cols-12 gap-6 items-center layered-shadow-lg">
+              
+              {/* Left Col: Info details */}
+              <div className="lg:col-span-4 flex items-center justify-between lg:justify-start gap-4">
+                <button 
+                  onClick={() => toggleToday(habit.id)}
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-300 cursor-pointer ${
+                    habit.doneToday 
+                      ? 'bg-[#E5B842] border-[#E5B842] text-black shadow-lg shadow-[#E5B842]/20' 
+                      : 'bg-black border-white/10 text-white/30 hover:border-[#E5B842]/30 hover:text-white'
+                  }`}
+                >
+                  <Check className="w-5 h-5" />
+                </button>
+
+                <div>
+                  <h3 className={`text-xs font-bold ${habit.doneToday ? 'line-through text-white/40' : 'text-white/85'}`}>{habit.title}</h3>
+                  <div className="flex items-center gap-3 text-[9px] font-bold uppercase tracking-wider text-white/30 mt-1.5">
+                    <span>Current: <span className="text-[#E5B842] font-extrabold">🔥 {habit.streak}d</span></span>
+                    <span>Longest: <span className="text-[#E5B842]/70">🏆 {habit.longest}d</span></span>
+                  </div>
+                  <div className="text-[8px] font-tech font-bold uppercase tracking-wider text-white/40 mt-1">
+                    Target: <span className="text-[#E5B842]/80 font-bold">{targetDaysLabel}</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Right Col: 7 Day Heatmap */}
-            <div className="lg:col-span-8 flex flex-col gap-2.5">
-              <span className="text-[10px] uppercase font-bold text-white/30 tracking-widest text-left">Weekly Heatmap Matrix</span>
-              <div className="grid grid-cols-7 gap-2">
-                {daysOfWeek.map((day, dIdx) => {
-                  const completed = habit.completions[dIdx] === 1;
-                  return (
-                    <div 
-                      key={day} 
-                      className={`p-3 rounded-xl border flex flex-col items-center justify-center transition-all duration-300 ${
-                        completed 
-                          ? 'bg-[#E5B842]/5 border border-[#E5B842]/20 text-[#E5B842] shadow-sm' 
-                          : 'bg-black/50 border border-white/[0.02] text-white/20'
-                      }`}
-                    >
-                      <span className="text-[9px] uppercase font-bold mb-1">{day}</span>
-                      <div className={`w-1.5 h-1.5 rounded-full ${completed ? 'bg-[#E5B842]' : 'bg-white/15'}`}></div>
-                    </div>
-                  );
-                })}
+              {/* Right Col: 7 Day Heatmap */}
+              <div className="lg:col-span-8 flex flex-col gap-2.5">
+                <span className="text-[10px] uppercase font-bold text-white/30 tracking-widest text-left">Weekly Heatmap Matrix</span>
+                <div className="grid grid-cols-7 gap-2">
+                  {daysOfWeek.map((day, dIdx) => {
+                    const completed = habit.completions[dIdx] === 1;
+                    const isTarget = habit.targetDays ? habit.targetDays.includes(day) : true;
+                    return (
+                      <div 
+                        key={day} 
+                        className={`p-3 rounded-xl border flex flex-col items-center justify-center transition-all duration-300 ${
+                          completed 
+                            ? 'bg-[#E5B842]/5 border border-[#E5B842]/20 text-[#E5B842] shadow-sm' 
+                            : isTarget 
+                              ? 'bg-black/50 border border-white/[0.02] text-white/20' 
+                              : 'bg-transparent border border-dashed border-white/5 text-white/10'
+                        }`}
+                      >
+                        <span className="text-[9px] uppercase font-bold mb-1">{day}</span>
+                        {isTarget ? (
+                          <div className={`w-1.5 h-1.5 rounded-full ${completed ? 'bg-[#E5B842]' : 'bg-white/15'}`}></div>
+                        ) : (
+                          <span className="text-[8px] opacity-25 font-bold uppercase">—</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
 
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </div>
 
     </div>
   );
 }
-
