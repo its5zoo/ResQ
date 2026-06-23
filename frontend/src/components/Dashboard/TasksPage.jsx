@@ -23,6 +23,11 @@ export default function TasksPage({
   const [sortBy, setSortBy] = useState('priorityRank');
   const [loading, setLoading] = useState(true);
   
+  // Voice AI highlighting states
+  const [highlightedTaskId, setHighlightedTaskId] = useState(null);
+  const [completedAnimationTaskId, setCompletedAnimationTaskId] = useState(null);
+  const [highlightedDeadlines, setHighlightedDeadlines] = useState(false);
+  
   // Task Creation States
   const [title, setTitle] = useState('');
   const [urgency, setUrgency] = useState(5);
@@ -48,6 +53,49 @@ export default function TasksPage({
 
   useEffect(() => {
     fetchTasks();
+
+    const handleRefetch = () => {
+      fetchTasks();
+    };
+
+    const handleHighlightTask = (e) => {
+      const taskId = e.detail?.taskId;
+      if (taskId) {
+        setHighlightedTaskId(taskId);
+        setTimeout(() => {
+          setHighlightedTaskId(null);
+        }, 3000);
+      }
+    };
+
+    const handleCompletedAnimation = (e) => {
+      const taskId = e.detail?.taskId;
+      if (taskId) {
+        setCompletedAnimationTaskId(taskId);
+        setTimeout(() => {
+          setCompletedAnimationTaskId(null);
+        }, 2000);
+      }
+    };
+
+    const handleHighlightDeadlines = () => {
+      setHighlightedDeadlines(true);
+      setTimeout(() => {
+        setHighlightedDeadlines(false);
+      }, 4000);
+    };
+
+    window.addEventListener('resq:refetch-tasks', handleRefetch);
+    window.addEventListener('resq:highlight-task', handleHighlightTask);
+    window.addEventListener('resq:task-completed-animation', handleCompletedAnimation);
+    window.addEventListener('resq:highlight-deadlines', handleHighlightDeadlines);
+
+    return () => {
+      window.removeEventListener('resq:refetch-tasks', handleRefetch);
+      window.removeEventListener('resq:highlight-task', handleHighlightTask);
+      window.removeEventListener('resq:task-completed-animation', handleCompletedAnimation);
+      window.removeEventListener('resq:highlight-deadlines', handleHighlightDeadlines);
+    };
   }, []);
 
   // Filtering Logic
@@ -299,7 +347,13 @@ export default function TasksPage({
                 onClick={() => setSelectedTask(task)}
                 className={`p-5 border rounded-2xl hover:border-white/10 transition-all duration-300 cursor-pointer layered-shadow-lg ${
                   task.completed ? 'opacity-50' : ''
-                } ${selectedTask?._id === task._id ? 'border-[#E5B842]/40 bg-[#E5B842]/[0.01]' : 'border-white/[0.03] bg-black'} animate-fade-in`}
+                } ${selectedTask?._id === task._id ? 'border-[#E5B842]/40 bg-[#E5B842]/[0.01]' : 'border-white/[0.03] bg-black'} ${
+                  highlightedTaskId === task._id ? 'animate-gold-highlight' : ''
+                } ${
+                  completedAnimationTaskId === task._id ? 'animate-completed-fade' : ''
+                } ${
+                  highlightedDeadlines && !task.completed && task.urgency >= 9 ? 'animate-deadline-pulse' : ''
+                } animate-fade-in`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4 min-w-0">
@@ -317,7 +371,9 @@ export default function TasksPage({
                       )}
                     </button>
                     <div className="min-w-0">
-                      <h4 className={`text-sm font-semibold truncate ${task.completed ? 'line-through text-white/40' : 'text-white/80'}`}>
+                      <h4 className={`text-sm font-semibold truncate ${task.completed ? 'line-through text-white/40' : 'text-white/80'} ${
+                        completedAnimationTaskId === task._id ? 'animate-strikethrough' : ''
+                      }`}>
                         {task.title}
                       </h4>
                       <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">{task.category || 'WORK'}</span>

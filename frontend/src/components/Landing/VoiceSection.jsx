@@ -89,9 +89,10 @@ export default function VoiceSection() {
           <span className="text-xs font-tech font-bold tracking-[0.3em] uppercase text-white/50 block mb-5 font-sans">
             VOICE CONVERSATION
           </span>
-          <h2 className="text-4xl sm:text-5xl font-display font-black text-silver-gradient text-shine-sweep mb-8 leading-tight tracking-tight">
-            Talk to your AI companion <br />
-            on the go.
+          <h2 className="text-4xl sm:text-5xl font-display font-black mb-8 leading-tight tracking-tight">
+            <span className="text-silver-gradient text-shine-sweep">Talk to your </span>
+            <span className="text-[#E5B842]">AI companion</span> <br />
+            <span className="text-silver-gradient text-shine-sweep">on the go.</span>
           </h2>
           
           <div className="space-y-5 mb-10">

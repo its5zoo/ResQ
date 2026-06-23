@@ -160,7 +160,7 @@ export default function Hero() {
             <div className="w-full max-w-[840px] relative mx-auto group select-none">
               
               {/* Laptop Screen Lid / Bezel */}
-              <div className="relative bg-black rounded-t-2xl p-[10px] pb-1 border border-white/10 shadow-2xl overflow-hidden">
+              <div className="laptop-bezel relative bg-black rounded-t-2xl p-[10px] pb-1 border border-white/10 shadow-2xl overflow-hidden">
                 {/* Webcam dot */}
                 <div className="absolute top-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#1e2022] border border-white/5 flex items-center justify-center">
                   <span className="w-0.5 h-0.5 rounded-full bg-blue-500/80 animate-pulse"></span>
@@ -177,12 +177,12 @@ export default function Hero() {
               </div>
 
               {/* Hinge Connection */}
-              <div className="w-[102%] -ml-[1%] h-[4px] bg-[#1c1d1f] relative z-10 border-b border-black/20"></div>
+              <div className="laptop-hinge w-[102%] -ml-[1%] h-[4px] bg-[#1c1d1f] relative z-10 border-b border-black/20"></div>
 
               {/* Laptop Base (Space Gray / Matte Black Metallic Plate) */}
-              <div className="w-[106%] -ml-[3%] h-[12px] bg-gradient-to-r from-[#1e1f22] via-[#3a3c42] to-[#1e1f22] rounded-b-xl border-t border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.85)] relative z-20 flex justify-center">
+              <div className="laptop-base w-[106%] -ml-[3%] h-[12px] bg-gradient-to-r from-[#1e1f22] via-[#3a3c42] to-[#1e1f22] rounded-b-xl border-t border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.85)] relative z-20 flex justify-center">
                 {/* Trackpad Notch cutout */}
-                <div className="w-20 h-[3px] bg-[#121315] rounded-b-sm border-t border-black/40"></div>
+                <div className="laptop-trackpad-notch w-20 h-[3px] bg-[#121315] rounded-b-sm border-t border-black/40"></div>
               </div>
 
             </div>

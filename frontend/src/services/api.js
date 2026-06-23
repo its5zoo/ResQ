@@ -21,13 +21,15 @@ api.interceptors.request.use(
   }
 );
 
-// If response status is 401, clear token and redirect to /auth
+// If response status is 401, clear token and redirect to /auth (unless already on auth page)
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
       localStorage.removeItem('token');
-      window.location.href = '/auth';
+      if (!window.location.pathname.startsWith('/auth')) {
+        window.location.href = '/auth';
+      }
     }
     return Promise.reject(error);
   }
@@ -276,6 +278,22 @@ export const voice = {
       return handleRequestError(error);
     }
   },
+  clearCache: async () => {
+    try {
+      const response = await api.post('/voice/clear-cache');
+      return response.data;
+    } catch (error) {
+      return handleRequestError(error);
+    }
+  },
+  getUsage: async () => {
+    try {
+      const response = await api.get('/voice/usage');
+      return response.data;
+    } catch (error) {
+      return handleRequestError(error);
+    }
+  },
 };
 
 export const settings = {
@@ -314,6 +332,22 @@ export const settings = {
   updateGoogleCalendarDefaultIntegrated: async (googleCalendarDefaultIntegrated) => {
     try {
       const response = await api.patch('/settings/google-default-integrated', { googleCalendarDefaultIntegrated });
+      return response.data;
+    } catch (error) {
+      return handleRequestError(error);
+    }
+  },
+  updateAiVoice: async (aiVoiceEnabled) => {
+    try {
+      const response = await api.patch('/settings/ai-voice', { aiVoiceEnabled });
+      return response.data;
+    } catch (error) {
+      return handleRequestError(error);
+    }
+  },
+  updateVoiceSettings: async (settingsData) => {
+    try {
+      const response = await api.patch('/settings/voice-ai', settingsData);
       return response.data;
     } catch (error) {
       return handleRequestError(error);

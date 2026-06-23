@@ -2,151 +2,252 @@ import Task from '../models/Task.js';
 import Habit from '../models/Habit.js';
 import CalendarEvent from '../models/CalendarEvent.js';
 import Goal from '../models/Goal.js';
-import { handleVoiceCommand as queryGeminiVoice } from '../services/geminiService.js';
+import User from '../models/User.js';
+import { resolveClarification, clearPendingCommands } from '../services/voiceIntentService.js';
 import { reprioritizeTasksForUser } from './taskController.js';
 import { io } from '../socket/socketHandler.js';
 
-// Helper to parse day/time into Date object
-const parseDayTimeToDate = (dayName, timeStr) => {
-  const days = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
-  const targetDayNum = days[dayName.toLowerCase().substring(0, 3)];
-  const date = new Date();
-  if (targetDayNum === undefined) return date;
-
-  const currentDayNum = date.getDay();
-  let diff = targetDayNum - currentDayNum;
-  if (diff < 0) {
-    diff += 7;
-  }
-  date.setDate(date.getDate() + diff);
-
-  let hours = 9;
-  let minutes = 0;
-  
-  const ampmMatch = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
-  if (ampmMatch) {
-    hours = parseInt(ampmMatch[1]);
-    minutes = parseInt(ampmMatch[2]);
-    const ampm = ampmMatch[3].toUpperCase();
-    if (ampm === 'PM' && hours < 12) hours += 12;
-    if (ampm === 'AM' && hours === 12) hours = 0;
-  } else {
-    const plainMatch = timeStr.match(/(\d+):(\d+)/);
-    if (plainMatch) {
-      hours = parseInt(plainMatch[1]);
-      minutes = parseInt(plainMatch[2]);
-    }
-  }
-  
-  date.setHours(hours, minutes, 0, 0);
-  return date;
-};
-
 export const executeVoiceCommand = async (userId, transcript) => {
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-  const todayEnd = new Date();
-  todayEnd.setHours(23, 59, 59, 999);
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new Error('User not found');
+  }
 
-  const tasks = await Task.find({ userId });
-  const todayEvents = await CalendarEvent.find({
-    userId,
-    startTime: { $gte: todayStart, $lte: todayEnd }
-  });
-  const habits = await Habit.find({ userId });
-  const goals = await Goal.find({ userId });
+  // 1. Settings toggle gate check
+  if (user.voiceAI && user.voiceAI.enabled === false) {
+    let msg = 'Voice assistant is currently disabled in your settings.';
+    if (user.voiceAI.disabledReason === 'limit_reached') {
+      msg = 'Monthly voice AI limit reached. Upgrade to Premium for unlimited access.';
+    }
+    return {
+      intent: 'out_of_scope',
+      confidence: 1.0,
+      extractedData: {},
+      missingFields: [],
+      clarificationQuestion: null,
+      response: msg,
+      action: null,
+      navigationTarget: null,
+      suggestAlternative: null
+    };
+  }
 
-  const userContext = {
-    user: {
-      id: userId
-    },
-    tasks,
-    todayEvents,
-    habits,
-    goals
-  };
-
-  const geminiResult = await queryGeminiVoice(transcript, userContext);
-  const resultObj = typeof geminiResult === 'string' ? JSON.parse(geminiResult) : geminiResult;
+  // Call voiceIntentService to resolve command/clarification
+  const resultObj = await resolveClarification(userId, transcript);
   
-  const { action, response, navigationTarget } = resultObj;
+  const intent = resultObj.intent;
+  const payload = resultObj.extractedData || {};
 
   let taskModified = false;
   let calendarModified = false;
+  let habitsModified = false;
+  let goalsModified = false;
   let createdEvents = [];
 
-  if (action && action.type) {
-    const payload = action.payload || {};
-
-    if (action.type === 'add_task') {
+  try {
+    if (intent === 'create_task') {
       const newTask = new Task({
         userId,
         title: payload.title || 'New Task from Voice',
-        description: payload.description || '',
         urgency: payload.urgency || 5,
         category: payload.category || 'General',
         completed: false,
-        dueDate: payload.dueDate ? new Date(payload.dueDate) : new Date(),
-        estimatedMinutes: payload.estimatedMinutes || 30
+        dueDate: payload.dueDate ? new Date(payload.dueDate) : new Date(Date.now() + 86400000), // Default to tomorrow
+        estimatedMinutes: payload.estimatedMinutes || payload.durationMinutes || 30
       });
       await newTask.save();
       await reprioritizeTasksForUser(userId);
       taskModified = true;
-    } 
-    else if (action.type === 'complete_task') {
-      const taskId = payload.taskId || payload.id;
+    }
+    else if (intent === 'complete_task') {
+      const taskId = payload.taskId;
       if (taskId) {
         await Task.findOneAndUpdate({ _id: taskId, userId }, { completed: true });
       } else if (payload.title) {
-        await Task.findOneAndUpdate({ title: payload.title, userId }, { completed: true });
+        await Task.findOneAndUpdate({ title: new RegExp(payload.title, 'i'), userId }, { completed: true });
       }
       await reprioritizeTasksForUser(userId);
       taskModified = true;
-    } 
-    else if (action.type === 'schedule_task') {
-      let start = payload.startTime ? new Date(payload.startTime) : null;
-      let end = payload.endTime ? new Date(payload.endTime) : null;
-      if (!start && payload.day && payload.timeSlot) {
-        start = parseDayTimeToDate(payload.day, payload.timeSlot);
-        const dur = payload.duration || 45;
-        end = new Date(start.getTime() + dur * 60000);
+    }
+    else if (intent === 'update_task_priority') {
+      const taskId = payload.taskId;
+      const urgency = payload.urgency;
+      if (taskId && urgency) {
+        await Task.findOneAndUpdate({ _id: taskId, userId }, { urgency });
+      } else if (payload.title && urgency) {
+        await Task.findOneAndUpdate({ title: new RegExp(payload.title, 'i'), userId }, { urgency });
       }
-      if (!start) {
-        start = new Date();
-        end = new Date(start.getTime() + 45 * 60000);
+      await reprioritizeTasksForUser(userId);
+      taskModified = true;
+    }
+    else if (intent === 'delete_task') {
+      const taskId = payload.taskId;
+      if (taskId) {
+        await Task.findOneAndDelete({ _id: taskId, userId });
+      } else if (payload.title) {
+        await Task.findOneAndDelete({ title: new RegExp(payload.title, 'i'), userId });
       }
+      await reprioritizeTasksForUser(userId);
+      taskModified = true;
+    }
+    else if (intent === 'schedule_event') {
+      const start = payload.startTime ? new Date(payload.startTime) : new Date();
+      const duration = payload.durationMinutes || 45;
+      const end = payload.endTime ? new Date(payload.endTime) : new Date(start.getTime() + duration * 60000);
 
       const newEvent = new CalendarEvent({
         userId,
         title: payload.title || 'Scheduled by Voice',
         startTime: start,
-        endTime: end || new Date(start.getTime() + 45 * 60000),
+        endTime: end,
         type: payload.type || 'ai_block',
         layer: 'default',
-        notes: 'Scheduled via ResQ Voice Assistant',
+        notes: payload.notes || 'Scheduled via ResQ Voice Assistant',
         aiGenerated: true
       });
       const savedEvent = await newEvent.save();
       createdEvents.push(savedEvent);
       calendarModified = true;
     }
+    else if (intent === 'reschedule_event') {
+      const eventId = payload.eventId;
+      const start = payload.newStartTime ? new Date(payload.newStartTime) : null;
+      const end = payload.newEndTime ? new Date(payload.newEndTime) : null;
+      
+      if (eventId && start) {
+        const update = { startTime: start };
+        if (end) update.endTime = end;
+        await CalendarEvent.findOneAndUpdate({ _id: eventId, userId }, update);
+        calendarModified = true;
+      } else if (payload.title && start) {
+        const update = { startTime: start };
+        if (end) update.endTime = end;
+        await CalendarEvent.findOneAndUpdate({ title: new RegExp(payload.title, 'i'), userId }, update);
+        calendarModified = true;
+      }
+    }
+    else if (intent === 'cancel_event') {
+      const eventId = payload.eventId;
+      if (eventId) {
+        await CalendarEvent.findOneAndDelete({ _id: eventId, userId });
+        calendarModified = true;
+      } else if (payload.title) {
+        await CalendarEvent.findOneAndDelete({ title: new RegExp(payload.title, 'i'), userId });
+        calendarModified = true;
+      }
+    }
+    else if (intent === 'create_habit') {
+      const newHabit = new Habit({
+        userId,
+        name: payload.name || 'New Habit',
+        targetDays: payload.targetDays || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+        completions: [],
+        streak: 0
+      });
+      await newHabit.save();
+      habitsModified = true;
+    }
+    else if (intent === 'complete_habit') {
+      const habitId = payload.habitId;
+      let habit;
+      if (habitId) {
+        habit = await Habit.findOne({ _id: habitId, userId });
+      } else if (payload.name) {
+        habit = await Habit.findOne({ name: new RegExp(payload.name, 'i'), userId });
+      }
+
+      if (habit) {
+        const todayDate = new Date();
+        todayDate.setHours(0, 0, 0, 0);
+        const alreadyCompleted = habit.completions.some(c => {
+          const d = new Date(c.date);
+          d.setHours(0, 0, 0, 0);
+          return d.getTime() === todayDate.getTime() && c.completed;
+        });
+
+        if (!alreadyCompleted) {
+          habit.completions.push({ date: new Date(), completed: true });
+          habit.streak = (habit.streak || 0) + 1;
+          await habit.save();
+          habitsModified = true;
+        }
+      }
+    }
+    else if (intent === 'update_goal_progress') {
+      const goalId = payload.goalId;
+      const progress = parseFloat(payload.progressPercent);
+      if (goalId && !isNaN(progress)) {
+        await Goal.findOneAndUpdate({ _id: goalId, userId }, { progress });
+        goalsModified = true;
+      } else if (payload.title && !isNaN(progress)) {
+        await Goal.findOneAndUpdate({ title: new RegExp(payload.title, 'i'), userId }, { progress });
+        goalsModified = true;
+      }
+    }
+    else if (intent === 'set_focus_session') {
+      const duration = parseInt(payload.durationMinutes) || 25;
+      const title = payload.taskId ? `AI Focus block: Focus on Task` : `AI Focus block: Focus Session`;
+      const start = new Date();
+      const end = new Date(start.getTime() + duration * 60000);
+
+      const newEvent = new CalendarEvent({
+        userId,
+        title,
+        startTime: start,
+        endTime: end,
+        type: 'ai_block',
+        layer: 'default',
+        notes: 'Focus session started via ResQ Voice Assistant',
+        aiGenerated: true
+      });
+      const savedEvent = await newEvent.save();
+      createdEvents.push(savedEvent);
+      calendarModified = true;
+      
+      resultObj.uiAction = {
+        type: 'start_focus',
+        payload: { task: payload.taskId || 'Deep Work Session', duration }
+      };
+    }
+  } catch (dbErr) {
+    console.error('[voiceController] DB action failed:', dbErr);
   }
 
+  // Socket notification emits
   if (io) {
     const room = `user_${userId}`;
     if (taskModified) {
       const updatedTasks = await Task.find({ userId }).sort({ aiPriorityRank: 1, urgency: -1 });
       io.to(room).emit('tasks:updated', updatedTasks);
-      
       const incompleteTasks = await Task.find({ userId, completed: false }).sort({ aiPriorityRank: 1, urgency: -1 });
       io.to(room).emit('ai:priority-update', incompleteTasks);
     }
     if (calendarModified) {
+      const allEvents = await CalendarEvent.find({ userId });
       io.to(room).emit('calendar:new-events', createdEvents);
+      io.to(room).emit('calendar:updated', allEvents);
+    }
+    if (habitsModified) {
+      const updatedHabits = await Habit.find({ userId });
+      io.to(room).emit('habits:updated', updatedHabits);
+    }
+    if (goalsModified) {
+      const updatedGoals = await Goal.find({ userId });
+      io.to(room).emit('goals:updated', updatedGoals);
     }
   }
 
-  return { response, action, navigationTarget };
+  return {
+    intent: resultObj.intent,
+    confidence: resultObj.confidence,
+    extractedData: resultObj.extractedData,
+    missingFields: resultObj.missingFields,
+    clarificationQuestion: resultObj.clarificationQuestion,
+    response: resultObj.voiceResponse || 'Command processed.',
+    action: resultObj.uiAction || (resultObj.suggestAlternative ? { type: 'suggest_alternative', payload: { alternative: resultObj.suggestAlternative } } : null),
+    navigationTarget: resultObj.navigationTarget,
+    suggestAlternative: resultObj.suggestAlternative
+  };
 };
 
 export const processVoiceCommand = async (req, res) => {
@@ -165,3 +266,43 @@ export const processVoiceCommand = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+export const clearVoiceCache = async (req, res) => {
+  try {
+    clearPendingCommands(req.user._id);
+    res.status(200).json({ message: 'Voice AI pending clarification cache cleared.' });
+  } catch (error) {
+    console.error('Error clearing voice cache:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getVoiceUsage = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id || req.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const enabled = user.voiceAI?.enabled ?? true;
+    const used = user.voiceAI?.monthlyCommandsUsed ?? 0;
+    const limit = user.voiceAI?.monthlyLimit ?? 30;
+    const remaining = Math.max(0, limit - used);
+    const plan = user.plan || 'free';
+    const disabledReason = user.voiceAI?.disabledReason ?? null;
+
+    res.json({
+      enabled,
+      used,
+      limit,
+      remaining,
+      plan,
+      disabledReason
+    });
+  } catch (error) {
+    console.error('Error fetching voice usage:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+

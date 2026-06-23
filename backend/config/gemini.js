@@ -2,12 +2,27 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const apiKey = process.env.GEMINI_API_KEY;
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-if (!apiKey || apiKey.includes('your_gemini_api_key_here')) {
-  console.warn('WARNING: GEMINI_API_KEY is not configured in .env. AI features will run in mock mode.');
+// LOCKED — do not change this model string under any circumstances
+const RESQ_MODEL = 'gemini-2.5-flash';
+
+export function getResQModel() {
+  return genAI.getGenerativeModel({ 
+    model: RESQ_MODEL,
+    generationConfig: {
+      temperature: 0.7,       // balanced creativity + precision
+      topK: 40,
+      topP: 0.95,
+      maxOutputTokens: 1024,  // enough for JSON + voice response
+    }
+  });
 }
 
-const genAI = new GoogleGenerativeAI(apiKey || 'MOCK_KEY');
-
-export default genAI;
+// Safety check on startup
+export function verifyModelConfig() {
+  if (RESQ_MODEL !== 'gemini-2.5-flash') {
+    throw new Error('CRITICAL: ResQ model config tampered. Only gemini-2.5-flash is allowed.');
+  }
+  console.log(`✅ ResQ AI Engine: ${RESQ_MODEL} verified`);
+}

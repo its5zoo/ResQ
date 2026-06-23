@@ -138,6 +138,13 @@ export default function DashboardHome({ setCurrentTab }) {
             <span className="text-white/40">Here's your status.</span>
           </h2>
         </div>
+        
+        {/* Focus Mode Button */}
+        <button className="flex items-center gap-2.5 px-4 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white text-xs font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer html-light-btn-white shadow-xs active:scale-[0.98]">
+          <Sparkles className="w-3.5 h-3.5 text-[#E5B842] animate-pulse" />
+          <span>Focus Mode</span>
+          <ChevronRight className="w-3.5 h-3.5 text-white/40" />
+        </button>
       </div>
 
       {/* Stats Row */}
@@ -241,13 +248,13 @@ export default function DashboardHome({ setCurrentTab }) {
             <div className="flex flex-wrap gap-4">
               <button 
                 onClick={() => setCurrentTab('calendar')}
-                className="px-5 py-3 bg-transparent text-[#E5B842] border border-[#E5B842]/40 hover:bg-[#E5B842] hover:text-black hover:border-transparent text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center gap-1.5 cursor-pointer font-sans active:scale-[0.98]"
+                className="px-5 py-3 bg-[#E5B842] hover:bg-[#FFF2CC] text-white hover:text-black text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center gap-1.5 cursor-pointer font-sans active:scale-[0.98] shadow-md shadow-[#E5B842]/10"
               >
                 <Calendar className="w-4 h-4" /> Open Calendar
               </button>
               <button 
                 onClick={() => setCurrentTab('voice')}
-                className="px-5 py-3 border border-white/10 hover:bg-white/5 text-white/80 hover:text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-300 cursor-pointer font-sans"
+                className="px-5 py-3 border border-white/10 hover:bg-white/10 text-white/80 hover:text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-300 cursor-pointer font-sans bg-white/5 html-light-btn-white"
               >
                 Ask Voice AI Assistant
               </button>

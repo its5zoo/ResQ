@@ -74,3 +74,69 @@ export const updateGoogleCalendarDefaultIntegrated = async (req, res) => {
   }
 };
 
+export const updateAiVoice = async (req, res) => {
+  const { aiVoiceEnabled } = req.body;
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    user.voiceAI.enabled = !!aiVoiceEnabled;
+    user.voiceAI.disabledReason = !aiVoiceEnabled ? 'user_disabled' : null;
+    await user.save();
+    res.json({ 
+      message: 'AI Voice setting updated successfully', 
+      aiVoiceEnabled: user.voiceAI.enabled,
+      voiceAI: user.voiceAI
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const updateVoiceSettings = async (req, res) => {
+  const { enabled, voiceSpeed, voicePitch, ambientSound, proactiveAlerts } = req.body;
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (enabled !== undefined) {
+      if (enabled) {
+        if (user.voiceAI.disabledReason === 'limit_reached') {
+          user.voiceAI.enabled = false;
+          await user.save();
+          return res.json({
+            blocked: true,
+            reason: 'limit_reached',
+            voiceAI: user.voiceAI
+          });
+        } else {
+          user.voiceAI.enabled = true;
+          user.voiceAI.disabledReason = null;
+        }
+      } else {
+        user.voiceAI.enabled = false;
+        user.voiceAI.disabledReason = 'user_disabled';
+      }
+    }
+
+    if (voiceSpeed !== undefined) user.voiceAI.voiceSpeed = voiceSpeed;
+    if (voicePitch !== undefined) user.voiceAI.voicePitch = voicePitch;
+    if (ambientSound !== undefined) user.voiceAI.ambientSound = ambientSound;
+    if (proactiveAlerts !== undefined) user.voiceAI.proactiveAlerts = proactiveAlerts;
+
+    await user.save();
+
+    if (req.io) {
+      req.io.to(`user_${user._id}`).emit('settings:updated', {
+        voiceAI: user.voiceAI,
+        aiVoiceEnabled: user.voiceAI.enabled,
+        plan: user.plan
+      });
+    }
+
+    res.json(user.voiceAI);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+

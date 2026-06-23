@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, CalendarDays, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Sparkles, CalendarDays, AlertTriangle } from 'lucide-react';
 
 export default function ChronosLayersSection() {
   const layers = [
@@ -137,12 +137,6 @@ export default function ChronosLayersSection() {
                   </ul>
                 </div>
 
-              </div>
-
-              {/* Action trigger to dashboard */}
-              <div className="mt-8 pt-4 border-t border-white/[0.02] flex items-center justify-between text-xs font-tech font-bold text-white/30 group-hover:text-white/60 transition-colors duration-300">
-                <span>VIEW SCHEDULER RULES</span>
-                <ArrowRight className="w-3.5 h-3.5 transform transition-transform duration-300 group-hover:translate-x-1" />
               </div>
 
             </div>

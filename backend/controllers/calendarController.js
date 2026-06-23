@@ -4,6 +4,7 @@ import { generateAutoSchedule } from '../services/geminiService.js';
 import { io } from '../socket/socketHandler.js';
 import User from '../models/User.js';
 import { syncGoogleCalendar } from '../services/googleCalendarService.js';
+import { getFreeSlotsForDay } from '../services/voiceIntentService.js';
 
 // Helper to parse day/time into Date object
 const parseDayTimeToDate = (dayName, timeStr) => {
@@ -203,6 +204,17 @@ export const autoSchedule = async (req, res) => {
     res.json(createdEvents);
   } catch (error) {
     console.error('Auto Schedule Error:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getFreeSlots = async (req, res) => {
+  try {
+    const dateStr = req.query.date;
+    const date = dateStr ? new Date(dateStr) : new Date();
+    const slots = await getFreeSlotsForDay(req.user._id, date);
+    res.json(slots);
+  } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };

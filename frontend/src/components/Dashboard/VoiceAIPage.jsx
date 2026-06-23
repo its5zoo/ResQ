@@ -1,47 +1,128 @@
-import React, { useState } from 'react';
-import { Mic, MicOff, Sparkles, Send, Volume2, ArrowRight } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Mic, MicOff, Sparkles, Send, Volume2 } from 'lucide-react';
+import { voice as apiVoice } from '../../services/api.js';
 
 export default function VoiceAIPage() {
   const [isListening, setIsListening] = useState(false);
   const [messages, setMessages] = useState([
     { role: 'ai', text: "Hello! I am your ResQ AI companion. Ask me to outline your day, list your critical deadlines, or organize calendar blocks for you." }
   ]);
-
   const [inputText, setInputText] = useState('');
+  const recognitionRef = useRef(null);
 
   const sampleQuestions = [
-    { q: "What is due today?", a: "Your Vibe2Ship submission is due in 2 hours. I have scheduled a focus block for you at 4 PM." },
-    { q: "Organize my afternoon", a: "I have block-booked 2:00 PM for database migration and 4:00 PM for UI designs. All set!" },
-    { q: "Check my habit strengths", a: "Drink Water habit is completed today. Gym Workout is pending. Should I create a reminder?" }
+    { q: "What is due today?" },
+    { q: "Organize my afternoon" },
+    { q: "Check my habit strengths" }
   ];
 
-  const handleSend = (textVal) => {
+  // Helper to select the polished female voice
+  const speakResponse = (text) => {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    const voices = window.speechSynthesis.getVoices();
+    let voice = voices.find(v => v.name.includes('Google US English') && v.lang.startsWith('en'));
+    if (!voice) {
+      voice = voices.find(v => v.name.includes('Samantha') && v.lang.startsWith('en'));
+    }
+    if (!voice) {
+      voice = voices.find(v => v.name.includes('Zira') && v.lang.startsWith('en'));
+    }
+    
+    if (voice) {
+      utterance.voice = voice;
+    }
+    utterance.pitch = 1.15;
+    utterance.rate = 0.95;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const handleSend = async (textVal) => {
     if (!textVal.trim()) return;
     
     // Add user message
-    const newMsg = { role: 'user', text: textVal };
-    setMessages(prev => [...prev, newMsg]);
+    setMessages(prev => [...prev, { role: 'user', text: textVal }]);
     setInputText('');
     setIsListening(true);
 
-    setTimeout(() => {
+    try {
+      const result = await apiVoice.sendCommand(textVal);
       setIsListening(false);
-      // Determine AI response
-      const matched = sampleQuestions.find(q => q.q.toLowerCase() === textVal.toLowerCase());
-      const aiReply = matched 
-        ? matched.a 
-        : `I've registered your request: "${textVal}". I will coordinate your priorities and schedule calendar slots accordingly.`;
       
-      setMessages(prev => [...prev, { role: 'ai', text: aiReply }]);
+      setMessages(prev => [...prev, { role: 'ai', text: result.response }]);
+      speakResponse(result.response);
+    } catch (err) {
+      console.error('Error in Voice AI page command:', err);
+      setIsListening(false);
+      const errReply = "Sorry, I had trouble communicating with the Gemini brain.";
+      setMessages(prev => [...prev, { role: 'ai', text: errReply }]);
+      speakResponse(errReply);
+    }
+  };
 
-      // TTS voice feedback
+  const startLocalRecognition = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Speech recognition not supported in this browser.");
+      return;
+    }
+
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {}
+    }
+
+    const rec = new SpeechRecognition();
+    rec.continuous = false;
+    rec.interimResults = false;
+    rec.lang = 'en-US';
+
+    rec.onstart = () => {
+      setIsListening(true);
+    };
+
+    rec.onresult = (event) => {
+      const speechText = event.results[0][0].transcript;
+      handleSend(speechText);
+    };
+
+    rec.onerror = (event) => {
+      console.error('Local speech error:', event.error);
+      setIsListening(false);
+    };
+
+    rec.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = rec;
+    rec.start();
+  };
+
+  const toggleListening = () => {
+    if (isListening) {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {}
+      }
+      setIsListening(false);
+    } else {
+      startLocalRecognition();
+    }
+  };
+
+  // Clean up any ongoing speech synthesis on unmount
+  useEffect(() => {
+    return () => {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(aiReply);
-        window.speechSynthesis.speak(utterance);
       }
-    }, 1200);
-  };
+    };
+  }, []);
 
   return (
     <div className="space-y-8 animate-fade-in flex flex-col justify-between h-[82vh] font-sans">
@@ -77,7 +158,7 @@ export default function VoiceAIPage() {
 
         {isListening && (
           <div className="max-w-xs p-4 rounded-2xl bg-white/[0.01] border border-[#E5B842]/20 text-white/70 text-sm font-medium animate-pulse font-display relative overflow-hidden card-shine-sweep">
-            Companion is formulating response...
+            Companion is formulated or listening...
           </div>
         )}
       </div>
@@ -101,15 +182,7 @@ export default function VoiceAIPage() {
         <div className="flex items-center gap-3">
           {/* Pulsing Voice Mic */}
           <button 
-            onClick={() => {
-              setIsListening(!isListening);
-              if (!isListening) {
-                // Mock listening action
-                setTimeout(() => {
-                  handleSend("What is due today?");
-                }, 2000);
-              }
-            }}
+            onClick={toggleListening}
             className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border transition-all duration-300 focus:outline-hidden cursor-pointer ${
               isListening 
                 ? 'bg-[#E5B842] border-[#E5B842] text-black shadow-lg shadow-[#E5B842]/20 animate-pulse' 

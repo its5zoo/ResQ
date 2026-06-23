@@ -14,6 +14,18 @@ import Lenis from 'lenis';
 
 export default function Landing() {
   useEffect(() => {
+    // Initialize theme from localStorage
+    const savedTheme = localStorage.getItem('resq-theme') || 'dark';
+    const root = document.documentElement;
+    root.classList.remove('light', 'matrix');
+    if (savedTheme === 'light') {
+      root.classList.add('light');
+    } else if (savedTheme === 'matrix') {
+      root.classList.add('matrix');
+    }
+  }, []);
+
+  useEffect(() => {
     // Initialize Lenis Smooth Scroll
     const lenis = new Lenis({
       duration: 1.2,

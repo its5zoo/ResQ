@@ -21,6 +21,9 @@ export default function CalendarPage({ tasks }) {
   const [calendarEvents, setCalendarEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
+  
+  // Voice AI highlighting states
+  const [highlightedEventId, setHighlightedEventId] = useState(null);
 
   const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const hours = [
@@ -78,6 +81,28 @@ export default function CalendarPage({ tasks }) {
 
   useEffect(() => {
     fetchEvents();
+
+    const handleRefetch = () => {
+      fetchEvents();
+    };
+
+    const handleHighlightEvent = (e) => {
+      const eventId = e.detail?.eventId;
+      if (eventId) {
+        setHighlightedEventId(eventId);
+        setTimeout(() => {
+          setHighlightedEventId(null);
+        }, 4000);
+      }
+    };
+
+    window.addEventListener('resq:refetch-calendar', handleRefetch);
+    window.addEventListener('resq:highlight-event', handleHighlightEvent);
+
+    return () => {
+      window.removeEventListener('resq:refetch-calendar', handleRefetch);
+      window.removeEventListener('resq:highlight-event', handleHighlightEvent);
+    };
   }, []);
 
   // Listen to socket 'calendar:new-events' to refresh the calendar
@@ -389,7 +414,7 @@ export default function CalendarPage({ tasks }) {
                                 ? 'bg-status-red/[0.05] border border-status-red/20 hover:border-status-red/40 text-status-red shadow-[0_4px_12px_rgba(255,95,95,0.04)]'
                                 : 'bg-status-blue/[0.05] border border-status-blue/20 hover:border-status-blue/40 text-status-blue shadow-[0_4px_12px_rgba(74,158,255,0.04)]'
                             : 'bg-transparent border border-white/[0.03] hover:border-white/[0.15] hover:bg-white/[0.02] hover:scale-[1.01] hover:shadow-[0_0_8px_rgba(255,255,255,0.02)]'
-                        }`}
+                        } ${match && match._id === highlightedEventId ? 'animate-event-pulse' : ''}`}
                       >
                         {match ? (
                           <>

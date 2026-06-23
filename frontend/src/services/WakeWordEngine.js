@@ -1,0 +1,457 @@
+import voicePersonality from './VoicePersonality.js';
+
+class WakeWordEngine {
+  constructor() {
+    this.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    this.speechSupported = !!this.SpeechRecognition;
+    this.isListening = false;
+    this.isWoken = false;
+    this.isAuthorized = false;
+    this.userId = null;
+    this.limitReached = false;
+    
+    // Recognition instances
+    this.recognition = null;
+    this.commandRecognition = null;
+    
+    // State/timers
+    this.commandTimeoutTimer = null;
+    this.reconnectTimer = null;
+    this.latestTranscript = '';
+    this.isTabVisible = true;
+    this.isInitialized = false;
+    this.awaitingClarification = false;
+    this.clarificationTimeoutTimer = null;
+
+    // Wake words for fuzzy matching
+    this.wakeWords = ["hey resq", "hey rescue", "hey res q", "hey resk", "hey risq"];
+
+    // Bind event handlers
+    this.handleVisibilityChange = this.handleVisibilityChange.bind(this);
+  }
+
+  initialize(user) {
+    console.log('[WakeWordEngine] Initializing voice node for user:', user._id);
+    this.userId = user._id;
+    this.isAuthorized = true;
+
+    // Check if voice AI limit was already reached
+    if (user.voiceAI && !user.voiceAI.enabled && user.voiceAI.disabledReason === 'limit_reached') {
+      this.limitReached = true;
+      // Emit locked state
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('resq:orb_state', { detail: { state: 'locked', reason: 'limit_reached' } }));
+      }, 100);
+    } else {
+      this.limitReached = false;
+    }
+    
+    if (!this.isInitialized) {
+      this.init();
+    } else {
+      this.startBackgroundListening();
+    }
+  }
+
+  destroy() {
+    console.log('[WakeWordEngine] Destroying voice node and stopping listeners...');
+    this.isAuthorized = false;
+    this.userId = null;
+    this.limitReached = false;
+
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    if (this.commandTimeoutTimer) clearTimeout(this.commandTimeoutTimer);
+    if (this.clarificationTimeoutTimer) clearTimeout(this.clarificationTimeoutTimer);
+
+    if (this.recognition) {
+      this.recognition.onend = null;
+      try {
+        this.recognition.abort();
+      } catch (e) {}
+      this.recognition = null;
+    }
+
+    if (this.commandRecognition) {
+      this.commandRecognition.onend = null;
+      try {
+        this.commandRecognition.abort();
+      } catch (e) {}
+      this.commandRecognition = null;
+    }
+
+    // Stop all speech synthesis too
+    if (window.speechSynthesis) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch (e) {}
+    }
+
+    this.isListening = false;
+    this.isWoken = false;
+    this.awaitingClarification = false;
+  }
+
+  pauseForLimitReached() {
+    console.warn('[WakeWordEngine] monthly command limit reached. Pausing engine.');
+    this.limitReached = true;
+    this.stopBackgroundListening();
+    // Change orb to gray, show lock icon
+    window.dispatchEvent(new CustomEvent('resq:orb_state', { detail: { state: 'locked', reason: 'limit_reached' } }));
+  }
+
+  init() {
+    if (!this.isAuthorized) {
+      console.warn('ResQ: Voice AI blocked — user not authenticated');
+      return;
+    }
+    if (this.isInitialized) return;
+    this.isInitialized = true;
+
+    if (!this.speechSupported) {
+      console.warn('[WakeWordEngine] SpeechRecognition is not supported in this browser.');
+      this.showCompatibilityToast();
+      return;
+    }
+
+    // Bind tab visibility listener
+    document.addEventListener('visibilitychange', this.handleVisibilityChange);
+
+    // Mobile / Permission Check
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 768;
+    if (isMobile) {
+      this.requestMicPermissionGracefully();
+    } else {
+      this.startBackgroundListening();
+    }
+  }
+
+  showCompatibilityToast() {
+    // Show visual toast on screen
+    const toast = document.createElement('div');
+    toast.className = 'fixed bottom-6 right-6 z-[99999] px-5 py-3.5 rounded-2xl border border-red-500/30 bg-black/90 text-red-500 backdrop-blur-md shadow-2xl animate-fade-in font-sans text-xs font-bold uppercase';
+    toast.innerText = '⚠️ Voice features require Chrome or Edge';
+    document.body.appendChild(toast);
+    setTimeout(() => {
+      toast.remove();
+    }, 5000);
+  }
+
+  async requestMicPermissionGracefully() {
+    try {
+      // Prompt native permission dialog
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      this.startBackgroundListening();
+    } catch (err) {
+      console.warn('[WakeWordEngine] Microphone access denied:', err);
+      // Show graceful permission prompt
+      const promptBox = document.createElement('div');
+      promptBox.className = 'fixed inset-0 bg-black/85 backdrop-blur-sm z-[99999] flex items-center justify-center p-4 font-sans';
+      promptBox.innerHTML = `
+        <div class="bg-[#0A0A0A] border border-white/10 rounded-3xl p-6 w-full max-w-sm text-center space-y-4">
+          <h4 class="text-white text-lg font-black uppercase tracking-tight">Enable Mic Access</h4>
+          <p class="text-white/60 text-xs leading-relaxed">ResQ Voice Assistant requires microphone permission to listen for wake words. Please enable it in your browser settings.</p>
+          <button id="mic-grant-btn" class="w-full py-2.5 bg-[#E5B842] hover:bg-[#FFF2CC] text-black rounded-xl text-xs font-bold uppercase tracking-wider transition-all">Grant Mic Access</button>
+        </div>
+      `;
+      document.body.appendChild(promptBox);
+      
+      const grantBtn = promptBox.querySelector('#mic-grant-btn');
+      grantBtn.onclick = async () => {
+        promptBox.remove();
+        await this.requestMicPermissionGracefully();
+      };
+    }
+  }
+
+  startListening() {
+    if (this.limitReached) return;
+    if (!this.isAuthorized) {
+      console.warn('ResQ: Voice AI blocked — user not authenticated');
+      return;
+    }
+    this.startBackgroundListening();
+  }
+
+  startBackgroundListening() {
+    if (this.limitReached) return;
+    if (!this.isAuthorized) {
+      console.warn('ResQ: Voice AI blocked — user not authenticated');
+      return;
+    }
+
+    if (!this.speechSupported || this.isListening || this.isWoken || !this.isTabVisible) return;
+    
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+
+    try {
+      const recognition = new this.SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => {
+        this.isListening = true;
+        console.log('[WakeWordEngine] Always-listening background word listener active...');
+      };
+
+      recognition.onresult = (event) => {
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          const transcript = event.results[i][0].transcript.toLowerCase().trim();
+          console.log('[WakeWordEngine] Background heard:', transcript);
+
+          // Fuzzy match wake words
+          const matched = this.wakeWords.some(word => transcript.includes(word));
+          if (matched) {
+            console.log('[WakeWordEngine] Wake word detected!');
+            this.triggerWakeSequence();
+            break;
+          }
+        }
+      };
+
+      recognition.onerror = (event) => {
+        console.warn('[WakeWordEngine] Background listener error:', event.error);
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          this.isListening = false;
+        }
+      };
+
+      recognition.onend = () => {
+        this.isListening = false;
+        // Auto-restart background listener after 1 second if still in idle state and authorized
+        if (!this.isWoken && this.isTabVisible && this.isAuthorized) {
+          this.reconnectTimer = setTimeout(() => {
+            this.startBackgroundListening();
+          }, 1000);
+        }
+      };
+
+      this.recognition = recognition;
+      recognition.start();
+    } catch (e) {
+      console.error('[WakeWordEngine] Failed to start background listener:', e);
+    }
+  }
+
+  stopBackgroundListening() {
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    if (this.recognition) {
+      this.recognition.onend = null;
+      try {
+        this.recognition.stop();
+      } catch (e) {}
+      this.recognition = null;
+    }
+    this.isListening = false;
+  }
+
+  triggerWakeSequence() {
+    this.isWoken = true;
+    this.stopBackgroundListening();
+    this.playWakeChime();
+
+    // Emit global event to update UI to Listening... state
+    window.dispatchEvent(new CustomEvent('resq:awakened'));
+
+    // Start capturing user command
+    this.startCommandListening();
+  }
+
+  playWakeChime() {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+
+    try {
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+
+      osc.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      osc.type = 'sine';
+      gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+
+      // Play 880Hz for 80ms
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.start(ctx.currentTime);
+
+      // Play 1046Hz for 120ms
+      osc.frequency.setValueAtTime(1046, ctx.currentTime + 0.080);
+
+      // Fade out
+      gainNode.gain.setValueAtTime(0.3, ctx.currentTime + 0.080);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.200);
+
+      osc.stop(ctx.currentTime + 0.200);
+    } catch (e) {
+      console.warn('[WakeWordEngine] Failed to play chime:', e);
+    }
+  }
+
+  startCommandListening() {
+    if (!this.isAuthorized) {
+      console.warn('ResQ: Voice AI blocked — user not authenticated');
+      return;
+    }
+
+    if (this.commandTimeoutTimer) clearTimeout(this.commandTimeoutTimer);
+    this.latestTranscript = '';
+
+    try {
+      const recognition = new this.SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => {
+        console.log('[WakeWordEngine] Command listener active...');
+      };
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        this.latestTranscript = transcript;
+        console.log('[WakeWordEngine] Command interim:', transcript);
+      };
+
+      recognition.onerror = (event) => {
+        console.warn('[WakeWordEngine] Command listener error:', event.error);
+      };
+
+      recognition.onend = () => {
+        this.finalizeCommand();
+      };
+
+      // 8 seconds absolute command timeout
+      this.commandTimeoutTimer = setTimeout(() => {
+        console.log('[WakeWordEngine] 8 seconds command timeout reached');
+        if (this.commandRecognition) {
+          try {
+            this.commandRecognition.stop();
+          } catch (e) {}
+        }
+      }, 8000);
+
+      this.commandRecognition = recognition;
+      recognition.start();
+    } catch (e) {
+      console.error('[WakeWordEngine] Failed to start command listener:', e);
+      this.resetToIdle();
+    }
+  }
+
+  stopCommandListening() {
+    if (this.commandTimeoutTimer) clearTimeout(this.commandTimeoutTimer);
+    if (this.commandRecognition) {
+      this.commandRecognition.onend = null;
+      try {
+        this.commandRecognition.stop();
+      } catch (e) {}
+      this.commandRecognition = null;
+    }
+  }
+
+  finalizeCommand() {
+    this.stopCommandListening();
+    
+    const transcript = this.latestTranscript.trim();
+    
+    if (this.awaitingClarification) {
+      this.awaitingClarification = false;
+      if (this.clarificationTimeoutTimer) {
+        clearTimeout(this.clarificationTimeoutTimer);
+        this.clarificationTimeoutTimer = null;
+      }
+    }
+
+    this.isWoken = false;
+
+    if (transcript) {
+      console.log('[WakeWordEngine] Finalized command:', transcript);
+      window.dispatchEvent(new CustomEvent('resq:command', { detail: { transcript } }));
+      this.startBackgroundListening();
+    } else {
+      console.log('[WakeWordEngine] No speech detected in 8 seconds');
+      this.speak("I'm here whenever you need me.");
+      this.startBackgroundListening();
+    }
+  }
+
+  speak(text) {
+    if (!this.isAuthorized) return; // Speak nothing if user is logged out or not authenticated
+    voicePersonality.speak(text);
+  }
+
+  enterClarificationMode(onTimeout) {
+    if (this.clarificationTimeoutTimer) {
+      clearTimeout(this.clarificationTimeoutTimer);
+    }
+    
+    this.awaitingClarification = true;
+    this.isWoken = true;
+    
+    // Dispatch awakened event to visual console
+    window.dispatchEvent(new CustomEvent('resq:awakened'));
+
+    this.stopBackgroundListening();
+    this.startCommandListening();
+
+    // 15-second clarification window
+    this.clarificationTimeoutTimer = setTimeout(() => {
+      if (this.awaitingClarification) {
+        console.log('[WakeWordEngine] Clarification window timed out');
+        this.exitClarificationMode();
+        if (typeof onTimeout === 'function') {
+          onTimeout();
+        }
+      }
+    }, 15000);
+  }
+
+  exitClarificationMode() {
+    this.awaitingClarification = false;
+    if (this.clarificationTimeoutTimer) {
+      clearTimeout(this.clarificationTimeoutTimer);
+      this.clarificationTimeoutTimer = null;
+    }
+    this.resetToIdle();
+  }
+
+  resetToIdle() {
+    this.stopCommandListening();
+    this.isWoken = false;
+    this.startBackgroundListening();
+  }
+
+  handleVisibilityChange() {
+    if (document.hidden) {
+      console.log('[WakeWordEngine] Tab hidden. Pausing recognition.');
+      this.isTabVisible = false;
+      this.stopBackgroundListening();
+      this.stopCommandListening();
+    } else {
+      console.log('[WakeWordEngine] Tab visible. Resuming recognition.');
+      this.isTabVisible = true;
+      this.resetToIdle();
+    }
+  }
+
+  // Backward compatible method aliases
+  startBackgroundListener() {
+    this.startBackgroundListening();
+  }
+
+  stopBackgroundListener() {
+    this.stopBackgroundListening();
+  }
+
+  startCommandListener() {
+    this.startCommandListening();
+  }
+
+  stopCommandListener() {
+    this.stopCommandListening();
+  }
+}
+
+export const wakeWordEngine = new WakeWordEngine();

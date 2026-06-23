@@ -1,4 +1,4 @@
-import genAI from '../config/gemini.js';
+import { getResQModel } from '../config/gemini.js';
 
 // Global throttle tracking to enforce 500ms delay between consecutive calls
 let lastCallTime = 0;
@@ -31,22 +31,20 @@ const cleanMarkdownJson = (text) => {
 /**
  * Core query helper wrapper for Gemini generateContent with developer token logs and retry fallback.
  */
-const queryGemini = async (prompt, isJson = false) => {
-  const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-  
+export const queryGemini = async (prompt, isJson = false) => {
   await enforceRateLimit();
 
   try {
-    const model = genAI.getGenerativeModel({ 
-      model: modelName,
-      ...(isJson ? { generationConfig: { responseMimeType: "application/json" } } : {})
-    });
+    const model = getResQModel();
 
-    const result = await model.generateContent(prompt);
+    const result = await model.generateContent(isJson ? {
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: { responseMimeType: "application/json" }
+    } : prompt);
     
     // Log token usage in development
     if (process.env.NODE_ENV !== 'production' && result.response.usageMetadata) {
-      console.log(`[Gemini Token Log] Model: ${modelName} | Usage:`, result.response.usageMetadata);
+      console.log(`[Gemini Token Log] Usage:`, result.response.usageMetadata);
     }
 
     const text = result.response.text().trim();
@@ -61,16 +59,16 @@ const queryGemini = async (prompt, isJson = false) => {
     await enforceRateLimit();
 
     try {
-      const model = genAI.getGenerativeModel({ 
-        model: modelName,
-        ...(isJson ? { generationConfig: { responseMimeType: "application/json" } } : {})
-      });
+      const model = getResQModel();
 
       const retryPrompt = isJson
         ? `${prompt}\n\nReturn ONLY valid JSON. Absolutely no conversational text, explanations, or code-block formatting wrappers.`
         : prompt;
 
-      const result = await model.generateContent(retryPrompt);
+      const result = await model.generateContent(isJson ? {
+        contents: [{ role: 'user', parts: [{ text: retryPrompt }] }],
+        generationConfig: { responseMimeType: "application/json" }
+      } : retryPrompt);
       const text = result.response.text().trim();
       
       if (isJson) {
@@ -260,31 +258,54 @@ export const handleVoiceCommand = async (transcript, userContext = {}) => {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey || apiKey.includes('your_google_gemini_api_key') || apiKey.includes('your_gemini_api_key_here')) {
-      return getMockVoiceResponse(transcript);
+      return getMockVoiceResponse(transcript, userContext);
     }
 
     const prompt = `
-You are the ResQ voice assistant. 
-User said: "${transcript}"
-User current dashboard context (JSON):
+You are ResQ, a warm, calm, and professional AI productivity assistant.
+User spoke: "${transcript}"
+User's current dashboard context (JSON):
 ${JSON.stringify(userContext, null, 2)}
 
-Determine user intent from this set: [summarize_day, schedule_task, show_deadlines, add_task, complete_task, show_habits, motivate, general_query].
+Determine user intent from this set:
+[summarize_day, schedule_task, show_deadlines, add_task, complete_task, show_habits, motivate, general_query, change_theme, start_focus, stop_focus, complete_habit, navigate_tab]
+
+Personality and Voice Response Rules (strictly enforce in the "response" field):
+1. **Tone**: Calm, warm, friendly, and professional (like a brilliant personal assistant). Never robotic or stiff.
+2. **Light Affirmations**: Integrate natural light affirmations like "Of course", "Absolutely", "Got it", "Sure thing".
+3. **Address User**: Address the user by their first name when available in userContext (e.g. from context.user.name or user.name).
+4. **Natural Pauses**: Use natural pauses via commas so the Speech Synthesis engine speaks naturally.
+5. **Length Constraints**: 
+   - Maximum 2 sentences when confirming actions.
+   - Maximum 3 sentences for information summaries or briefings.
+6. **AI Identity**: Never say "I am an AI", "As a language model", or similar robotic disclaimers.
+7. **Declining Requests**: If user asks for something outside of tasks, calendar, habits, goals, or focus session coaching, politely decline and redirect to what you CAN do for them (help with tasks, calendar, habits, goals, focus).
+
+Guidelines:
+1. **Theme Controls**: If the user wants to switch themes (light, dark, matrix), set intent to "change_theme", action to { "type": "change_theme", "payload": { "theme": "light" or "dark" or "matrix" } }, navigationTarget to null.
+2. **Focus Sessions**: If they want to start a focus session, set intent to "start_focus", action to { "type": "start_focus", "payload": { "task": "task description", "duration": minutes (number) } }. Default duration to 25 if unspecified. Set navigationTarget to "dashboard".
+3. **Stop Focus**: If they want to pause, stop, or exit focus session, set intent to "stop_focus", action to { "type": "stop_focus", "payload": {} }, navigationTarget to null.
+4. **Complete Habit**: If they want to complete/check-off a habit, look at the habits in the userContext, find the matching habit, and set intent to "complete_habit", action to { "type": "complete_habit", "payload": { "habitId": "matching_habit_id", "name": "matching_habit_name" } }.
+5. **Dashboard Navigation**: If they say "go to/show/open [tab name]", set intent to "navigate_tab", action to null, and navigationTarget to the exact tab from: ["dashboard", "tasks", "calendar", "goals", "habits", "voice", "notifications", "settings"].
+6. **Task Scheduling**: If they request scheduling, identify the title, startTime/day/timeSlot, duration, and type ("ai_block", "user_block", "deadline"). Set intent to "schedule_task", action to { "type": "schedule_task", "payload": { "title": "...", "startTime": "...", "day": "...", "timeSlot": "...", "duration": number, "type": "..." } }.
+7. **Task Completion**: If completing a task, look for the task in the context and set intent to "complete_task", action to { "type": "complete_task", "payload": { "taskId": "...", "title": "..." } }.
+
 If they want to study or schedule study, ask them if they have a specific time in mind to study (e.g. "Do you have a particular time in mind to study? If you choose a specific time, I will fix it on your calendar. Otherwise, we can keep the time flexible and only fix the day.").
-Return ONLY JSON. No descriptions.
+
+Return ONLY valid JSON. No conversational wrappers, no markdown block wrappers.
 JSON Output Format:
 {
   "intent": "intent_type_here",
-  "response": "Brief friendly spoken response back to user under 30 words",
+  "response": "Warm, friendly spoken response complying with the personality and sentence limit rules",
   "action": { "type": "action_type", "payload": {} } or null,
-  "navigationTarget": "calendar" or "tasks" or "goals" or "habits" or null
+  "navigationTarget": "tab_name" or null
 }
 `;
 
     return await queryGemini(prompt, true);
   } catch (err) {
     console.error('Error handling voice command:', err);
-    return getMockVoiceResponse(transcript);
+    return getMockVoiceResponse(transcript, userContext);
   }
 };
 
@@ -370,33 +391,91 @@ const getMockGoalBreakdown = (goal) => {
   ];
 };
 
-const getMockVoiceResponse = (transcript) => {
+const getMockVoiceResponse = (transcript, userContext = {}) => {
   const command = transcript.toLowerCase();
+  
+  // Extract user's first name if available
+  const fullName = userContext.user?.name || userContext.name || '';
+  const firstName = fullName ? fullName.split(' ')[0] : '';
+  const greeting = firstName ? `Of course, ${firstName}. ` : 'Sure thing. ';
+
   if (command.includes('study') || command.includes('timetable') || command.includes('schedule study')) {
     return {
       intent: 'schedule_study',
-      response: "I'd love to schedule a study block for you. Do you have a particular time in mind to study? If you choose a specific time, I will fix it on your calendar. Otherwise, we can keep the time flexible and only fix the day.",
+      response: "I'd love to schedule a study block for you, do you have a particular time in mind? Otherwise, we can keep the time flexible and only fix the day.",
       action: null,
       navigationTarget: 'calendar'
     };
   } else if (command.includes('today') || command.includes('summarize')) {
     return {
       intent: 'summarize_day',
-      response: "Here is your plan for today: You have a team sync scheduled for 10:00 AM and a React Focus block at 04:00 PM.",
+      response: `${greeting}Here is your plan for today: You have a team sync scheduled for 10:00 AM, and a React Focus block at 04:00 PM.`,
       action: null,
       navigationTarget: 'calendar'
     };
   } else if (command.includes('deadline')) {
     return {
       intent: 'show_deadlines',
-      response: "Warning: Your project deadline is at 06:00 PM today. Let's work smart and avoid distractions.",
+      response: `${greeting}Your project deadline is at 06:00 PM today. Let's work smart, and avoid distractions.`,
       action: null,
       navigationTarget: 'tasks'
     };
+  } else if (command.includes('theme') || command.includes('light mode') || command.includes('matrix') || command.includes('dark mode')) {
+    let selectedTheme = 'dark';
+    if (command.includes('light')) selectedTheme = 'light';
+    else if (command.includes('matrix')) selectedTheme = 'matrix';
+    return {
+      intent: 'change_theme',
+      response: `${greeting}Switching your workspace theme to ${selectedTheme}.`,
+      action: { type: 'change_theme', payload: { theme: selectedTheme } },
+      navigationTarget: null
+    };
+  } else if (command.includes('focus') && (command.includes('start') || command.includes('begin') || command.includes('guide'))) {
+    // Detect focus task name and duration
+    let duration = 25;
+    const durMatch = command.match(/(\d+)\s*min/);
+    if (durMatch) duration = parseInt(durMatch[1]);
+    
+    return {
+      intent: 'start_focus',
+      response: `${greeting}Engaging Focus Mode for ${duration} minutes. Stay locked in.`,
+      action: { type: 'start_focus', payload: { task: 'Deep Work Session', duration } },
+      navigationTarget: 'dashboard'
+    };
+  } else if (command.includes('focus') && (command.includes('stop') || command.includes('exit') || command.includes('end') || command.includes('pause'))) {
+    return {
+      intent: 'stop_focus',
+      response: "Got it. Exiting Focus Mode, and restoring your dashboard.",
+      action: { type: 'stop_focus', payload: {} },
+      navigationTarget: null
+    };
+  } else if (command.includes('habit') && (command.includes('gym') || command.includes('workout') || command.includes('check') || command.includes('complete'))) {
+    return {
+      intent: 'complete_habit',
+      response: `${greeting}I've checked off your daily habit. Great consistency!`,
+      action: { type: 'complete_habit', payload: { name: 'Gym Workout Routine' } },
+      navigationTarget: 'habits'
+    };
+  } else if (command.includes('go to') || command.includes('open') || command.includes('show')) {
+    let target = 'dashboard';
+    if (command.includes('task')) target = 'tasks';
+    else if (command.includes('calendar')) target = 'calendar';
+    else if (command.includes('goal')) target = 'goals';
+    else if (command.includes('habit')) target = 'habits';
+    else if (command.includes('setting')) target = 'settings';
+    else if (command.includes('notification')) target = 'notifications';
+    else if (command.includes('voice')) target = 'voice';
+    
+    return {
+      intent: 'navigate_tab',
+      response: `${greeting}Navigating you to the ${target} tab.`,
+      action: null,
+      navigationTarget: target
+    };
   } else {
     return {
-      intent: 'general_query',
-      response: `I heard you say: "${transcript}". ResQ AI is ready to execute your command.`,
+      intent: 'out_of_scope',
+      response: "That's outside what I can do for you here. I can help with tasks, your calendar, habits, goals, and focus sessions. What would you like?",
       action: null,
       navigationTarget: null
     };

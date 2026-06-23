@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, Sparkles, Key, Mail, User, Eye, EyeOff } from 'lucide-react';
 import { auth, google as apiGoogle } from '../services/api.js';
+import { useAuthContext } from '../context/AuthContext.jsx';
 
 export default function AuthPage() {
+  const { login } = useAuthContext();
   const [isRegister, setIsRegister] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -20,18 +22,17 @@ export default function AuthPage() {
     const urlError = params.get('error');
 
     if (token) {
-      localStorage.setItem('token', token);
       const theme = params.get('theme') || 'dark';
       const plan = params.get('plan') || 'free';
-      localStorage.setItem('resq-theme', theme);
-      localStorage.setItem('resq-plan', plan);
-      navigate('/dashboard');
+      login(token, { theme, plan }).then(() => {
+        navigate('/dashboard');
+      });
     } else if (urlError) {
       setError(urlError);
       // Clean query params from address bar
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, [navigate]);
+  }, [navigate, login]);
 
   const handleGoogleLogin = async () => {
     try {
@@ -66,9 +67,7 @@ export default function AuthPage() {
       }
 
       // Store JWT token and default profile config
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('resq-theme', data.theme || 'dark');
-      localStorage.setItem('resq-plan', data.plan || 'free');
+      await login(data.token, data);
 
       // Navigate to dashboard page
       navigate('/dashboard');
@@ -81,7 +80,7 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="bg-[#080808] text-white min-h-screen relative bg-noise overflow-hidden flex items-center justify-center font-sans">
+    <div className="auth-page-container bg-[#080808] text-white min-h-screen relative bg-noise overflow-hidden flex items-center justify-center font-sans">
       
       {/* Background ambient gold/silver glows */}
       <div className="absolute inset-0 z-0 pointer-events-none">
@@ -90,7 +89,7 @@ export default function AuthPage() {
       </div>
 
       {/* Main glass card */}
-      <div className="w-full max-w-md p-8 mx-4 bg-[#0a0a0a]/80 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl relative z-10 layered-shadow-xl card-shine-sweep">
+      <div className="auth-card w-full max-w-md p-8 mx-4 bg-[#0a0a0a]/80 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl relative z-10 layered-shadow-xl card-shine-sweep">
         
         {/* Brand Logo header */}
         <div className="text-center mb-8">

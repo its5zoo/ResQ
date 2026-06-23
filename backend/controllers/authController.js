@@ -31,6 +31,8 @@ export const registerUser = async (req, res) => {
         theme: user.theme,
         plan: user.plan,
         googleCalendarDefaultIntegrated: user.googleCalendarDefaultIntegrated,
+        aiVoiceEnabled: user.voiceAI?.enabled ?? true,
+        voiceAI: user.voiceAI,
         token: generateToken(user._id),
       });
     } else {
@@ -55,6 +57,8 @@ export const authUser = async (req, res) => {
         theme: user.theme,
         plan: user.plan,
         googleCalendarDefaultIntegrated: user.googleCalendarDefaultIntegrated,
+        aiVoiceEnabled: user.voiceAI?.enabled ?? true,
+        voiceAI: user.voiceAI,
         token: generateToken(user._id),
       });
     } else {
@@ -81,6 +85,10 @@ export const getUserProfile = async (req, res) => {
         googleEmail: user.googleEmail,
         googleAccessToken: user.googleAccessToken,
         googleCalendarDefaultIntegrated: user.googleCalendarDefaultIntegrated,
+        aiVoiceEnabled: user.voiceAI?.enabled ?? true,
+        voiceInteractionsCount: user.voiceAI?.monthlyCommandsUsed ?? 0,
+        voiceInteractionsResetDate: user.voiceAI?.lastResetDate ?? new Date(),
+        voiceAI: user.voiceAI,
         createdAt: user.createdAt,
       });
     } else {

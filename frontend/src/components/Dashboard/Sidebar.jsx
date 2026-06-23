@@ -12,9 +12,11 @@ import {
   Shield 
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuthContext } from '../../context/AuthContext.jsx';
 
 export default function Sidebar({ currentTab, setCurrentTab }) {
   const navigate = useNavigate();
+  const { logout } = useAuthContext();
 
   const menuItems = [
     { id: 'dashboard', name: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
@@ -91,7 +93,10 @@ export default function Sidebar({ currentTab, setCurrentTab }) {
             </div>
           </div>
           <button 
-            onClick={() => navigate('/')}
+            onClick={async () => {
+              await logout();
+              navigate('/');
+            }}
             className="text-white/40 hover:text-status-red transition-colors focus:outline-hidden cursor-pointer"
             title="Log Out"
           >

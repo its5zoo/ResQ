@@ -1,6 +1,5 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles } from 'lucide-react';
 
 export default function CTASection() {
   const navigate = useNavigate();
@@ -14,15 +13,6 @@ export default function CTASection() {
       </div>
 
       <div className="max-w-5xl mx-auto px-10 relative z-10 text-center flex flex-col items-center">
-        
-        {/* Waitlist Badge */}
-        <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-[#E5B842]/5 border border-[#E5B842]/25 mb-10 shadow-[0_4px_15px_rgba(229,184,66,0.05)] animate-fade-in">
-          <Sparkles className="w-3.5 h-3.5 text-[#E5B842] animate-pulse" />
-          <span className="text-xs font-tech font-semibold tracking-wider uppercase text-white/90">
-            HACKATHON BETA IS LIVE — FREE LIFETIME ACCESS
-          </span>
-        </div>
-
         {/* Title */}
         <h2 className="text-4xl sm:text-6xl md:text-7xl font-display font-black leading-[1.0] text-silver-gradient text-shine-sweep mb-8 max-w-3xl tracking-tight">
           Stop reacting to chaos. <br />

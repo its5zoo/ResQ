@@ -8,8 +8,18 @@ import CalendarEvent from '../models/CalendarEvent.js';
 import { generateNotificationMessage } from './geminiService.js';
 import { createNotification } from './notificationService.js';
 import { io } from '../socket/socketHandler.js';
+import { checkAlertTriggers } from './alertService.js';
 
 export const startCronJobs = () => {
+  // Runs every 10 minutes for proactive alerts
+  cron.schedule('*/10 * * * *', async () => {
+    try {
+      await checkAlertTriggers();
+    } catch (error) {
+      console.error('[Cron] Error running proactive alerts check:', error);
+    }
+  });
+
   // Runs every 30 minutes
   cron.schedule('*/30 * * * *', async () => {
     console.log('[Cron] Running scheduled audits for user alerts...');

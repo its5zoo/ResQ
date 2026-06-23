@@ -59,20 +59,10 @@
 
 .text-gold-sweep {
   position: relative;
-  background: linear-gradient(
-    110deg,
-    #b38612 0%,
-    #e5b842 25%,
-    #ffffff 50%,
-    #e5b842 75%,
-    #b38612 100%
-  );
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: goldGlowFlow 3s linear infinite;
-  filter: drop-shadow(0 0 3px rgba(229, 184, 66, 0.65)) drop-shadow(0 0 8px rgba(229, 184, 66, 0.25));
+  -webkit-text-stroke: 1px #000000;
+  -webkit-text-fill-color: #E5B842;
+  color: #E5B842;
+  filter: drop-shadow(0 0 1.5px rgba(229, 184, 66, 0.45));
 }
 
 /* Diagonal shine sweep repeating over text */
@@ -353,6 +343,29 @@ html.light input::placeholder {
   color: #9CA3AF !important;
 }
 
+html.light .html-light-btn-white {
+  background-color: #FFFFFF !important;
+  color: #111113 !important;
+  border-color: #E5E7EB !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02) !important;
+}
+
+html.light .html-light-btn-white svg:not(.text-\[\#E5B842\]) {
+  color: #6B7280 !important;
+}
+
+html.light .html-light-btn-white:hover {
+  background-color: #F9FAFB !important;
+  color: #000000 !important;
+  border-color: #D1D5DB !important;
+}
+
+html.light .bg-\[\#0a0a0a\],
+html.light .bg-\[\#0A0A0A\] {
+  background-color: #F3F4F6 !important;
+  border-color: #E5E7EB !important;
+}
+
 /* Ensure the silver-gradient brand text shifts to solid charcoal in light mode */
 html.light .text-silver-gradient {
   color: #111113 !important;
@@ -367,47 +380,12 @@ html.light .text-silver-gradient {
 
 /* --- 1. FREE ACTIVE: BLACK OUTLINE & BLACK TEXT ACCENTS --- */
 
-/* Outlines/Borders */
-html.light.free-active .bg-\[\#090909\], 
-html.light.free-active .bg-\[\#080808\],
-html.light.free-active .bg-white\/\[0\.01\], 
-html.light.free-active .bg-white\/\[0\.015\],
-html.light.free-active .bg-white\/\[0\.02\],
-html.light.free-active .bg-white\/\[0\.05\],
-html.light.free-active .bg-black,
-html.light.free-active .bg-black\/60,
-html.light.free-active .bg-black\/40, 
-html.light.free-active .bg-black\/20,
-html.light.free-active .bg-\[\#0A0A0A\], 
-html.light.free-active .bg-\[\#0F0F0F\],
-html.light.free-active .bg-\[\#0B0B0B\],
-html.light.free-active .bg-\[\#050505\],
-html.light.free-active .border-white\/5,
-html.light.free-active .border-white\/10,
-html.light.free-active .border-white\/\[0\.03\],
-html.light.free-active .border-white\/\[0\.04\],
-html.light.free-active .border-white\/\[0\.06\],
-html.light.free-active .border-white\/\[0\.02\],
-html.light.free-active .border-white\/\[0\.015\],
-html.light.free-active .border-r,
-html.light.free-active .border-b,
-html.light.free-active .border-t,
-html.light.free-active .border,
-html.light.free-active input,
-html.light.free-active select,
-html.light.free-active textarea,
-html.light.free-active aside,
-html.light.free-active div.border {
-  border-color: #000000 !important;
-  border-width: 1.5px !important;
-}
+/* Outlines/Borders disabled for clean look */
 
 /* Text & Colors */
-html.light.free-active .text-gold-sweep,
 html.light.free-active .text-glow-gold,
 html.light.free-active .text-\%5B\%23E5B842\%5D,
-html.light.free-active .text-\[\#E5B842\],
-html.light.free-active .text-gold-gradient {
+html.light.free-active .text-\[\#E5B842\] {
   color: #000000 !important;
   background: none !important;
   -webkit-text-fill-color: initial !important;
@@ -418,12 +396,24 @@ html.light.free-active .text-gold-gradient {
 /* Background elements (e.g. active menu items, checkboxes, switches, filled elements) */
 html.light.free-active .bg-\%5B\%23E5B842\%5D,
 html.light.free-active .bg-\[\#E5B842\],
-html.light.free-active .bg-white\/\[0\.07\],
-html.light.free-active .bg-status-amber,
-html.light.free-active .bg-\[\#E5B842\]\/10,
-html.light.free-active .bg-\[\#E5B842\]\/5 {
+html.light.free-active .bg-status-amber {
   background-color: #000000 !important;
   color: #FFFFFF !important;
+}
+
+html.light.free-active .bg-white\/\[0\.07\],
+html.light.free-active .bg-\[\#E5B842\]\/10,
+html.light.free-active .bg-\[\#E5B842\]\/5 {
+  background-color: #E5E7EB !important;
+}
+
+html.light.free-active .bg-white\/\[0\.07\],
+html.light.free-active .bg-white\/\[0\.07\] *,
+html.light.free-active .bg-\[\#E5B842\]\/10,
+html.light.free-active .bg-\[\#E5B842\]\/10 *,
+html.light.free-active .bg-\[\#E5B842\]\/5,
+html.light.free-active .bg-\[\#E5B842\]\/5 * {
+  color: #111113 !important;
 }
 
 html.light.free-active .hover\:bg-\%5B\%23E5B842\%5D:hover,
@@ -453,40 +443,7 @@ html.light.free-active .bg-status-amber:not(button) {
 
 /* --- 2. PREMIUM ACTIVE: GOLD OUTLINE & GOLD TEXT ACCENTS --- */
 
-/* Outlines/Borders */
-html.light.premium-active .bg-\[\#090909\], 
-html.light.premium-active .bg-\[\#080808\],
-html.light.premium-active .bg-white\/\[0\.01\], 
-html.light.premium-active .bg-white\/\[0\.015\],
-html.light.premium-active .bg-white\/\[0\.02\],
-html.light.premium-active .bg-white\/\[0\.05\],
-html.light.premium-active .bg-black,
-html.light.premium-active .bg-black\/60,
-html.light.premium-active .bg-black\/40, 
-html.light.premium-active .bg-black\/20,
-html.light.premium-active .bg-\[\#0A0A0A\], 
-html.light.premium-active .bg-\[\#0F0F0F\],
-html.light.premium-active .bg-\[\#0B0B0B\],
-html.light.premium-active .bg-\[\#050505\],
-html.light.premium-active .border-white\/5,
-html.light.premium-active .border-white\/10,
-html.light.premium-active .border-white\/\[0\.03\],
-html.light.premium-active .border-white\/\[0\.04\],
-html.light.premium-active .border-white\/\[0\.06\],
-html.light.premium-active .border-white\/\[0\.02\],
-html.light.premium-active .border-white\/\[0\.015\],
-html.light.premium-active .border-r,
-html.light.premium-active .border-b,
-html.light.premium-active .border-t,
-html.light.premium-active .border,
-html.light.premium-active input,
-html.light.premium-active select,
-html.light.premium-active textarea,
-html.light.premium-active aside,
-html.light.premium-active div.border {
-  border-color: #E5B842 !important;
-  border-width: 1.5px !important;
-}
+/* Outlines/Borders disabled for clean look */
 
 /* Background elements (e.g. active menu items, checkboxes, switches, filled elements) */
 html.light.premium-active .bg-white\/\[0\.07\] {
@@ -513,5 +470,400 @@ html.light.premium-active .border-white\/5,
 html.light.premium-active .divide-white\/5 {
   border-color: rgba(229, 184, 66, 0.15) !important;
 }
+
+/* Keep brand logo Q always gold inside and black outline in all themes */
+html.light.free-active .text-gold-sweep {
+  color: #E5B842 !important;
+  background: none !important;
+  -webkit-text-stroke: 1px #000000 !important;
+  -webkit-text-fill-color: #E5B842 !important;
+  text-shadow: none !important;
+  filter: drop-shadow(0 0 1.5px rgba(229, 184, 66, 0.45)) !important;
+}
+
+/* ==========================================================================
+   Light Mode Navbar Overrides
+   ========================================================================== */
+html.light nav {
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+html.light nav.bg-transparent {
+  background-color: transparent !important;
+  border-bottom: 1px solid #E5E7EB !important;
+  box-shadow: none !important;
+}
+
+html.light nav:not(.bg-transparent) {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border-bottom: 1px solid #E5E7EB !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+}
+
+/* Links & buttons inside light mode navbar */
+html.light nav a,
+html.light nav button {
+  color: #374151 !important; /* Premium charcoal */
+}
+
+html.light nav a:hover,
+html.light nav button:hover {
+  color: #E5B842 !important; /* Gold hover color */
+}
+
+/* Active links should have the gold color */
+html.light nav a.text-\[\#E5B842\] {
+  color: #E5B842 !important;
+}
+
+/* Sign In button override (the text button) */
+html.light nav button:not(.border-white\/40) {
+  color: #4B5563 !important;
+}
+html.light nav button:not(.border-white\/40):hover {
+  color: #E5B842 !important;
+}
+
+/* Get Started button override (the bordered button) */
+html.light nav button.border-white\/40 {
+  border-color: rgba(0, 0, 0, 0.15) !important;
+  background-color: #FFFFFF !important;
+  color: #111113 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02) !important;
+}
+
+html.light nav button.border-white\/40:hover {
+  border-color: #E5B842 !important;
+  background-color: #E5B842 !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 12px rgba(229, 184, 66, 0.2) !important;
+}
+
+/* Free Active overrides for navbar */
+html.light.free-active nav a:hover,
+html.light.free-active nav button:hover {
+  color: #000000 !important;
+}
+
+html.light.free-active nav a.text-\[\#E5B842\] {
+  color: #000000 !important;
+}
+
+html.light.free-active nav button.border-white\/40:hover {
+  border-color: #000000 !important;
+  background-color: #000000 !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Ensure the toggle button hovers to gold in light mode */
+html.light nav button.html-light-btn-white:hover {
+  color: #E5B842 !important;
+}
+
+/* Silver color styles for laptop mockup in Light Mode */
+html.light .laptop-bezel {
+  background-color: #E5E7EB !important; /* Bright silver aluminum bezel */
+  border-color: #D1D5DB !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.12) !important;
+}
+
+html.light .laptop-hinge {
+  background-color: #9CA3AF !important; /* Cool grey hinge connection */
+  border-bottom-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+html.light .laptop-base {
+  background: linear-gradient(to right, #9CA3AF, #D1D5DB, #F3F4F6, #FFFFFF, #F3F4F6, #D1D5DB, #9CA3AF) !important; /* Realistic bright metallic silver base */
+  border-top-color: rgba(255, 255, 255, 0.9) !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+}
+
+html.light .laptop-trackpad-notch {
+  background-color: #8E95A0 !important;
+  border-top-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* AuthPage light mode overrides */
+html.light .auth-page-container {
+  background-color: #F8F9FA !important;
+  background-image: none !important;
+}
+
+html.light .auth-card {
+  background-color: #FFFFFF !important;
+  border-color: #E5E7EB !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+}
+
+html.light .auth-card label {
+  color: #4B5563 !important;
+}
+
+html.light .auth-card h3 {
+  color: #111113 !important;
+}
+
+html.light .auth-card p {
+  color: #6B7280 !important;
+}
+
+html.light .auth-card input {
+  background-color: #F9FAFB !important;
+  border-color: #E5E7EB !important;
+  color: #111113 !important;
+}
+
+html.light .auth-card input:hover {
+  border-color: #D1D5DB !important;
+}
+
+html.light .auth-card input:focus {
+  border-color: #E5B842 !important;
+}
+
+html.light .auth-card input::placeholder {
+  color: #9CA3AF !important;
+}
+
+html.light .auth-card svg:not(.text-\[\#E5B842\]):not(.text-status-green):not(.text-red-400) {
+  color: #9CA3AF !important;
+}
+
+html.light .auth-card button.bg-\[\#0B0B0B\] {
+  background-color: #FFFFFF !important;
+  color: #374151 !important;
+  border-color: #D1D5DB !important;
+}
+
+html.light .auth-card button.bg-\[\#0B0B0B\]:hover {
+  background-color: #F9FAFB !important;
+  border-color: #9CA3AF !important;
+  color: #111113 !important;
+}
+
+html.light .auth-card button[type="submit"] {
+  border-color: #E5B842 !important;
+  color: #111113 !important;
+}
+
+html.light .auth-card button[type="submit"]:hover {
+  background-color: #E5B842 !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 12px rgba(229, 184, 66, 0.2) !important;
+}
+
+html.light .auth-card button.text-\[\#E5B842\]:hover {
+  color: #B8860B !important;
+}
+
+/* Voice Assistant Light Mode Overrides */
+html.light .voice-orb {
+  background-color: #FFFFFF !important;
+  border-color: #E5E7EB !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08) !important;
+}
+
+html.light .voice-orb:hover {
+  border-color: #E5B842 !important;
+  box-shadow: 0 10px 30px rgba(229, 184, 66, 0.2) !important;
+}
+
+html.light .voice-orb-inner {
+  background-color: #FFFFFF !important;
+  border-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+html.light .voice-console {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-color: #E5E7EB !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+}
+
+/* Header inside console */
+html.light .voice-console .border-b {
+  border-bottom-color: #E5E7EB !important;
+}
+
+html.light .voice-console span.text-white\/55,
+html.light .voice-console span.text-white\/50 {
+  color: #6B7280 !important;
+  background-color: #F3F4F6 !important;
+  border-color: #E5E7EB !important;
+}
+
+html.light .voice-console button {
+  color: #9CA3AF !important;
+}
+
+html.light .voice-console button:hover {
+  color: #374151 !important;
+}
+
+/* Wave visualizer */
+html.light .voice-waves-container {
+  background-color: #F9FAFB !important;
+  border-color: #E5E7EB !important;
+}
+
+html.light .voice-wave-bar.bg-white\/20 {
+  background-color: #D1D5DB !important;
+}
+
+/* User speech transcript box */
+html.light .voice-console p.text-white\/90 {
+  color: #111113 !important;
+  border-left-color: #D1D5DB !important;
+}
+
+html.light .voice-console span.text-white\/30 {
+  color: #9CA3AF !important;
+}
+
+/* AI Assistant response card */
+html.light .voice-ai-response-box {
+  background-color: #F9FAFB !important;
+  border-color: #E5E7EB !important;
+}
+
+html.light .voice-ai-response-box p.text-white\/80 {
+  color: #374151 !important;
+}
+
+/* Simulator triggers section */
+html.light .voice-console .border-t {
+  border-top-color: #E5E7EB !important;
+}
+
+html.light .voice-trigger-btn {
+  background-color: #FFFFFF !important;
+  border-color: #E5E7EB !important;
+}
+
+html.light .voice-trigger-btn:hover {
+  background-color: #F9FAFB !important;
+  border-color: #D1D5DB !important;
+}
+
+html.light .voice-trigger-btn span.text-white\/60 {
+  color: #4B5563 !important;
+}
+
+html.light .voice-trigger-btn svg.text-white\/55 {
+  color: #6B7280 !important;
+}
+
+html.light .voice-alert-box {
+  background-color: rgba(239, 68, 68, 0.05) !important;
+  border-color: rgba(239, 68, 68, 0.15) !important;
+}
+
+/* ==========================================================================
+   Voice Action & UI Highlight Animations
+   ========================================================================== */
+
+@keyframes task-gold-highlight {
+  0% {
+    box-shadow: 0 0 0 0 rgba(229, 184, 66, 0.8), 0 0 15px rgba(229, 184, 66, 0.5);
+    border-color: #E5B842;
+    background-color: rgba(229, 184, 66, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(229, 184, 66, 0), 0 0 25px rgba(229, 184, 66, 0.8);
+    border-color: #E5B842;
+    background-color: rgba(229, 184, 66, 0.15);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(229, 184, 66, 0), 0 0 0px rgba(229, 184, 66, 0);
+    border-color: rgba(255, 255, 255, 0.03);
+    background-color: black;
+  }
+}
+.animate-gold-highlight {
+  animation: task-gold-highlight 3s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+@keyframes task-completed-fade {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.98);
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+}
+.animate-completed-fade {
+  animation: task-completed-fade 1s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+@keyframes line-through-draw {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+.animate-strikethrough {
+  position: relative;
+}
+.animate-strikethrough::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 2px;
+  background: #E5B842;
+  animation: line-through-draw 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+@keyframes deadline-red-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7), 0 0 10px rgba(239, 68, 68, 0.3);
+    border-color: rgba(239, 68, 68, 0.8);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(239, 68, 68, 0), 0 0 20px rgba(239, 68, 68, 0.6);
+    border-color: rgba(239, 68, 68, 1);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0), 0 0 10px rgba(239, 68, 68, 0.3);
+    border-color: rgba(239, 68, 68, 0.8);
+  }
+}
+.animate-deadline-pulse {
+  animation: deadline-red-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes event-gold-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(229, 184, 66, 0.7), 0 0 10px rgba(229, 184, 66, 0.3);
+    border-color: rgba(229, 184, 66, 0.8);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(229, 184, 66, 0), 0 0 20px rgba(229, 184, 66, 0.6);
+    border-color: rgba(229, 184, 66, 1);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(229, 184, 66, 0), 0 0 10px rgba(229, 184, 66, 0.3);
+    border-color: rgba(229, 184, 66, 0.8);
+  }
+}
+.animate-event-pulse {
+  animation: event-gold-pulse 1.5s ease-in-out infinite;
+}
+
+
+
+
+
+
 
 

@@ -3,6 +3,9 @@ import jwt from 'jsonwebtoken';
 import Task from '../models/Task.js';
 import { reprioritizeTasksForUser } from '../controllers/taskController.js';
 import { executeVoiceCommand } from '../controllers/voiceController.js';
+import { checkMorningBriefing } from '../services/alertService.js';
+import { scheduleFocusBlockForTask } from '../services/smartSchedulerService.js';
+import { checkAndIncrementVoiceUsage } from '../middleware/voiceGate.js';
 
 export let io = null;
 
@@ -47,6 +50,9 @@ export const handleSocketEvents = (server) => {
     socket.join(roomName);
     console.log(`Socket ${socket.id} authenticated and joined room ${roomName}`);
 
+    // Trigger morning briefing if applicable
+    checkMorningBriefing(socket, userId);
+
     // voice:transcript event
     socket.on('voice:transcript', async (data) => {
       const { transcript } = data;
@@ -54,6 +60,19 @@ export const handleSocketEvents = (server) => {
 
       try {
         console.log(`[Socket Voice] Transcript from ${userId}: ${transcript}`);
+        
+        // Apply voice usage/limits checks
+        const check = await checkAndIncrementVoiceUsage(userId);
+        if (check.blocked) {
+          return socket.emit('voice:response', {
+            blocked: true,
+            reason: check.reason,
+            response: check.message,
+            action: null,
+            navigationTarget: null
+          });
+        }
+
         const result = await executeVoiceCommand(userId, transcript);
         
         // Emit voice:response to the user
@@ -116,6 +135,20 @@ export const handleSocketEvents = (server) => {
         io.to(roomName).emit('tasks:updated', updatedTasks);
       } catch (err) {
         console.error('[Socket Task] Error completing task:', err);
+      }
+    });
+
+    socket.on('resq:create_deadline_focus', async (data) => {
+      try {
+        const { taskId } = data;
+        if (!taskId) return;
+        const created = await scheduleFocusBlockForTask(userId, taskId);
+        if (created) {
+          console.log(`[Socket] Created proactive focus block for task ${taskId}: ${created.title}`);
+          io.to(roomName).emit('calendar:new-events');
+        }
+      } catch (err) {
+        console.error('[Socket] Error in resq:create_deadline_focus:', err);
       }
     });
 

@@ -35,6 +35,25 @@ const userSchema = new mongoose.Schema({
     start: { type: String, default: '09:00' },
     end: { type: String, default: '18:00' }
   },
+  lastBriefingDate: {
+    type: String,
+    default: null
+  },
+  voiceAI: {
+    enabled: { type: Boolean, default: true },
+    monthlyCommandsUsed: { type: Number, default: 0 },
+    monthlyLimit: { type: Number, default: 30 },
+    lastResetDate: { type: Date, default: Date.now },
+    disabledReason: { 
+      type: String, 
+      enum: ['limit_reached', 'user_disabled', 'admin_disabled', null], 
+      default: null 
+    },
+    voiceSpeed: { type: Number, default: 0.92 },
+    voicePitch: { type: Number, default: 1.08 },
+    ambientSound: { type: Boolean, default: true },
+    proactiveAlerts: { type: Boolean, default: true }
+  },
   googleAccessToken: {
     type: String,
     default: null

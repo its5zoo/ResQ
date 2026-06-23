@@ -1,11 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Shield } from 'lucide-react';
+import { Shield, Sun, Moon } from 'lucide-react';
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState('');
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('resq-theme') || 'dark';
+  });
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.remove('light', 'matrix');
+    if (theme === 'light') {
+      root.classList.add('light');
+    } else if (theme === 'matrix') {
+      root.classList.add('matrix');
+    }
+    localStorage.setItem('resq-theme', theme);
+  }, [theme]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -95,6 +109,19 @@ export default function Navbar() {
 
         {/* Right Actions */}
         <div className="flex items-center gap-5">
+          {/* Theme Toggle Switch */}
+          <button
+            onClick={() => setTheme(prev => (prev === 'light' ? 'dark' : 'light'))}
+            className="p-2.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-white/70 hover:text-[#E5B842] transition-all duration-300 focus:outline-hidden cursor-pointer flex items-center justify-center html-light-btn-white"
+            aria-label="Toggle theme"
+          >
+            {theme === 'light' ? (
+              <Moon className="w-5 h-5 transition-transform duration-300 hover:rotate-12" />
+            ) : (
+              <Sun className="w-5 h-5 transition-transform duration-300 hover:rotate-45" />
+            )}
+          </button>
+
           <button 
             onClick={() => navigate('/auth')}
             className="px-5 py-2.5 rounded-lg text-sm font-semibold tracking-wider uppercase text-white/60 hover:text-[#E5B842] transition-all duration-300 focus:outline-hidden cursor-pointer"

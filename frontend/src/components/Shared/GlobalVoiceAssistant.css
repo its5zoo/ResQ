@@ -1,0 +1,265 @@
+:root {
+  --orb-gold: var(--gold-primary, #E5B842);
+  --orb-gold-glow: var(--gold-glow, rgba(229, 184, 66, 0.4));
+  --orb-cyan: #00F0FF;
+  --orb-cyan-glow: rgba(0, 240, 255, 0.4);
+  --orb-red: #FF3B30;
+  --orb-red-glow: rgba(255, 59, 48, 0.4);
+  --orb-blue: #007AFF;
+  --orb-blue-glow: rgba(0, 122, 255, 0.4);
+  --orb-green: #34C759;
+  --orb-green-glow: rgba(52, 199, 89, 0.4);
+  --orb-white: #FFFFFF;
+
+  /* Animation parameters */
+  --orb-scale-idle: 1.05;
+  --orb-scale-listening: 1.15;
+  --orb-scale-alert: 1.2;
+  --orb-rotate-angle: 360deg;
+  --orb-scale-wave: 1.4;
+
+  /* Theme-aware animations using variables */
+  --orb-anim-breath: orbBreath 3s infinite ease-in-out;
+  --orb-anim-listening: orbCyanPulse 0.8s infinite ease-in-out;
+  --orb-anim-processing: orbSpin 1s infinite linear;
+  --orb-anim-speaking: orbBreath 2s infinite ease-in-out;
+  --orb-anim-alert: orbAlertPulse 0.5s ease-in-out 3;
+}
+
+/* Light Mode Overrides for Orb */
+html.light {
+  --orb-white: #111113;
+}
+
+/* Matrix Mode Overrides for Orb */
+html.matrix {
+  --orb-gold: #00FF00;
+  --orb-gold-glow: rgba(0, 255, 0, 0.4);
+  --orb-cyan: #00FF00;
+  --orb-cyan-glow: rgba(0, 255, 0, 0.4);
+}
+
+/* Reduced Motion Override */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --orb-scale-idle: 1;
+    --orb-scale-listening: 1;
+    --orb-scale-alert: 1;
+    --orb-rotate-angle: 0deg;
+    --orb-scale-wave: 1;
+
+    --orb-anim-breath: orbReducedFade 3s infinite ease-in-out;
+    --orb-anim-listening: orbReducedFade 1.5s infinite ease-in-out;
+    --orb-anim-processing: orbReducedFade 2s infinite ease-in-out;
+    --orb-anim-speaking: orbReducedFade 2s infinite ease-in-out;
+    --orb-anim-alert: orbReducedFade 0.8s ease-in-out 3;
+  }
+
+  .orb-core:hover {
+    transform: none !important;
+  }
+}
+
+@keyframes voiceWave {
+  0%, 100% { transform: scaleY(0.7); }
+  50% { transform: scaleY(var(--orb-scale-wave)); }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.3s ease-out forwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Orb Breathing Animation */
+@keyframes orbBreath {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(var(--orb-scale-idle)); }
+}
+
+/* Fast Cyan Pulse Animation */
+@keyframes orbCyanPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 10px var(--orb-cyan-glow); }
+  50% { transform: scale(var(--orb-scale-listening)); box-shadow: 0 0 25px var(--orb-cyan); }
+}
+
+/* Ring Rotation Animation */
+@keyframes orbSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(var(--orb-rotate-angle)); }
+}
+
+/* Alert Rapid Pulse Animation */
+@keyframes orbAlertPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 5px var(--alert-glow); }
+  50% { transform: scale(var(--orb-scale-alert)); box-shadow: 0 0 20px var(--alert-color); }
+}
+
+/* Reduced Motion Fade Animation */
+@keyframes orbReducedFade {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+/* Main Orb CSS Classes */
+.resq-orb-container {
+  position: fixed;
+  bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  right: calc(1.5rem + env(safe-area-inset-right, 0px));
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Offset Console for Safe Area */
+.voice-console {
+  bottom: calc(5rem + env(safe-area-inset-bottom, 0px)) !important;
+  right: calc(0rem + env(safe-area-inset-right, 0px)) !important;
+}
+
+.orb-ring-outer {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
+/* State Styles for Outer Ring */
+.orb-ring-outer.state-idle {
+  border: 2px dashed var(--orb-gold);
+  animation: var(--orb-anim-breath);
+}
+
+.orb-ring-outer.state-listening {
+  border: 3px solid var(--orb-cyan);
+  animation: var(--orb-anim-listening);
+}
+
+.orb-ring-outer.state-processing {
+  border: 3px solid transparent;
+  border-top-color: var(--orb-gold);
+  border-bottom-color: var(--orb-white);
+  animation: var(--orb-anim-processing);
+}
+
+.orb-ring-outer.state-speaking {
+  border: 2px solid var(--orb-gold);
+  animation: var(--orb-anim-speaking);
+}
+
+.orb-ring-outer.state-alert {
+  border: 3px solid var(--alert-color, var(--orb-gold));
+  animation: var(--orb-anim-alert);
+}
+
+.orb-ring-outer.state-focus_active {
+  border: 2.5px solid var(--orb-green);
+  box-shadow: 0 0 20px var(--orb-green-glow);
+  opacity: 1;
+}
+
+.orb-core {
+  position: relative;
+  width: 3.5rem;
+  height: 3.5rem;
+  background: var(--bg-surface, #09090b);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  z-index: 10;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: visible;
+}
+
+.orb-core:hover {
+  transform: scale(1.05);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.orb-status-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid var(--bg-primary, #050505);
+  z-index: 20;
+  transition: background-color 0.3s ease;
+}
+
+.orb-status-badge.status-on {
+  background-color: var(--orb-green);
+  box-shadow: 0 0 8px var(--orb-green);
+}
+
+.orb-status-badge.status-off {
+  background-color: #8E8E93;
+}
+
+.orb-status-badge.status-error {
+  background-color: var(--orb-red);
+  box-shadow: 0 0 8px var(--orb-red);
+}
+
+/* Locked state styles */
+.orb-ring-outer.state-locked {
+  border: 2px dashed #555555;
+  box-shadow: none;
+  animation: none;
+  opacity: 0.5;
+}
+
+.orb-core.state-locked {
+  background: #111113 !important;
+  border-color: rgba(255, 255, 255, 0.03) !important;
+  box-shadow: none !important;
+  transform: none !important;
+  cursor: pointer;
+}
+
+.orb-core.state-locked:hover {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  background: #151518 !important;
+}
+
+/* Disabled state styles */
+.orb-ring-outer.state-disabled {
+  border: 2px solid #555555;
+  box-shadow: none;
+  animation: none;
+  opacity: 0.3;
+  transition: all 0.5s ease;
+}
+
+.orb-core.state-disabled {
+  background: #111113 !important;
+  border-color: rgba(255, 255, 255, 0.03) !important;
+  box-shadow: none !important;
+  transform: none !important;
+  cursor: not-allowed;
+  filter: grayscale(100%);
+  opacity: 0.5;
+  transition: all 0.5s ease;
+}
+
+.orb-core.state-disabled:hover {
+  border-color: rgba(255, 255, 255, 0.05) !important;
+  background: #121214 !important;
+}
+

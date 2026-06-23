@@ -1,6 +1,6 @@
 import express from 'express';
 import { body, param } from 'express-validator';
-import { getEvents, createEvent, updateEvent, deleteEvent, autoSchedule } from '../controllers/calendarController.js';
+import { getEvents, createEvent, updateEvent, deleteEvent, autoSchedule, getFreeSlots } from '../controllers/calendarController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { validateRequest } from '../middleware/validate.js';
 
@@ -8,6 +8,7 @@ const router = express.Router();
 
 router.use(protect);
 
+router.get('/free-slots', getFreeSlots);
 router.post('/auto-schedule', autoSchedule);
 
 router.route('/')

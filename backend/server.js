@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 
 import connectDB from './config/db.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { verifyModelConfig } from './config/gemini.js';
 import { handleSocketEvents, io } from './socket/socketHandler.js';
 import { startCronJobs } from './services/cronService.js';
 
@@ -70,6 +71,9 @@ app.use((req, res, next) => {
   req.io = io;
   next();
 });
+
+// Verify Gemini Model Configuration on startup before routes mount
+verifyModelConfig();
 
 // API Routes Mounts
 app.use('/api/auth', authRoutes);

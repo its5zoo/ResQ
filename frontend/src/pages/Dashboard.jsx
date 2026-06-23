@@ -10,8 +10,10 @@ import VoiceAIPage from '../components/Dashboard/VoiceAIPage';
 import SettingsPage from '../components/Dashboard/SettingsPage';
 import NotificationsPage from '../components/Dashboard/NotificationsPage';
 
-export default function Dashboard() {
-  const [currentTab, setCurrentTab] = useState('dashboard');
+export default function Dashboard({ currentTab: propTab, setCurrentTab: propSetTab }) {
+  const [localTab, setLocalTab] = useState('dashboard');
+  const currentTab = propTab !== undefined ? propTab : localTab;
+  const setCurrentTab = propSetTab || setLocalTab;
   const location = useLocation();
 
   // Sync tab with URL search parameter
@@ -21,7 +23,25 @@ export default function Dashboard() {
     if (tab) {
       setCurrentTab(tab);
     }
-  }, [location.search]);
+  }, [location.search, setCurrentTab]);
+
+  // Listen for CustomEvent('resq:navigate') → switch currentTab
+  // Expose setCurrentTab via window for low-latency/direct access by VoiceActionExecutor
+  useEffect(() => {
+    const handleNavigate = (e) => {
+      const target = e.detail?.target || e.detail;
+      if (target) {
+        setCurrentTab(target);
+      }
+    };
+    window.addEventListener('resq:navigate', handleNavigate);
+    window.setCurrentTab = setCurrentTab;
+
+    return () => {
+      window.removeEventListener('resq:navigate', handleNavigate);
+      window.setCurrentTab = null;
+    };
+  }, [setCurrentTab]);
 
   // Load and apply theme and plan states on mount
   useEffect(() => {

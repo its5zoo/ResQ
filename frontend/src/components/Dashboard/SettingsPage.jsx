@@ -18,7 +18,9 @@ import {
   AlertCircle,
   X
 } from 'lucide-react';
-import { settings as apiSettings, auth, google as apiGoogle } from '../../services/api.js';
+import { settings as apiSettings, auth, google as apiGoogle, voice } from '../../services/api.js';
+import { wakeWordEngine } from '../../services/WakeWordEngine.js';
+import voicePersonality from '../../services/VoicePersonality.js';
 
 export default function SettingsPage() {
   const [activeSubTab, setActiveSubTab] = useState('general');
@@ -89,6 +91,12 @@ export default function SettingsPage() {
   // Voice AI
   const [voiceFeedback, setVoiceFeedback] = useState(true);
   const [micSensitivity, setMicSensitivity] = useState('high');
+  const [aiVoiceEnabled, setAiVoiceEnabled] = useState(true);
+  const [voiceSpeed, setVoiceSpeed] = useState(0.92);
+  const [voicePitch, setVoicePitch] = useState(1.08);
+  const [ambientSound, setAmbientSound] = useState(true);
+  const [proactiveAlerts, setProactiveAlerts] = useState(true);
+  const [voiceUsage, setVoiceUsage] = useState({ used: 0, limit: 30, remaining: 30, lastResetDate: new Date() });
 
   // Security
   const [twoFactor, setTwoFactor] = useState(false);
@@ -136,12 +144,31 @@ export default function SettingsPage() {
           setSelectedPlan(data.plan || 'free');
           setFontSize(data.fontSize || 16);
           setIsGoogleConnected(!!data.googleAccessToken);
-          setGoogleCalendarDefaultIntegrated(data.googleCalendarDefaultIntegrated !== false);
+          setAiVoiceEnabled(data.aiVoiceEnabled !== false);
+          if (data.voiceAI) {
+            setAiVoiceEnabled(data.voiceAI.enabled !== false);
+            setVoiceSpeed(data.voiceAI.voiceSpeed ?? 0.92);
+            setVoicePitch(data.voiceAI.voicePitch ?? 1.08);
+            setAmbientSound(data.voiceAI.ambientSound !== false);
+            setProactiveAlerts(data.voiceAI.proactiveAlerts !== false);
+            setVoiceUsage({
+              used: data.voiceAI.monthlyCommandsUsed || 0,
+              limit: data.voiceAI.monthlyLimit || 30,
+              remaining: Math.max(0, (data.voiceAI.monthlyLimit || 30) - (data.voiceAI.monthlyCommandsUsed || 0)),
+              lastResetDate: data.voiceAI.lastResetDate
+            });
+          }
           if (data.workingHours) {
             setWorkingHours({
               start: data.workingHours.start || '09:00',
               end: data.workingHours.end || '18:00'
             });
+          }
+          try {
+            const usage = await voice.getUsage();
+            setVoiceUsage(usage);
+          } catch (e) {
+            console.warn('[SettingsPage] Error fetching voice usage:', e);
           }
         }
       } catch (err) {
@@ -194,6 +221,122 @@ export default function SettingsPage() {
     } finally {
       setSyncLoading(false);
     }
+  };
+
+  const handleToggleAiVoice = async () => {
+    const newValue = !aiVoiceEnabled;
+    if (!newValue) {
+      await voicePersonality.speak("Voice AI disabled. You can re-enable me anytime in Settings.");
+      wakeWordEngine.destroy();
+      try {
+        await apiSettings.updateVoiceSettings({ enabled: false });
+        setAiVoiceEnabled(false);
+        showToast("Voice AI disabled.");
+        window.dispatchEvent(new CustomEvent('resq:ai-voice-toggle', { detail: { enabled: false } }));
+      } catch (err) {
+        console.error('Failed to update Voice AI toggle:', err);
+        showToast('Failed to update Voice AI setting.', 'error');
+      }
+    } else {
+      try {
+        const response = await apiSettings.updateVoiceSettings({ enabled: true });
+        
+        if (response.blocked && response.reason === 'limit_reached') {
+          showToast("Usage limit reached. Upgrade to Premium to enable Voice AI.", "error");
+          setIsPaymentModalOpen(true);
+          return;
+        }
+        
+        setAiVoiceEnabled(true);
+        const userData = await auth.getMe();
+        if (userData) {
+          wakeWordEngine.initialize(userData);
+        }
+        showToast("Voice AI enabled successfully!");
+        window.dispatchEvent(new CustomEvent('resq:ai-voice-toggle', { detail: { enabled: true } }));
+        
+        await voicePersonality.speak("I'm back. Just say Hey ResQ whenever you need me.");
+      } catch (err) {
+        console.error('Failed to update Voice AI toggle:', err);
+        showToast('Failed to update Voice AI setting.', 'error');
+      }
+    }
+  };
+
+  const handleVoiceSpeedChange = (e) => {
+    const val = parseFloat(e.target.value);
+    setVoiceSpeed(val);
+    voicePersonality.rate = val;
+  };
+
+  const handleVoiceSpeedSave = async () => {
+    try {
+      await apiSettings.updateVoiceSettings({ voiceSpeed });
+      showToast("Voice speed updated.");
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to save voice speed", "error");
+    }
+  };
+
+  const handleVoicePitchChange = (e) => {
+    const val = parseFloat(e.target.value);
+    setVoicePitch(val);
+    voicePersonality.pitch = val;
+  };
+
+  const handleVoicePitchSave = async () => {
+    try {
+      await apiSettings.updateVoiceSettings({ voicePitch });
+      showToast("Voice pitch updated.");
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to save voice pitch", "error");
+    }
+  };
+
+  const handleToggleAmbientSound = async () => {
+    const val = !ambientSound;
+    setAmbientSound(val);
+    try {
+      await apiSettings.updateVoiceSettings({ ambientSound: val });
+      showToast(`Ambient Focus Sound ${val ? 'enabled' : 'disabled'}`);
+    } catch (err) {
+      console.error(err);
+      setAmbientSound(!val);
+      showToast("Failed to update ambient sound setting.", "error");
+    }
+  };
+
+  const handleToggleProactiveAlerts = async () => {
+    const val = !proactiveAlerts;
+    setProactiveAlerts(val);
+    try {
+      await apiSettings.updateVoiceSettings({ proactiveAlerts: val });
+      showToast(`Proactive Alerts ${val ? 'enabled' : 'disabled'}`);
+    } catch (err) {
+      console.error(err);
+      setProactiveAlerts(!val);
+      showToast("Failed to update proactive alerts setting.", "error");
+    }
+  };
+
+  const getOrdinalSuffix = (day) => {
+    if (day > 3 && day < 21) return 'th';
+    switch (day % 10) {
+      case 1:  return "st";
+      case 2:  return "nd";
+      case 3:  return "rd";
+      default: return "th";
+    }
+  };
+
+  const getNextResetDateStr = (lastResetDate) => {
+    const date = lastResetDate ? new Date(lastResetDate) : new Date();
+    const nextMonth = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+    const month = nextMonth.toLocaleDateString('en-US', { month: 'long' });
+    const day = nextMonth.getDate();
+    return `${month} ${day}${getOrdinalSuffix(day)}`;
   };
 
   const handleDisconnectGoogle = async () => {
@@ -316,7 +459,7 @@ export default function SettingsPage() {
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'personalization', label: 'Personalization', icon: Palette },
     { id: 'apps', label: 'Apps', icon: LayoutGrid },
-    { id: 'voice', label: 'Voice', icon: Volume2 },
+    { id: 'voice', label: 'Voice AI', icon: Volume2 },
     { id: 'billing', label: 'Billing', icon: CreditCard },
     { id: 'data', label: 'Data controls', icon: Database },
     { id: 'storage', label: 'Storage', icon: HardDrive },
@@ -692,57 +835,162 @@ export default function SettingsPage() {
       case 'voice':
         return (
           <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-display font-black text-white">Voice AI Configs</h3>
-              <p className="text-xs text-white/50">Customize voice parameters and proactivity parameters for the Guardian assistant.</p>
+            <div className="border-b border-white/5 pb-4">
+              <h3 className="text-lg font-display font-black text-white flex items-center gap-2">
+                🎙️ AI Voice Assistant
+              </h3>
+              <p className="text-xs text-white/50 mt-1">Control how ResQ listens and responds</p>
             </div>
 
-            <div className="space-y-5 max-w-lg">
-              {/* AI Guardian Settings */}
-              <div className="space-y-3">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-white/50">Proactivity Scale Factor:</span>
-                  <span className="text-[#E5B842] font-bold uppercase">{proactivityLabels[proactivity - 1]}</span>
-                </div>
-                <input 
-                  type="range" 
-                  min="1" 
-                  max="5"
-                  value={proactivity} 
-                  onChange={(e) => setProactivity(parseInt(e.target.value))}
-                  className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#E5B842]"
-                />
-                <p className="text-[10px] text-white/40 leading-relaxed">
-                  This dictates the autonomy level of the scheduling engine. Level 3 permits auto-sync booking. Level 5 allows full reorganization of overlapping slots.
-                </p>
-              </div>
-
-              {/* Voice responses */}
-              <div className="flex items-center justify-between p-4 bg-black/40 border border-white/[0.03] rounded-2xl pt-2">
+            <div className="space-y-6 max-w-lg">
+              {/* Enable Voice AI Toggle */}
+              <div className="flex items-center justify-between p-4 bg-black/40 border border-white/[0.03] rounded-2xl">
                 <div className="flex flex-col">
-                  <span className="text-xs font-semibold text-white/85">Voice Speech Feedback</span>
-                  <span className="text-[10px] text-white/40">Guardian assistant answers vocally</span>
+                  <span className="text-xs font-semibold text-white/85">Enable Voice AI</span>
+                  <span className="text-[10px] text-white/40">Activate hands-free 'Hey ResQ' control</span>
                 </div>
                 <button 
-                  onClick={() => setVoiceFeedback(!voiceFeedback)}
-                  className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-300 relative cursor-pointer border ${voiceFeedback ? 'bg-[#E5B842] border-[#E5B842]' : 'bg-transparent border-white/20'}`}
+                  onClick={handleToggleAiVoice}
+                  className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-300 relative cursor-pointer border shrink-0 ${aiVoiceEnabled ? 'bg-[#E5B842] border-[#E5B842]' : 'bg-transparent border-white/20'}`}
                 >
-                  <div className={`w-3.5 h-3.5 rounded-full bg-black transition-transform duration-300 ${voiceFeedback ? 'translate-x-4 bg-black' : 'translate-x-0 bg-white/40'}`} />
+                  <div className={`w-3.5 h-3.5 rounded-full bg-black transition-transform duration-300 ${aiVoiceEnabled ? 'translate-x-4 bg-black' : 'translate-x-0 bg-white/40'}`} />
                 </button>
               </div>
 
-              {/* Mic sensitivity */}
-              <div>
-                <label className="text-[10px] font-tech font-bold uppercase tracking-wider text-white/40 block mb-1.5">Microphone Input Level</label>
-                <select 
-                  value={micSensitivity}
-                  onChange={(e) => setMicSensitivity(e.target.value)}
-                  className="w-full bg-[#0B0B0B] border border-white/10 hover:border-white/20 focus:border-[#E5B842]/40 rounded-xl px-3 py-2.5 text-xs text-white outline-none transition-colors cursor-pointer"
-                >
-                  <option value="low">Low sensitivity (Shield ambient noise)</option>
-                  <option value="medium">Medium sensitivity (Quiet office space)</option>
-                  <option value="high">High sensitivity (Active voice trigger)</option>
-                </select>
+              {/* Monthly Usage (Free Plan Only) */}
+              {selectedPlan === 'free' && voiceUsage && (
+                <div className="space-y-2.5 p-5 bg-black/40 border border-white/[0.03] rounded-3xl">
+                  <div className="flex justify-between items-center text-[10px] font-tech font-bold uppercase tracking-wider text-white/40">
+                    <span>Monthly Usage (Free Plan)</span>
+                    <span className="text-white/60">{voiceUsage.used} / {voiceUsage.limit} commands used</span>
+                  </div>
+                  
+                  {/* Progress bar */}
+                  <div className="w-full bg-white/5 h-2.5 rounded-full overflow-hidden border border-white/5">
+                    <div 
+                      className={`h-full transition-all duration-500 ${
+                        voiceUsage.remaining === 0 ? 'bg-red-500' : voiceUsage.remaining < 5 ? 'bg-amber-500' : 'bg-[#E5B842]'
+                      }`}
+                      style={{ width: `${Math.min(100, (voiceUsage.used / voiceUsage.limit) * 100)}%` }}
+                    />
+                  </div>
+                  
+                  <div className="flex justify-between items-center pt-1">
+                    <span className="text-[10px] text-white/40 font-medium">
+                      Resets on {getNextResetDateStr(voiceUsage.lastResetDate)}
+                    </span>
+                    <button
+                      onClick={() => setIsPaymentModalOpen(true)}
+                      className="text-[#E5B842] hover:text-[#FFF2CC] font-tech font-bold text-[9px] uppercase tracking-wider transition-colors cursor-pointer"
+                    >
+                      Upgrade to Premium — Unlimited Voice AI
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Configurations List */}
+              <div className="space-y-4">
+                {/* Wake Word (fixed) */}
+                <div className="flex justify-between items-center p-3.5 bg-black/40 border border-white/[0.03] rounded-xl">
+                  <span className="text-xs text-white/70">Wake Word</span>
+                  <span className="px-3 py-1 bg-black/60 border border-white/10 rounded-lg text-[10px] font-tech font-bold text-[#E5B842]">
+                    "Hey ResQ" (fixed)
+                  </span>
+                </div>
+
+                {/* Voice Speed Slider */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-white/50">Voice Speed</span>
+                    <span className="text-[#E5B842] font-bold uppercase text-[10px]">
+                      {voiceSpeed === 0.92 ? 'Normal (0.92x)' : `${voiceSpeed}x`}
+                    </span>
+                  </div>
+                  <input 
+                    type="range" 
+                    min="0.5" 
+                    max="2.0"
+                    step="0.05"
+                    value={voiceSpeed} 
+                    onChange={handleVoiceSpeedChange}
+                    onMouseUp={handleVoiceSpeedSave}
+                    onTouchEnd={handleVoiceSpeedSave}
+                    className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#E5B842]"
+                  />
+                  <div className="flex justify-between text-[9px] font-tech text-white/30 uppercase">
+                    <span>Slow</span>
+                    <span>Fast</span>
+                  </div>
+                </div>
+
+                {/* Voice Pitch Slider */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-white/50">Voice Pitch</span>
+                    <span className="text-[#E5B842] font-bold uppercase text-[10px]">
+                      {voicePitch === 1.08 ? 'Natural (1.08x)' : `${voicePitch}x`}
+                    </span>
+                  </div>
+                  <input 
+                    type="range" 
+                    min="0.5" 
+                    max="2.0"
+                    step="0.05"
+                    value={voicePitch} 
+                    onChange={handleVoicePitchChange}
+                    onMouseUp={handleVoicePitchSave}
+                    onTouchEnd={handleVoicePitchSave}
+                    className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#E5B842]"
+                  />
+                  <div className="flex justify-between text-[9px] font-tech text-white/30 uppercase">
+                    <span>Low</span>
+                    <span>High</span>
+                  </div>
+                </div>
+
+                {/* Ambient Focus Sound Toggle */}
+                <div className="flex items-center justify-between p-4 bg-black/40 border border-white/[0.03] rounded-2xl">
+                  <div className="flex flex-col">
+                    <span className="text-xs font-semibold text-white/85">Ambient Focus Sound</span>
+                    <span className="text-[10px] text-white/40">Play white noise automatically in focus mode</span>
+                  </div>
+                  <button 
+                    onClick={handleToggleAmbientSound}
+                    className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-300 relative cursor-pointer border shrink-0 ${ambientSound ? 'bg-[#E5B842] border-[#E5B842]' : 'bg-transparent border-white/20'}`}
+                  >
+                    <div className={`w-3.5 h-3.5 rounded-full bg-black transition-transform duration-300 ${ambientSound ? 'translate-x-4 bg-black' : 'translate-x-0 bg-white/40'}`} />
+                  </button>
+                </div>
+
+                {/* Proactive Alerts Toggle */}
+                <div className="flex items-center justify-between p-4 bg-black/40 border border-white/[0.03] rounded-2xl">
+                  <div className="flex flex-col">
+                    <span className="text-xs font-semibold text-white/85">Proactive Alerts</span>
+                    <span className="text-[10px] text-white/40">Guardian can suggest schedule modifications</span>
+                  </div>
+                  <button 
+                    onClick={handleToggleProactiveAlerts}
+                    className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-300 relative cursor-pointer border shrink-0 ${proactiveAlerts ? 'bg-[#E5B842] border-[#E5B842]' : 'bg-transparent border-white/20'}`}
+                  >
+                    <div className={`w-3.5 h-3.5 rounded-full bg-black transition-transform duration-300 ${proactiveAlerts ? 'translate-x-4 bg-black' : 'translate-x-0 bg-white/40'}`} />
+                  </button>
+                </div>
+              </div>
+
+              {/* What Voice AI can do / cannot do details card */}
+              <div className="p-5 bg-black/40 border border-white/[0.03] rounded-3xl space-y-3.5 text-xs text-white/70">
+                <span className="text-[10px] font-tech font-bold uppercase tracking-wider text-white/40 block mb-1">What Voice AI can do:</span>
+                <ul className="space-y-2">
+                  <li className="flex items-center gap-2">✅ <span className="text-white/80">Manage tasks, calendar, habits, goals</span></li>
+                  <li className="flex items-center gap-2">✅ <span className="text-white/80">Switch themes (dark/light/matrix)</span></li>
+                  <li className="flex items-center gap-2">✅ <span className="text-white/80">Navigate between pages</span></li>
+                  <li className="flex items-center gap-2">✅ <span className="text-white/80">Start focus sessions</span></li>
+                  <li className="flex items-center gap-2">✅ <span className="text-white/80">Send you proactive reminders</span></li>
+                  <li className="flex items-center gap-2">❌ <span className="text-white/40 line-through">Change profile or account info</span></li>
+                  <li className="flex items-center gap-2">❌ <span className="text-white/40 line-through">Update password or email</span></li>
+                  <li className="flex items-center gap-2">❌ <span className="text-white/40 line-through">Modify billing or payment details</span></li>
+                </ul>
               </div>
             </div>
           </div>
