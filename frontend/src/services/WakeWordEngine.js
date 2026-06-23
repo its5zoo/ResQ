@@ -9,6 +9,7 @@ class WakeWordEngine {
     this.isAuthorized = false;
     this.userId = null;
     this.limitReached = false;
+    this.cooldown = false;
     
     // Recognition instances
     this.recognition = null;
@@ -24,10 +25,18 @@ class WakeWordEngine {
     this.clarificationTimeoutTimer = null;
 
     // Wake words for fuzzy matching
-    this.wakeWords = ["hey resq", "hey rescue", "hey res q", "hey resk", "hey risq"];
+    this.wakeWords = ["hey resq", "hey rescue", "hey res q", "hey resk", "hey risq", "a resq", "hey risk", "hey wreck", "hey wresq"];
 
     // Bind event handlers
     this.handleVisibilityChange = this.handleVisibilityChange.bind(this);
+  }
+
+  get commandModeActive() {
+    return this.isWoken;
+  }
+
+  set commandModeActive(val) {
+    this.isWoken = val;
   }
 
   initialize(user) {
@@ -49,7 +58,7 @@ class WakeWordEngine {
     if (!this.isInitialized) {
       this.init();
     } else {
-      this.startBackgroundListening();
+      this.checkPermissionAndStart();
     }
   }
 
@@ -58,6 +67,7 @@ class WakeWordEngine {
     this.isAuthorized = false;
     this.userId = null;
     this.limitReached = false;
+    this.cooldown = false;
 
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
     if (this.commandTimeoutTimer) clearTimeout(this.commandTimeoutTimer);
@@ -99,6 +109,38 @@ class WakeWordEngine {
     window.dispatchEvent(new CustomEvent('resq:orb_state', { detail: { state: 'locked', reason: 'limit_reached' } }));
   }
 
+  async checkPermissionAndStart() {
+    if (!navigator.permissions || !navigator.permissions.query) {
+      console.warn('[WakeWordEngine] Permission Query API unsupported. Starting background listening.');
+      this.startBackgroundListening();
+      return;
+    }
+
+    try {
+      const result = await navigator.permissions.query({ name: 'microphone' });
+      console.log('[WakeWordEngine] Microphone permission state query:', result.state);
+
+      if (result.state === 'granted') {
+        this.startBackgroundListening();
+      } else {
+        console.warn('[WakeWordEngine] Microphone permission is:', result.state, '- Deferring background listening.');
+        
+        // Listen for change events
+        result.onchange = () => {
+          console.log('[WakeWordEngine] Microphone permission status changed to:', result.state);
+          if (result.state === 'granted' && this.isAuthorized) {
+            this.startBackgroundListening();
+          } else {
+            this.stopBackgroundListening();
+          }
+        };
+      }
+    } catch (err) {
+      console.error('[WakeWordEngine] Error checking mic permission:', err);
+      this.startBackgroundListening();
+    }
+  }
+
   init() {
     if (!this.isAuthorized) {
       console.warn('ResQ: Voice AI blocked — user not authenticated');
@@ -116,13 +158,8 @@ class WakeWordEngine {
     // Bind tab visibility listener
     document.addEventListener('visibilitychange', this.handleVisibilityChange);
 
-    // Mobile / Permission Check
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 768;
-    if (isMobile) {
-      this.requestMicPermissionGracefully();
-    } else {
-      this.startBackgroundListening();
-    }
+    // Coordinate mic permission query and start background listening
+    this.checkPermissionAndStart();
   }
 
   showCompatibilityToast() {
@@ -179,12 +216,18 @@ class WakeWordEngine {
       return;
     }
 
-    if (!this.speechSupported || this.isListening || this.isWoken || !this.isTabVisible) return;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      this.showCompatibilityToast();
+      return;
+    }
+
+    if (this.isListening || this.isWoken || !this.isTabVisible) return;
     
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
 
     try {
-      const recognition = new this.SpeechRecognition();
+      const recognition = new SpeechRecognition();
       recognition.continuous = true;
       recognition.interimResults = true;
       recognition.lang = 'en-US';
@@ -195,16 +238,13 @@ class WakeWordEngine {
       };
 
       recognition.onresult = (event) => {
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
+        for (let i = event.resultIndex; i < event.results.length; i++) {
           const transcript = event.results[i][0].transcript.toLowerCase().trim();
           console.log('[WakeWordEngine] Background heard:', transcript);
-
-          // Fuzzy match wake words
-          const matched = this.wakeWords.some(word => transcript.includes(word));
-          if (matched) {
-            console.log('[WakeWordEngine] Wake word detected!');
-            this.triggerWakeSequence();
-            break;
+          const wakeWords = ["hey resq", "hey rescue", "hey res q", "hey resk", "hey risq", "a resq", "hey risk", "hey wreck", "hey wresq"];
+          const detected = wakeWords.some(w => transcript.includes(w));
+          if (detected && !this.isWoken && !this.cooldown) {
+            this.onWakeWordDetected();
           }
         }
       };
@@ -217,12 +257,14 @@ class WakeWordEngine {
       };
 
       recognition.onend = () => {
-        this.isListening = false;
-        // Auto-restart background listener after 1 second if still in idle state and authorized
-        if (!this.isWoken && this.isTabVisible && this.isAuthorized) {
-          this.reconnectTimer = setTimeout(() => {
-            this.startBackgroundListening();
-          }, 1000);
+        if (this.isListening && this.isAuthorized && !this.limitReached) {
+          setTimeout(() => {
+            try {
+              recognition.start();
+            } catch (err) {
+              console.warn('[WakeWordEngine] Error restarting background listener:', err);
+            }
+          }, 300);
         }
       };
 
@@ -235,6 +277,7 @@ class WakeWordEngine {
 
   stopBackgroundListening() {
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    this.isListening = false;
     if (this.recognition) {
       this.recognition.onend = null;
       try {
@@ -242,7 +285,15 @@ class WakeWordEngine {
       } catch (e) {}
       this.recognition = null;
     }
-    this.isListening = false;
+  }
+
+  onWakeWordDetected() {
+    console.log('[WakeWordEngine] Wake word detected, triggering wake sequence.');
+    this.cooldown = true;
+    setTimeout(() => {
+      this.cooldown = false;
+    }, 2000);
+    this.triggerWakeSequence();
   }
 
   triggerWakeSequence() {
@@ -299,7 +350,13 @@ class WakeWordEngine {
     this.latestTranscript = '';
 
     try {
-      const recognition = new this.SpeechRecognition();
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        this.showCompatibilityToast();
+        return;
+      }
+
+      const recognition = new SpeechRecognition();
       recognition.continuous = false;
       recognition.interimResults = true;
       recognition.lang = 'en-US';

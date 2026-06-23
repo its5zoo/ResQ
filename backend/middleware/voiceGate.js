@@ -71,21 +71,38 @@ export async function checkAndIncrementVoiceUsage(userId) {
  * Express middleware to gate voice and AI requests
  */
 export async function voiceGate(req, res, next) {
+  console.log(`[voiceGate] TOP: middleware executing for route: ${req.method} ${req.originalUrl || req.url}`);
   try {
     const userId = req.userId || req.user?._id || req.user?.id;
+    console.log(`[voiceGate] Resolved userId: ${userId}`);
     if (!userId) {
       return res.status(401).json({ message: 'Not authorized, no user context' });
     }
 
+    const user = await User.findById(userId);
+    if (user) {
+      console.log(`[voiceGate] Database state for user ${user.email} (ID: ${userId}):`);
+      console.log(` - voiceAI config: ${JSON.stringify(user.voiceAI)}`);
+      console.log(` - Plan: ${user.plan}`);
+    } else {
+      console.warn(`[voiceGate] User ID ${userId} not found in database.`);
+    }
+
     const check = await checkAndIncrementVoiceUsage(userId);
+    console.log(`[voiceGate] Usage check results: ${JSON.stringify(check)}`);
+
     if (check.blocked) {
-      return res.status(check.status).json({
-        blocked: true,
-        reason: check.reason,
-        used: check.used,
-        limit: check.limit,
-        message: check.message
-      });
+      if (process.env.BYPASS_VOICE_GATE === 'true') {
+        console.warn('[voiceGate] BYPASS ACTIVE: Proceeding because BYPASS_VOICE_GATE is true in .env');
+      } else {
+        return res.status(check.status).json({
+          blocked: true,
+          reason: check.reason,
+          used: check.used,
+          limit: check.limit,
+          message: check.message
+        });
+      }
     }
 
     // Attach usage info to request for response headers

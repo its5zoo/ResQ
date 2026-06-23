@@ -173,14 +173,17 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
   useEffect(() => {
     const checkMicPermissionStatus = async () => {
       if (!navigator.permissions || !navigator.permissions.query) {
+        console.warn('[GlobalVoiceAssistant] Permissions API not supported.');
         wakeWordEngine.init();
         return;
       }
 
       try {
         const result = await navigator.permissions.query({ name: 'microphone' });
+        console.log('[GlobalVoiceAssistant] Microphone permission status:', result.state);
         
         const handleStatusChange = () => {
+          console.log('[GlobalVoiceAssistant] Microphone permission changed to:', result.state);
           if (result.state === 'granted') {
             setPermissionDenied(false);
             setShowPermissionModal(false);
@@ -190,12 +193,7 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
             setShowPermissionModal(false);
           } else if (result.state === 'prompt') {
             setPermissionDenied(false);
-            const promptSeen = localStorage.getItem('resq:mic-prompt-seen');
-            if (!promptSeen) {
-              setShowPermissionModal(true);
-            } else {
-              wakeWordEngine.init();
-            }
+            setShowPermissionModal(true);
           }
         };
 
@@ -216,6 +214,7 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
       setPermissionDenied(false);
+      console.log('[GlobalVoiceAssistant] Mic permission granted successfully.');
       wakeWordEngine.init();
     } catch (err) {
       console.warn('[GlobalVoiceAssistant] Microphone permission request denied:', err);

@@ -83,6 +83,24 @@ app.use('/api/goals', goalRoutes);
 app.use('/api/calendar', calendarRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/ai', protect, checkGeminiKey, aiVoiceLimiter, aiAdvisorRoutes);
+
+// Diagnostic test routes (no middleware)
+app.get('/api/voice/ping', (req, res) => {
+  res.json({ ok: true, message: 'Voice API ping test successful (no middleware).' });
+});
+app.get('/api/voice/gemini-test', async (req, res) => {
+  try {
+    const { getResQModel } = await import('./config/gemini.js');
+    const model = getResQModel();
+    const result = await model.generateContent("Say hello as ResQ in one sentence");
+    const text = result.response.text().trim();
+    res.json({ ok: true, response: text });
+  } catch (error) {
+    console.error('Gemini test route failed:', error);
+    res.status(500).json({ ok: false, error: error.message, stack: error.stack });
+  }
+});
+
 app.use('/api/voice', protect, checkGeminiKey, aiVoiceLimiter, voiceRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/google', googleCalendarRoutes);

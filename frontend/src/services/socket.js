@@ -16,6 +16,9 @@ export const socket = io(getSocketUrl(), {
   autoConnect: false
 });
 
+socket.on('connect', () => console.log('Socket connected:', socket.id));
+socket.on('connect_error', (err) => console.error('Socket error:', err));
+
 export const connectSocket = (token) => {
   if (socket) {
     socket.auth.token = token;

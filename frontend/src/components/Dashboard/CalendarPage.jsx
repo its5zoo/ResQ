@@ -13,12 +13,13 @@ import {
   RefreshCw, 
   Layers 
 } from 'lucide-react';
-import { calendar as apiCalendar } from '../../services/api.js';
+import { calendar as apiCalendar, tasks as apiTasks } from '../../services/api.js';
 import { useSocket } from '../../services/socket.js';
 
 export default function CalendarPage({ tasks }) {
   const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
   const [calendarEvents, setCalendarEvents] = useState([]);
+  const [localTasks, setLocalTasks] = useState(tasks || []);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
   
@@ -67,6 +68,47 @@ export default function CalendarPage({ tasks }) {
     }, 3500);
   };
 
+  const fetchTasks = async () => {
+    try {
+      const data = await apiTasks.getAll();
+      setLocalTasks(data || []);
+    } catch (err) {
+      console.error('Error fetching tasks for calendar:', err);
+    }
+  };
+
+  const isSameDay = (date1, date2) => {
+    const d1 = new Date(date1);
+    const d2 = new Date(date2);
+    return d1.getFullYear() === d2.getFullYear() &&
+           d1.getMonth() === d2.getMonth() &&
+           d1.getDate() === d2.getDate();
+  };
+
+  const isTaskDateOnly = (task) => {
+    if (!task.dueDate) return true;
+    const d = new Date(task.dueDate);
+    const hours = d.getHours();
+    const minutes = d.getMinutes();
+    return (hours === 0 && minutes === 0) || (hours === 23 && minutes === 59);
+  };
+
+  const findTasksForCell = (tasksList, dayDate, hourStr) => {
+    const { slotStart, slotEnd } = getSlotDates(dayDate, hourStr);
+    return tasksList.filter(t => {
+      if (t.completed) return false;
+      if (!t.dueDate) return false;
+      
+      const due = new Date(t.dueDate);
+      const hours = due.getHours();
+      const minutes = due.getMinutes();
+      const isDateOnly = (hours === 0 && minutes === 0) || (hours === 23 && minutes === 59);
+      if (isDateOnly) return false;
+      
+      return due >= slotStart && due < slotEnd;
+    });
+  };
+
   const fetchEvents = async () => {
     try {
       setLoading(true);
@@ -80,7 +122,14 @@ export default function CalendarPage({ tasks }) {
   };
 
   useEffect(() => {
+    if (tasks) {
+      setLocalTasks(tasks);
+    }
+  }, [tasks]);
+
+  useEffect(() => {
     fetchEvents();
+    fetchTasks();
 
     const handleRefetch = () => {
       fetchEvents();
@@ -483,6 +532,62 @@ export default function CalendarPage({ tasks }) {
                 })}
               </div>
 
+              {/* All-Day Tasks / Milestones Row */}
+              <div className="grid grid-cols-[80px_repeat(7,_1fr)] border-b border-white/[0.06] bg-[#0d0d0e]/25 min-h-[40px] items-stretch">
+                <div className="text-[9px] font-tech font-bold uppercase tracking-wider text-white/30 text-center py-2 flex items-center justify-center border-r border-white/[0.06] select-none bg-[#090909]">
+                  Tasks
+                </div>
+                {weekDates.map((dayObj) => {
+                  const dayTasks = (localTasks || []).filter(t => 
+                    !t.completed && 
+                    isSameDay(t.dueDate, dayObj.fullDate) && 
+                    isTaskDateOnly(t)
+                  );
+                  const isToday = new Date(dayObj.fullDate).toDateString() === new Date().toDateString();
+                  
+                  return (
+                    <div 
+                      key={dayObj.dayOfWeek}
+                      className={`p-1.5 border-r border-white/[0.06] last:border-r-0 flex flex-col gap-1 justify-center min-h-[40px] ${
+                        isToday ? 'bg-[#E5B842]/[0.01]' : 'bg-transparent'
+                      }`}
+                    >
+                      {dayTasks.length === 0 ? (
+                        <div className="text-[8px] text-white/10 uppercase tracking-widest font-tech font-bold text-center select-none py-1">
+                          --
+                        </div>
+                      ) : (
+                        dayTasks.map(task => (
+                          <div
+                            key={task._id}
+                            title={`${task.title} (No Time)`}
+                            className="group/allday border border-emerald-500/25 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-400 text-[9px] font-bold px-2 py-1 rounded-md flex items-center gap-1.5 justify-between shadow-[0_0_8px_rgba(16,185,129,0.03)] hover:scale-[1.01] transition-all duration-300 select-none min-w-0"
+                          >
+                            <span className="truncate flex-1 tracking-wide uppercase">{task.title}</span>
+                            <button
+                              type="button"
+                              onClick={async (ev) => {
+                                ev.stopPropagation();
+                                try {
+                                  await apiTasks.update(task._id, { completed: true });
+                                  showToast(`Task completed: "${task.title}"`);
+                                  fetchTasks();
+                                } catch (err) {
+                                  showToast("Failed to complete task", "error");
+                                }
+                              }}
+                              className="w-3 h-3 rounded-full border border-emerald-500/40 flex items-center justify-center hover:bg-emerald-500/20 shrink-0 cursor-pointer"
+                            >
+                              <Check className="w-1.5 h-1.5 text-emerald-400" />
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
               {/* Time Grid Rows */}
               <div className="divide-y divide-white/[0.04]">
                 {hours.map((hour) => (
@@ -493,25 +598,29 @@ export default function CalendarPage({ tasks }) {
                     
                     {weekDates.map((dayObj) => {
                       const match = findEventForCell(filteredEvents, dayObj.fullDate, hour);
+                      const matchTasks = findTasksForCell(localTasks, dayObj.fullDate, hour);
                       const isAiBlock = match && (match.type === 'ai_block' || match.aiGenerated);
                       const isToday = new Date(dayObj.fullDate).toDateString() === new Date().toDateString();
                       
                       return (
                         <div 
                           key={dayObj.dayOfWeek} 
-                          onClick={() => handleCellClick(dayObj.fullDate, hour)}
-                          className={`p-1 border-r border-white/[0.04] last:border-r-0 transition-all duration-200 relative group cursor-pointer flex items-stretch ${
+                          className={`p-1 border-r border-white/[0.04] last:border-r-0 transition-all duration-200 relative group flex flex-col gap-1 items-stretch justify-center min-h-[64px] ${
                             isToday ? 'bg-[#E5B842]/[0.01]' : 'bg-transparent'
                           } hover:bg-white/[0.02]`}
                         >
-                          {match ? (
-                            <div className={`w-full rounded-lg border transition-all duration-300 flex flex-col justify-center p-2 relative overflow-hidden select-none hover:shadow-lg hover:scale-[1.01] ${
-                              isAiBlock
-                                ? 'bg-[#E5B842]/10 border-[#E5B842]/25 hover:border-[#E5B842]/45 text-[#E5B842] shadow-[0_0_12px_rgba(229,184,66,0.06)]'
-                                : match.type === 'deadline'
-                                  ? 'bg-status-red/10 border-status-red/20 hover:border-status-red/40 text-status-red shadow-[0_4px_12px_rgba(255,95,95,0.06)]'
-                                  : 'bg-status-blue/10 border-status-blue/20 hover:border-status-blue/40 text-status-blue shadow-[0_4px_12px_rgba(74,158,255,0.06)]'
-                            } ${match._id === highlightedEventId ? 'animate-event-pulse' : ''}`}>
+                          {/* Calendar Event */}
+                          {match && (
+                            <div 
+                              onClick={() => handleCellClick(dayObj.fullDate, hour)}
+                              className={`w-full rounded-lg border transition-all duration-300 flex flex-col justify-center p-2 relative overflow-hidden select-none hover:shadow-lg hover:scale-[1.01] cursor-pointer ${
+                                isAiBlock
+                                  ? 'bg-[#E5B842]/10 border-[#E5B842]/25 hover:border-[#E5B842]/45 text-[#E5B842] shadow-[0_0_12px_rgba(229,184,66,0.06)]'
+                                  : match.type === 'deadline'
+                                    ? 'bg-status-red/10 border-status-red/20 hover:border-status-red/40 text-status-red shadow-[0_4px_12px_rgba(255,95,95,0.06)]'
+                                    : 'bg-status-blue/10 border-status-blue/20 hover:border-status-blue/40 text-status-blue shadow-[0_4px_12px_rgba(74,158,255,0.06)]'
+                              } ${match._id === highlightedEventId ? 'animate-event-pulse' : ''}`}
+                            >
                               {/* Left stripe indicator */}
                               <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${
                                 isAiBlock 
@@ -554,8 +663,44 @@ export default function CalendarPage({ tasks }) {
                                 <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#0c0c0d] z-50"></div>
                               </div>
                             </div>
-                          ) : (
-                            <div className="w-full h-full rounded-md transition-all duration-150 flex items-center justify-center select-none text-[8px] font-tech font-bold text-white/0 group-hover:text-white/20 uppercase tracking-widest">
+                          )}
+
+                          {/* Task Deadlines */}
+                          {matchTasks.map(task => (
+                            <div 
+                              key={task._id}
+                              className="w-full rounded-lg border border-emerald-500/25 bg-emerald-500/10 hover:border-emerald-500/45 text-emerald-400 p-2 shadow-[0_0_12px_rgba(16,185,129,0.06)] hover:scale-[1.01] transition-all duration-300 relative overflow-hidden flex items-center gap-2 group/task select-none"
+                            >
+                              <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-emerald-500"></div>
+                              <button
+                                type="button"
+                                onClick={async (ev) => {
+                                  ev.stopPropagation();
+                                  try {
+                                    await apiTasks.update(task._id, { completed: true });
+                                    showToast(`Task completed: "${task.title}"`);
+                                    fetchTasks();
+                                  } catch (err) {
+                                    showToast("Failed to complete task", "error");
+                                  }
+                                }}
+                                className="w-3.5 h-3.5 rounded-full border border-emerald-500/40 flex items-center justify-center hover:bg-emerald-500/25 shrink-0 cursor-pointer"
+                              >
+                                <div className="w-1.5 h-1.5 rounded-full bg-transparent group-hover/task:bg-emerald-500/60"></div>
+                              </button>
+                              <div className="min-w-0 flex-1">
+                                <h5 className="text-[10px] font-bold truncate leading-tight tracking-wider uppercase">{task.title}</h5>
+                                <span className="text-[8px] opacity-60 font-semibold tracking-wider block mt-0.5">⚠️ Task Due</span>
+                              </div>
+                            </div>
+                          ))}
+
+                          {/* If completely empty (no event, no tasks), show + Book button */}
+                          {!match && matchTasks.length === 0 && (
+                            <div 
+                              onClick={() => handleCellClick(dayObj.fullDate, hour)}
+                              className="w-full h-full rounded-md transition-all duration-150 flex items-center justify-center select-none text-[8px] font-tech font-bold text-white/0 group-hover:text-white/20 uppercase tracking-widest cursor-pointer"
+                            >
                               + Book
                             </div>
                           )}

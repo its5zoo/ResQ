@@ -15,11 +15,11 @@ function AppContent() {
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      wakeWordEngine.initialize(user)   // only NOW start listening
+      wakeWordEngine.initialize(user)
     } else {
-      wakeWordEngine.destroy()          // stop all listeners on logout
+      wakeWordEngine.destroy()
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated, user])
 
   if (loading) {
     return (

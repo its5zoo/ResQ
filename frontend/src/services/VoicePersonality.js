@@ -2,19 +2,21 @@ class VoicePersonality {
   constructor() {
     this.synth = typeof window !== 'undefined' ? window.speechSynthesis : null;
     this.selectedVoice = null;
+    this.voices = [];
     
     if (this.synth) {
+      this.voices = this.synth.getVoices();
       this.selectedVoice = this.selectVoice();
       
-      // Re-evaluate when voices change (necessary for Chrome/Edge asynchronous loading)
+      const updateVoices = () => {
+        this.voices = this.synth.getVoices();
+        this.selectedVoice = this.selectVoice();
+      };
+
       if (this.synth.addEventListener) {
-        this.synth.addEventListener('voiceschanged', () => {
-          this.selectedVoice = this.selectVoice();
-        });
+        this.synth.addEventListener('voiceschanged', updateVoices);
       } else {
-        this.synth.onvoiceschanged = () => {
-          this.selectedVoice = this.selectVoice();
-        };
+        this.synth.onvoiceschanged = updateVoices;
       }
     }
   }
@@ -24,28 +26,13 @@ class VoicePersonality {
     const voices = this.synth.getVoices();
     if (!voices || voices.length === 0) return null;
 
-    // Priority Order
-    // 1. "Google UK English Female"
-    // 2. "Microsoft Sonia Online (Natural)"
-    // 3. "Samantha" (macOS)
-    // 4. "Karen" (macOS)
-    // 5. Any voice where lang starts with 'en' and name includes 'Female'
-    // 6. First English voice available
-    const priorities = [
-      v => v.name === 'Google UK English Female',
-      v => v.name === 'Microsoft Sonia Online (Natural)',
-      v => v.name === 'Samantha',
-      v => v.name === 'Karen',
-      v => v.lang.toLowerCase().startsWith('en') && v.name.toLowerCase().includes('female'),
-      v => v.lang.toLowerCase().startsWith('en')
-    ];
-
-    for (const matchFn of priorities) {
-      const found = voices.find(matchFn);
-      if (found) return found;
-    }
-
-    return voices[0] || null;
+    return voices.find(v => v.name.includes('Google UK English Female'))
+        || voices.find(v => v.name.includes('Sonia'))
+        || voices.find(v => v.name.includes('Samantha'))
+        || voices.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('female'))
+        || voices.find(v => v.lang.startsWith('en'))
+        || voices[0]
+        || null;
   }
 
   speak(text, options = {}) {
