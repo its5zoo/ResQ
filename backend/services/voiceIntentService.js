@@ -267,34 +267,7 @@ const getLocalFallbackResult = (transcript, context) => {
   const clean = transcript.toLowerCase();
   const userName = context.name || 'User';
 
-  if (clean.includes('study') || clean.includes('timetable') || clean.includes('schedule study')) {
-    return {
-      intent: 'needs_clarification',
-      confidence: 0.9,
-      extractedData: { title: 'Study Session', durationMinutes: 45 },
-      missingFields: ['startTime'],
-      clarificationQuestion: "I'd love to schedule a study block. Do you have a particular time in mind?",
-      voiceResponse: "I'd love to schedule a study block. Do you have a particular time in mind?",
-      uiAction: null,
-      navigationTarget: 'calendar',
-      suggestAlternative: null
-    };
-  }
-
-  if (clean.includes('today') || clean.includes('summarize')) {
-    return {
-      intent: 'show_summary',
-      confidence: 1.0,
-      extractedData: { period: 'today' },
-      missingFields: [],
-      clarificationQuestion: null,
-      voiceResponse: `Got it. Here is the summary of your day, ${userName}.`,
-      uiAction: null,
-      navigationTarget: 'calendar',
-      suggestAlternative: null
-    };
-  }
-
+  // 1. Password / Email / Billing Security Block (out of bounds)
   if (
     clean.includes('password') ||
     clean.includes('email') ||
@@ -319,6 +292,7 @@ const getLocalFallbackResult = (transcript, context) => {
     };
   }
 
+  // 2. Theme switcher fallback
   if (clean.includes('theme') || clean.includes('light mode') || clean.includes('matrix') || clean.includes('dark mode')) {
     let theme = 'dark';
     if (clean.includes('light')) theme = 'light';
@@ -336,21 +310,196 @@ const getLocalFallbackResult = (transcript, context) => {
     };
   }
 
-  if (clean.includes('focus') && (clean.includes('start') || clean.includes('begin'))) {
+  // 3. Focus Session fallback
+  if (clean.includes('focus') && (clean.includes('start') || clean.includes('begin') || clean.includes('engage'))) {
+    // Extract task if specified: "focus on X"
+    let taskName = 'Deep Work Session';
+    const focusMatch = clean.match(/focus\s+(?:on|for)\s+([^0-9]+)/);
+    if (focusMatch && !focusMatch[1].includes('min')) {
+      taskName = focusMatch[1].trim();
+    }
+    
+    // Extract duration: "for X minutes"
+    let duration = 25;
+    const durMatch = clean.match(/(\d+)\s*min/);
+    if (durMatch) duration = parseInt(durMatch[1]);
+
     return {
       intent: 'set_focus_session',
       confidence: 1.0,
-      extractedData: { durationMinutes: 25 },
+      extractedData: { durationMinutes: duration, taskName },
       missingFields: [],
       clarificationQuestion: null,
-      voiceResponse: "Absolutely. Engaging focus mode for twenty-five minutes.",
-      uiAction: { type: 'start_focus', payload: { duration: 25 } },
+      voiceResponse: `Absolutely. Engaging focus mode for ${duration} minutes.`,
+      uiAction: { type: 'start_focus', payload: { task: taskName, duration } },
       navigationTarget: 'dashboard',
       suggestAlternative: null
     };
   }
 
-  if (clean.includes('habit') && (clean.includes('check') || clean.includes('complete'))) {
+  // Stop Focus fallback
+  if (clean.includes('focus') && (clean.includes('stop') || clean.includes('exit') || clean.includes('end') || clean.includes('pause'))) {
+    return {
+      intent: 'stop_focus_session',
+      confidence: 1.0,
+      extractedData: {},
+      missingFields: [],
+      clarificationQuestion: null,
+      voiceResponse: "Got it. Stopping the focus session.",
+      uiAction: { type: 'stop_focus', payload: {} },
+      navigationTarget: null,
+      suggestAlternative: null
+    };
+  }
+
+  // 4. Calendar event / Study scheduling fallback
+  if (
+    clean.includes('schedule') || 
+    clean.includes('meeting') || 
+    clean.includes('event') || 
+    clean.includes('calendar') || 
+    clean.includes('book') || 
+    clean.includes('study') || 
+    clean.includes('timetable')
+  ) {
+    // Try to extract time (e.g. 6:00 p.m. or 6 pm or at 6)
+    const timeMatch = clean.match(/(\d+)(?::(\d+))?\s*(a\.m\.|p\.m\.|am|pm)/i) || clean.match(/at\s+(\d+)(?::(\d+))?/i);
+    const dayTomorrow = clean.includes('tomorrow');
+    
+    // Title extraction helper
+    let title = 'Study Session';
+    if (clean.includes('meeting')) title = 'Meeting';
+    else if (clean.includes('event')) title = 'Calendar Event';
+    
+    const titleMatch = clean.match(/(?:schedule|book|create)\s+(?:a\s+)?([^0-9]+?)(?:\s+at|\s+for|\s+tomorrow|\s+today|$)/);
+    if (titleMatch && titleMatch[1]) {
+      const matchWord = titleMatch[1].trim();
+      if (!['study', 'timetable', 'meeting', 'event', 'calendar', 'slot'].includes(matchWord)) {
+        title = matchWord;
+      }
+    }
+
+    if (timeMatch) {
+      let hours = parseInt(timeMatch[1]);
+      let minutes = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
+      const ampm = timeMatch[3] ? timeMatch[3].toLowerCase() : '';
+      
+      if ((ampm.includes('pm') || ampm.includes('p.m.')) && hours < 12) {
+        hours += 12;
+      }
+      if ((ampm.includes('am') || ampm.includes('a.m.')) && hours === 12) {
+        hours = 0;
+      }
+      
+      const targetDate = new Date();
+      if (dayTomorrow) {
+        targetDate.setDate(targetDate.getDate() + 1);
+      }
+      targetDate.setHours(hours, minutes, 0, 0);
+      
+      const endTime = new Date(targetDate.getTime() + 45 * 60 * 1000); // 45 min default duration
+      
+      return {
+        intent: 'schedule_event',
+        confidence: 0.95,
+        extractedData: {
+          title,
+          startTime: targetDate.toISOString(),
+          endTime: endTime.toISOString(),
+          type: 'ai_block',
+          notes: 'Scheduled via local fallback'
+        },
+        missingFields: [],
+        clarificationQuestion: null,
+        voiceResponse: `Got it. I've scheduled your slot '${title}' for ${dayTomorrow ? 'tomorrow' : 'today'} at ${timeMatch[1]}${minutes ? ':' + minutes : ''} ${ampm.toUpperCase() || 'PM'}.`,
+        uiAction: null,
+        navigationTarget: 'calendar',
+        suggestAlternative: null
+      };
+    }
+    
+    // Clarify if no time specified
+    return {
+      intent: 'needs_clarification',
+      confidence: 0.9,
+      extractedData: { title, durationMinutes: 45 },
+      missingFields: ['startTime'],
+      clarificationQuestion: `I'd love to schedule your '${title}'. Do you have a particular time in mind?`,
+      voiceResponse: `I'd love to schedule your '${title}'. Do you have a particular time in mind?`,
+      uiAction: null,
+      navigationTarget: 'calendar',
+      suggestAlternative: null
+    };
+  }
+
+  // 5. Tasks creation fallback
+  if (clean.includes('task') || clean.includes('todo') || clean.includes('add') || clean.includes('create')) {
+    // Extract task title
+    let taskTitle = 'New Task';
+    const taskMatch = clean.match(/(?:add|create|task|todo)\s+(?:called|to\s+)?([^]+)$/i);
+    if (taskMatch && taskMatch[1]) {
+      taskTitle = taskMatch[1].replace(/called\s+/, '').trim();
+    }
+    
+    // Check priority
+    const urgency = clean.includes('high priority') || clean.includes('important') || clean.includes('urgent') ? 9 : 5;
+
+    return {
+      intent: 'create_task',
+      confidence: 0.9,
+      extractedData: {
+        title: taskTitle,
+        urgency,
+        category: 'General'
+      },
+      missingFields: [],
+      clarificationQuestion: null,
+      voiceResponse: `Absolutely. I've added the task: '${taskTitle}'.`,
+      uiAction: null,
+      navigationTarget: 'tasks',
+      suggestAlternative: null
+    };
+  }
+
+  // 6. Complete task fallback
+  if ((clean.includes('complete') || clean.includes('finish') || clean.includes('done')) && clean.includes('task')) {
+    let taskTitle = '';
+    const match = clean.match(/(?:complete|finish|done)\s+(?:task\s+)?([^]+)$/i);
+    if (match && match[1]) {
+      taskTitle = match[1].trim();
+    }
+    return {
+      intent: 'complete_task',
+      confidence: 0.9,
+      extractedData: {
+        title: taskTitle
+      },
+      missingFields: [],
+      clarificationQuestion: null,
+      voiceResponse: `Marking task '${taskTitle || 'it'}' as complete.`,
+      uiAction: null,
+      navigationTarget: 'tasks',
+      suggestAlternative: null
+    };
+  }
+
+  // 7. Today summary / brief fallback
+  if (clean.includes('today') || clean.includes('summarize') || clean.includes('summary') || clean.includes('briefing')) {
+    return {
+      intent: 'show_summary',
+      confidence: 1.0,
+      extractedData: { period: 'today' },
+      missingFields: [],
+      clarificationQuestion: null,
+      voiceResponse: `Got it. Here is the summary of your day, ${userName}.`,
+      uiAction: null,
+      navigationTarget: 'calendar',
+      suggestAlternative: null
+    };
+  }
+
+  // 8. Habit tracking fallback
+  if (clean.includes('habit') && (clean.includes('check') || clean.includes('complete') || clean.includes('done'))) {
     return {
       intent: 'complete_habit',
       confidence: 1.0,
@@ -364,76 +513,7 @@ const getLocalFallbackResult = (transcript, context) => {
     };
   }
 
-  if (clean.includes('lunch') || clean.includes('food') || clean.includes('order')) {
-    return {
-      intent: 'out_of_scope',
-      confidence: 1.0,
-      extractedData: {},
-      missingFields: [],
-      clarificationQuestion: null,
-      voiceResponse: "Ordering food isn't something I can do here, but I can schedule a lunch break on your calendar. Want me to block 30 minutes?",
-      uiAction: null,
-      navigationTarget: null,
-      suggestAlternative: "Schedule a lunch break"
-    };
-  }
-
-  if (clean.includes('coffee') || clean.includes('buy')) {
-    return {
-      intent: 'out_of_scope',
-      confidence: 1.0,
-      extractedData: {},
-      missingFields: [],
-      clarificationQuestion: null,
-      voiceResponse: "Purchasing isn't something I can do, but I can remind you to take a coffee break. Want me to schedule one?",
-      uiAction: null,
-      navigationTarget: null,
-      suggestAlternative: "Schedule a coffee break"
-    };
-  }
-
-  if (clean.includes('email') || clean.includes('mail')) {
-    return {
-      intent: 'out_of_scope',
-      confidence: 1.0,
-      extractedData: {},
-      missingFields: [],
-      clarificationQuestion: null,
-      voiceResponse: "I can't send emails, but I can add 'Send email' as a task on your list. Should I?",
-      uiAction: null,
-      navigationTarget: null,
-      suggestAlternative: "Create a task to send email"
-    };
-  }
-
-  if (clean.includes('music') || clean.includes('song') || clean.includes('play')) {
-    return {
-      intent: 'out_of_scope',
-      confidence: 1.0,
-      extractedData: {},
-      missingFields: [],
-      clarificationQuestion: null,
-      voiceResponse: "Music playback isn't in my toolkit, but I can start a focus session with ambient sound. Would that help?",
-      uiAction: null,
-      navigationTarget: null,
-      suggestAlternative: "Start focus session"
-    };
-  }
-
-  if (clean.includes('search') || clean.includes('google') || clean.includes('web')) {
-    return {
-      intent: 'out_of_scope',
-      confidence: 1.0,
-      extractedData: {},
-      missingFields: [],
-      clarificationQuestion: null,
-      voiceResponse: "I don't browse the web, but I can help you schedule research time. Want me to block an hour?",
-      uiAction: null,
-      navigationTarget: null,
-      suggestAlternative: "Schedule research time"
-    };
-  }
-
+  // 9. General default fallback
   return {
     intent: 'out_of_scope',
     confidence: 0.5,
@@ -446,6 +526,7 @@ const getLocalFallbackResult = (transcript, context) => {
     suggestAlternative: null
   };
 };
+
 
 /**
  * Main Entry Point: Understand user command and decide action.
@@ -851,6 +932,56 @@ Return ONLY valid JSON matching the exact RESPONSE FORMAT specified in the Maste
     return await postProcessResult(rawResponse, userId, followUpTranscript, pending.context);
   } catch (err) {
     console.warn('[voiceIntentService] Gemini API fail in clarification. Returning fallback.', err.message);
+    
+    // Attempt local resolution of the clarification
+    const cleanFollowUp = followUpTranscript.toLowerCase();
+    if (pending.originalIntent === 'needs_clarification' && pending.extractedData?.title) {
+      const timeMatch = cleanFollowUp.match(/(\d+)(?::(\d+))?\s*(a\.m\.|p\.m\.|am|pm)/i) || cleanFollowUp.match(/at\s+(\d+)(?::(\d+))?/i);
+      const dayTomorrow = cleanFollowUp.includes('tomorrow') || pending.originalTranscript.toLowerCase().includes('tomorrow');
+      
+      if (timeMatch) {
+        let hours = parseInt(timeMatch[1]);
+        let minutes = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
+        const ampm = timeMatch[3] ? timeMatch[3].toLowerCase() : '';
+        
+        if ((ampm.includes('pm') || ampm.includes('p.m.')) && hours < 12) {
+          hours += 12;
+        }
+        if ((ampm.includes('am') || ampm.includes('a.m.')) && hours === 12) {
+          hours = 0;
+        }
+        
+        const targetDate = new Date();
+        if (dayTomorrow) {
+          targetDate.setDate(targetDate.getDate() + 1);
+        }
+        targetDate.setHours(hours, minutes, 0, 0);
+        
+        const duration = parseInt(pending.extractedData.durationMinutes) || 45;
+        const endTime = new Date(targetDate.getTime() + duration * 60000);
+        
+        const payload = {
+          title: pending.extractedData.title,
+          startTime: targetDate.toISOString(),
+          endTime: endTime.toISOString(),
+          type: 'ai_block',
+          notes: 'Scheduled via local clarification fallback'
+        };
+
+        return {
+          intent: 'schedule_event',
+          confidence: 0.95,
+          extractedData: payload,
+          missingFields: [],
+          clarificationQuestion: null,
+          voiceResponse: `Got it. I've scheduled your slot '${pending.extractedData.title}' for ${dayTomorrow ? 'tomorrow' : 'today'} at ${timeMatch[1]}${minutes ? ':' + minutes : ''} ${ampm.toUpperCase() || 'PM'}.`,
+          uiAction: null,
+          navigationTarget: 'calendar',
+          suggestAlternative: null
+        };
+      }
+    }
+
     return {
       intent: 'out_of_scope',
       confidence: 0.5,
