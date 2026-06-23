@@ -28,7 +28,8 @@ class WakeWordEngine {
     this.commandSilenceTimer = null;
 
     // Wake words for fuzzy matching
-    this.wakeWords = ["hey resq", "hey rescue", "hey res q", "hey resk", "hey risq", "a resq", "hey risk", "hey wreck", "hey wresq", "hey raceq", "hey race q", "hey raise key", "hey raise cue", "hey req", "hey rec", "hey rex", "hey reqs", "hey rack", "hair rescue", "hair res", "hair sq", "hair s q", "he rescue", "he resq", "hair is cute", "haris", "harris", "hair is", "is cute", "hey is cute", "he is cute", "here is cute", "harry is", "harry s", "harish"];
+    this.wakeWords = ["hey resq", "hey rescue", "hey res q", "hey resk", "hey risq", "a resq", "hey risk", "hey wreck", "hey wresq", "hey raceq", "hey race q", "hey raise key", "hey raise cue", "hey req", "hey rec", "hey rex", "hey reqs", "hey rack", "hair rescue", "hair res", "hair sq", "hair s q", "he rescue", "he resq", "hair is cute", "haris", "harris", "hair is", "is cute", "hey is cute", "he is cute", "here is cute", "harry is", "harry s", "harish", "air rescue", "per rescue", "paras per rescue", "air escape", "air escap", "hair stu", "hair st", "rescue", "resq"];
+
 
     // Bind event handlers
     this.handleVisibilityChange = this.handleVisibilityChange.bind(this);
