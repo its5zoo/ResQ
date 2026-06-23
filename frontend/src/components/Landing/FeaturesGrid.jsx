@@ -3,6 +3,7 @@ import {
   BrainCircuit, 
   Calendar, 
   Hourglass, 
+  Brain,
   BellRing, 
   Flame, 
   Sparkles,
@@ -11,6 +12,8 @@ import {
   Clock,
   Zap
 } from 'lucide-react';
+import taskPrioritizationPreview from '../../assets/task_prioritization_preview.png';
+import calendarSyncPreview from '../../assets/calendar_sync_preview.png';
 
 export default function FeaturesGrid() {
   const features = [
@@ -18,65 +21,26 @@ export default function FeaturesGrid() {
       icon: <BrainCircuit className="w-6 h-6 text-white" />,
       title: "Intelligent Task Prioritization",
       desc: "Our Agentic engine scores your workload using task urgency, personal energy cycles, and historical task completion rates. The most critical items stay floating at the top of your stack.",
+      plainMockup: true,
       renderMockup: () => (
-        <div className="w-full h-full flex flex-col justify-between bg-[#0b0b0b] border border-white/[0.04] rounded-2xl p-6 layered-shadow-lg font-sans">
-          <div className="flex items-center justify-between border-b border-white/5 pb-3 mb-4">
-            <span className="text-[8px] font-tech text-white/40 uppercase tracking-widest">Priority Queue</span>
-            <span className="text-[7px] font-tech bg-white/5 border border-white/10 text-white/50 px-2 py-0.5 rounded-full">AI sorted</span>
-          </div>
-          <div className="space-y-2.5">
-            <div className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl">
-              <div className="flex items-center gap-3">
-                <Circle className="w-3.5 h-3.5 text-white/20" />
-                <span className="text-xs font-medium text-white/80">Draft React Architecture</span>
-              </div>
-              <span className="text-[8px] font-tech bg-white/10 text-white border border-white/20 px-2 py-0.5 rounded-full">PRIORITY 10</span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-xl opacity-80">
-              <div className="flex items-center gap-3">
-                <Circle className="w-3.5 h-3.5 text-white/20" />
-                <span className="text-xs font-medium text-white/60">Submit Vibe2Ship Hackathon</span>
-              </div>
-              <span className="text-[8px] font-tech bg-white/5 text-white/40 border border-white/10 px-2 py-0.5 rounded-full">PRIORITY 9</span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-white/[0.01] border border-transparent rounded-xl opacity-50">
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="w-3.5 h-3.5 text-status-green" />
-                <span className="text-xs font-medium text-white/40 line-through">Drink 3L of Water</span>
-              </div>
-              <span className="text-[8px] font-tech text-white/20 px-2 py-0.5">DONE</span>
-            </div>
-          </div>
-        </div>
+        <img 
+          src={taskPrioritizationPreview} 
+          alt="Intelligent Task Prioritization Stack" 
+          className="w-full h-auto rounded-3xl border border-white/10 shadow-2xl transition-transform duration-700 hover:scale-[1.02] select-none"
+        />
       )
     },
     {
       icon: <Calendar className="w-6 h-6 text-white" />,
       title: "AI-Powered Scheduling",
       desc: "Automatically syncs with Google Calendar. The AI searches for open slots, negotiates conflicts, and blocks focused sessions for you.",
+      plainMockup: true,
       renderMockup: () => (
-        <div className="w-full h-full flex flex-col justify-between bg-[#0b0b0b] border border-white/[0.04] rounded-2xl p-6 layered-shadow-lg font-sans">
-          <div className="flex items-center justify-between border-b border-white/5 pb-3 mb-4">
-            <span className="text-[8px] font-tech text-white/40 uppercase tracking-widest">Calendar Sync</span>
-            <span className="text-[7px] font-tech bg-white/5 border border-white/10 text-white/50 px-2 py-0.5 rounded-full">Active</span>
-          </div>
-          <div className="space-y-3.5">
-            <div className="flex gap-3 items-start pl-3 border-l border-white/5 relative">
-              <div className="absolute top-1.5 -left-[4.5px] w-2 h-2 rounded-full bg-[#0b0b0b] border-2 border-white"></div>
-              <div>
-                <span className="text-[8px] text-white/30 font-semibold block">10:00 AM (30m)</span>
-                <h5 className="text-[11px] font-semibold text-white/70">Sync with Team (Vibe2Ship)</h5>
-              </div>
-            </div>
-            <div className="flex gap-3 items-start pl-3 border-l border-white/5 relative bg-white/[0.02] p-2.5 rounded-xl border border-white/10">
-              <div className="absolute top-3.5 -left-[4.5px] w-2 h-2 rounded-full bg-[#0b0b0b] border-2 border-white"></div>
-              <div>
-                <span className="text-[8px] text-white font-semibold block">04:00 PM (45m)</span>
-                <h5 className="text-[11px] font-bold text-white">🤖 AI Focus block: React UI integration</h5>
-              </div>
-            </div>
-          </div>
-        </div>
+        <img 
+          src={calendarSyncPreview} 
+          alt="AI-Powered Scheduling Calendar" 
+          className="max-w-[420px] w-full h-auto rounded-3xl border border-white/10 shadow-2xl transition-transform duration-700 hover:scale-[1.02] select-none mx-auto"
+        />
       )
     },
     {
@@ -217,7 +181,7 @@ export default function FeaturesGrid() {
           </span>
           <h2 className="text-4xl sm:text-5xl md:text-6xl font-display font-black text-silver-gradient text-shine-sweep mb-6 leading-tight tracking-tight">
             Custom built to combat <br />
-            cognitive overload.
+            <span className="text-[#E5B842]" style={{ background: 'none', WebkitTextFillColor: '#E5B842', WebkitBackgroundClip: 'initial' }}>cognitive</span> overload.
           </h2>
           <p className="text-sm sm:text-base text-white/50 leading-relaxed font-normal max-w-xl mx-auto tracking-normal">
             No templates. No simple checklists. We designed ResQ around cognitive neuroscience and agentic automation principles.
@@ -257,9 +221,17 @@ export default function FeaturesGrid() {
 
                 {/* Graphic Mockup Column */}
                 <div 
-                  className={`lg:col-span-7 bg-[#090909] border border-white/[0.04] rounded-3xl p-8 lg:p-10 layered-shadow-lg card-shine-sweep flex items-center justify-center relative overflow-hidden h-[320px] ${
-                    isEven ? '' : 'lg:order-1'
-                  }`}
+                  className={
+                    feat.plainMockup 
+                      ? `lg:col-span-7 flex items-center justify-center relative ${isEven ? '' : 'lg:order-1'}`
+                      : `lg:col-span-7 bg-[#090909] border border-white/[0.04] rounded-3xl layered-shadow-lg card-shine-sweep flex items-center justify-center relative overflow-hidden ${
+                          feat.containerPadding || "p-8 lg:p-10"
+                        } ${
+                          feat.containerHeight || "h-[320px]"
+                        } ${
+                          isEven ? '' : 'lg:order-1'
+                        }`
+                  }
                 >
                   {feat.renderMockup()}
                 </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Play, CheckCircle2, Circle, Sparkles, Cpu, Bell, Calendar, Clock, Inbox, TrendingUp, AlertTriangle } from 'lucide-react';
+import { ArrowRight, Play } from 'lucide-react';
+import dashboardPreview from '../../assets/dashboard_preview.png';
 
 export default function Hero() {
   const navigate = useNavigate();
@@ -40,44 +41,6 @@ export default function Hero() {
 
   const dashboardTranslateY = scrollFactor * -80;
   const dashboardScale = 1 + scrollFactor * 0.06;
-
-  // Live Activity Loop States
-  const [activeStep, setActiveStep] = useState(0);
-  const [isTyping, setIsTyping] = useState(false);
-  const [taskCompleted, setTaskCompleted] = useState(false);
-  const [notifVisible, setNotifVisible] = useState(false);
-  const [telemetry, setTelemetry] = useState({ tasks: 8, done: 5, alerts: 2 });
-
-  useEffect(() => {
-    const loopInterval = setInterval(() => {
-      setActiveStep((prevStep) => {
-        const nextStep = (prevStep + 1) % 4;
-        
-        // Reset states
-        setIsTyping(false);
-        setTaskCompleted(false);
-        setNotifVisible(false);
-
-        if (nextStep === 1) {
-          setIsTyping(true);
-        } else if (nextStep === 2) {
-          setTaskCompleted(true);
-          setTelemetry({ tasks: 7, done: 6, alerts: 1 });
-        } else if (nextStep === 3) {
-          setTaskCompleted(true);
-          setNotifVisible(true);
-          setTelemetry({ tasks: 7, done: 6, alerts: 1 });
-        } else {
-          // Reset to initial
-          setTelemetry({ tasks: 8, done: 5, alerts: 2 });
-        }
-
-        return nextStep;
-      });
-    }, 4500);
-
-    return () => clearInterval(loopInterval);
-  }, []);
 
   // Split title for stagger reveal
   const brandName = "ResQ".split("");
@@ -194,123 +157,32 @@ export default function Hero() {
               animationFillMode: 'forwards'
             }}
           >
-            <div className="w-full max-w-[520px] bg-[#090909] border border-white/[0.06] rounded-3xl p-8 shadow-2xl relative overflow-hidden transition-all duration-500 hover:border-white/10 layered-shadow-xl card-shine-sweep">
+            <div className="w-full max-w-[840px] relative mx-auto group select-none">
               
-              {/* Soft glow reflection edge */}
-              <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/15 to-transparent"></div>
-
-              {/* Title bar */}
-              <div className="flex items-center justify-between border-b border-white/5 pb-5 mb-6">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-white/10"></span>
-                  <span className="w-2.5 h-2.5 rounded-full bg-white/10"></span>
-                  <span className="w-2.5 h-2.5 rounded-full bg-white/10"></span>
+              {/* Laptop Screen Lid / Bezel */}
+              <div className="relative bg-black rounded-t-2xl p-[10px] pb-1 border border-white/10 shadow-2xl overflow-hidden">
+                {/* Webcam dot */}
+                <div className="absolute top-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#1e2022] border border-white/5 flex items-center justify-center">
+                  <span className="w-0.5 h-0.5 rounded-full bg-blue-500/80 animate-pulse"></span>
                 </div>
-                <span className="text-[9px] font-semibold tracking-widest uppercase text-white/20">resq // dashboard</span>
-              </div>
-
-              {/* AI Recommendation bubble (Living State Nudge) */}
-              <div className="p-5 bg-white/[0.015] border border-white/10 rounded-2xl mb-6 relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-3 opacity-5">
-                  <Cpu className="w-16 h-16 text-white" />
-                </div>
-                <div className="flex items-center gap-2 mb-3">
-                  <Sparkles className="w-3.5 h-3.5 text-white/60 animate-pulse" />
-                  <span className="text-[9px] font-semibold text-white/60 uppercase tracking-wider">AI Recommendation</span>
-                </div>
-                <div className="min-h-[50px] flex flex-col justify-center">
-                  {isTyping ? (
-                    <div className="flex items-center gap-1.5 text-[11px] text-white/60 font-light italic animate-pulse">
-                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
-                      Analyzing priorities...
-                    </div>
-                  ) : notifVisible ? (
-                    <p className="text-[11px] text-white/80 leading-relaxed font-light">
-                      "I have scheduled a 45 min Focus block for 'Submit project report' in your calendar."
-                    </p>
-                  ) : taskCompleted ? (
-                    <p className="text-[11px] text-status-green leading-relaxed font-light">
-                      "Completed task checked off. Overdue hazard meter has dropped to Safe."
-                    </p>
-                  ) : (
-                    <p className="text-[11px] text-white/70 leading-relaxed font-light">
-                      "You have 2 deadlines today. I've 'Focus: UI designs' block scheduled on your calendar."
-                    </p>
-                  )}
+                
+                {/* Dashboard Image */}
+                <div className="relative overflow-hidden rounded-lg bg-black aspect-[1920/1009] border border-white/5">
+                  <img 
+                    src={dashboardPreview} 
+                    alt="ResQ Dashboard Preview" 
+                    className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-[1.015]"
+                  />
                 </div>
               </div>
 
-              {/* Task list rows */}
-              <div className="space-y-4 mb-8">
-                {/* Task 1 */}
-                <div className={`flex items-center justify-between p-4 bg-[#0F0F0F] border border-white/[0.04] rounded-2xl transition-all duration-500 ${
-                  taskCompleted ? 'opacity-50' : ''
-                }`}>
-                  <div className="flex items-center gap-3.5">
-                    {taskCompleted ? (
-                      <CheckCircle2 className="w-4.5 h-4.5 text-status-green animate-bounce" />
-                    ) : (
-                      <Circle className="w-4.5 h-4.5 text-white/20" />
-                    )}
-                    <span className={`text-xs text-white/80 font-medium font-sans transition-all ${
-                      taskCompleted ? 'line-through text-white/40' : ''
-                    }`}>Submit project report</span>
-                  </div>
-                  <span className={`text-[8px] font-semibold px-2 py-0.5 rounded-full border transition-all ${
-                    taskCompleted 
-                      ? 'bg-white/5 border-white/10 text-white/30'
-                      : 'bg-status-red/10 border-status-red/20 text-status-red'
-                  }`}>
-                    {taskCompleted ? 'DONE' : 'URGENT'}
-                  </span>
-                </div>
+              {/* Hinge Connection */}
+              <div className="w-[102%] -ml-[1%] h-[4px] bg-[#1c1d1f] relative z-10 border-b border-black/20"></div>
 
-                {/* Task 2 */}
-                <div className="flex items-center justify-between p-4 bg-[#0F0F0F] border border-white/[0.04] rounded-2xl">
-                  <div className="flex items-center gap-3.5">
-                    <Circle className="w-4.5 h-4.5 text-white/20" />
-                    <span className="text-xs text-white/80 font-medium font-sans">Clean out inbox priorities</span>
-                  </div>
-                  <span className="text-[8px] text-white/60 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full font-bold">MED</span>
-                </div>
-
-                {/* Task 3 */}
-                <div className="flex items-center justify-between p-4 bg-[#0F0F0F] border border-white/[0.04] rounded-2xl opacity-40">
-                  <div className="flex items-center gap-3.5">
-                    <CheckCircle2 className="w-4.5 h-4.5 text-status-green" />
-                    <span className="text-xs text-white/40 line-through font-sans">Renew member card details</span>
-                  </div>
-                  <span className="text-[8px] text-white/20 px-2 py-0.5 rounded-full font-bold">DONE</span>
-                </div>
-              </div>
-
-              {/* Notification Overlay Slide-In (Micro-motion) */}
-              <div className={`absolute bottom-28 left-6 right-6 p-4 bg-[#151515] border border-white/10 rounded-2xl shadow-2xl flex items-center gap-3 transition-all duration-700 ${
-                notifVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0 pointer-events-none'
-              }`}>
-                <div className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
-                  <Bell className="w-4 h-4 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h5 className="text-[10px] font-semibold text-white uppercase tracking-wider">AI focus scheduled</h5>
-                  <p className="text-[9px] text-white/50 leading-none mt-1">Focus slot added: 4:00 PM today</p>
-                </div>
-              </div>
-
-              {/* Telemetry rows */}
-              <div className="grid grid-cols-3 gap-4 border-t border-white/5 pt-6 transition-all duration-500">
-                <div className="p-4 bg-[#0F0F0F] border border-white/[0.04] rounded-2xl">
-                  <span className="text-2xl font-bold text-white block leading-none transition-all">{telemetry.tasks}</span>
-                  <span className="text-[8px] text-white/30 uppercase tracking-wider mt-1.5 block">Tasks</span>
-                </div>
-                <div className="p-4 bg-[#0F0F0F] border border-white/[0.04] rounded-2xl">
-                  <span className="text-2xl font-bold text-status-green block leading-none transition-all">{telemetry.done}</span>
-                  <span className="text-[8px] text-white/30 uppercase tracking-wider mt-1.5 block">Done</span>
-                </div>
-                <div className="p-4 bg-[#0F0F0F] border border-white/[0.04] rounded-2xl">
-                  <span className="text-2xl font-bold text-status-red block leading-none transition-all">{telemetry.alerts}</span>
-                  <span className="text-[8px] text-white/30 uppercase tracking-wider mt-1.5 block">Alerts</span>
-                </div>
+              {/* Laptop Base (Space Gray / Matte Black Metallic Plate) */}
+              <div className="w-[106%] -ml-[3%] h-[12px] bg-gradient-to-r from-[#1e1f22] via-[#3a3c42] to-[#1e1f22] rounded-b-xl border-t border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.85)] relative z-20 flex justify-center">
+                {/* Trackpad Notch cutout */}
+                <div className="w-20 h-[3px] bg-[#121315] rounded-b-sm border-t border-black/40"></div>
               </div>
 
             </div>

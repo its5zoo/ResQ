@@ -3,6 +3,7 @@ import Navbar from '../components/Landing/Navbar';
 import Hero from '../components/Landing/Hero';
 import FeatureStrip from '../components/Landing/FeatureStrip';
 import FeaturesGrid from '../components/Landing/FeaturesGrid';
+import ChronosLayersSection from '../components/Landing/ChronosLayersSection';
 import DashboardPreview from '../components/Landing/DashboardPreview';
 import VoiceSection from '../components/Landing/VoiceSection';
 import MobileSection from '../components/Landing/MobileSection';
@@ -42,6 +43,7 @@ export default function Landing() {
       <Hero />
       <FeatureStrip />
       <FeaturesGrid />
+      <ChronosLayersSection />
       <DashboardPreview />
       <VoiceSection />
       <MobileSection />
