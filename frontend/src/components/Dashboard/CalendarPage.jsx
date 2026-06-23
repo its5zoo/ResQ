@@ -537,7 +537,7 @@ export default function CalendarPage({ tasks }) {
                 <div className="text-[9px] font-tech font-bold uppercase tracking-wider text-white/30 text-center py-2 flex items-center justify-center border-r border-white/[0.06] select-none bg-[#090909]">
                   Tasks
                 </div>
-                {weekDates.map((dayObj) => {
+                {weekDates.map((dayObj, idx) => {
                   const dayTasks = (localTasks || []).filter(t => 
                     !t.completed && 
                     isSameDay(t.dueDate, dayObj.fullDate) && 
@@ -547,7 +547,7 @@ export default function CalendarPage({ tasks }) {
                   
                   return (
                     <div 
-                      key={dayObj.dayOfWeek}
+                      key={`${dayObj.dayOfWeek}-${idx}`}
                       className={`p-1.5 border-r border-white/[0.06] last:border-r-0 flex flex-col gap-1 justify-center min-h-[40px] ${
                         isToday ? 'bg-[#E5B842]/[0.01]' : 'bg-transparent'
                       }`}
@@ -557,9 +557,9 @@ export default function CalendarPage({ tasks }) {
                           --
                         </div>
                       ) : (
-                        dayTasks.map(task => (
+                        dayTasks.map((task, tIdx) => (
                           <div
-                            key={task._id}
+                            key={task._id || task.id || `task-${tIdx}`}
                             title={`${task.title} (No Time)`}
                             className="group/allday border border-emerald-500/25 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-400 text-[9px] font-bold px-2 py-1 rounded-md flex items-center gap-1.5 justify-between shadow-[0_0_8px_rgba(16,185,129,0.03)] hover:scale-[1.01] transition-all duration-300 select-none min-w-0"
                           >
@@ -596,7 +596,7 @@ export default function CalendarPage({ tasks }) {
                       {hour}
                     </div>
                     
-                    {weekDates.map((dayObj) => {
+                    {weekDates.map((dayObj, idx) => {
                       const match = findEventForCell(filteredEvents, dayObj.fullDate, hour);
                       const matchTasks = findTasksForCell(localTasks, dayObj.fullDate, hour);
                       const isAiBlock = match && (match.type === 'ai_block' || match.aiGenerated);
@@ -604,7 +604,7 @@ export default function CalendarPage({ tasks }) {
                       
                       return (
                         <div 
-                          key={dayObj.dayOfWeek} 
+                          key={`${dayObj.dayOfWeek}-${idx}`} 
                           className={`p-1 border-r border-white/[0.04] last:border-r-0 transition-all duration-200 relative group flex flex-col gap-1 items-stretch justify-center min-h-[64px] ${
                             isToday ? 'bg-[#E5B842]/[0.01]' : 'bg-transparent'
                           } hover:bg-white/[0.02]`}
@@ -666,9 +666,9 @@ export default function CalendarPage({ tasks }) {
                           )}
 
                           {/* Task Deadlines */}
-                          {matchTasks.map(task => (
+                          {matchTasks.map((task, tIdx) => (
                             <div 
-                              key={task._id}
+                              key={task._id || task.id || `celltask-${tIdx}`}
                               className="w-full rounded-lg border border-emerald-500/25 bg-emerald-500/10 hover:border-emerald-500/45 text-emerald-400 p-2 shadow-[0_0_12px_rgba(16,185,129,0.06)] hover:scale-[1.01] transition-all duration-300 relative overflow-hidden flex items-center gap-2 group/task select-none"
                             >
                               <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-emerald-500"></div>
@@ -821,8 +821,8 @@ export default function CalendarPage({ tasks }) {
               </div>
             ) : (
               <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
-                {unscheduledTasks.map((task) => (
-                  <div key={task._id} className="p-3 bg-black/40 border border-white/[0.03] rounded-xl hover:border-white/10 transition-all duration-300 space-y-2">
+                {unscheduledTasks.map((task, idx) => (
+                  <div key={task._id || task.id || `unsched-${idx}`} className="p-3 bg-black/40 border border-white/[0.03] rounded-xl hover:border-white/10 transition-all duration-300 space-y-2">
                     <h5 className="text-xs font-bold text-white/80 leading-none truncate">{task.title}</h5>
                     <div className="flex items-center justify-between text-[10px] font-semibold uppercase">
                       <span className="text-white/40 flex items-center gap-0.5">
