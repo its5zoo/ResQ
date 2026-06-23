@@ -302,6 +302,92 @@ export default function CalendarPage({ tasks }) {
     }
   };
 
+  const handleSeedDemoEvents = async () => {
+    try {
+      showToast('Generating demo slots...', 'info');
+      
+      const demoSlots = [
+        {
+          title: "Roadmap Alignment Meeting",
+          type: "user_block",
+          dayIndex: 0, // Mon
+          hour: 11,
+          duration: 60,
+          notes: "Sync with stakeholders on new roadmap priorities."
+        },
+        {
+          title: "AI Focus: DB Index Tuning",
+          type: "ai_block",
+          dayIndex: 1, // Tue
+          hour: 9,
+          duration: 60,
+          notes: "Optimize MongoDB query performance. Scheduled by ResQ Autopilot."
+        },
+        {
+          title: "AI Focus: Draft Landing Page",
+          type: "ai_block",
+          dayIndex: 2, // Wed
+          hour: 10,
+          duration: 60,
+          notes: "Focus block for marketing content copywriting."
+        },
+        {
+          title: "Architecture Design Review",
+          type: "user_block",
+          dayIndex: 3, // Thu
+          hour: 14, // 2:00 PM
+          duration: 60,
+          notes: "Discussion on backend boundaries and data flow design."
+        },
+        {
+          title: "⚠️ Deadline: QA Audit Checklist",
+          type: "deadline",
+          dayIndex: 4, // Fri
+          hour: 16, // 4:00 PM
+          duration: 60,
+          notes: "Critical path deadline for deployment checkoff."
+        }
+      ];
+
+      const createdList = [];
+      for (const slot of demoSlots) {
+        const targetDay = weekDates[slot.dayIndex].fullDate;
+        const start = new Date(targetDay);
+        start.setHours(slot.hour, 0, 0, 0);
+        const end = new Date(start.getTime() + slot.duration * 60000);
+
+        // Check if there is already an event overlapping
+        const isOverlapping = calendarEvents.some(e => {
+          const eStart = new Date(e.startTime);
+          const eEnd = new Date(e.endTime);
+          return eStart < end && eEnd > start;
+        });
+
+        if (!isOverlapping) {
+          const created = await apiCalendar.create({
+            title: slot.title,
+            startTime: start,
+            endTime: end,
+            type: slot.type,
+            notes: slot.notes,
+            aiGenerated: slot.type === 'ai_block',
+            notificationsEnabled: true
+          });
+          createdList.push(created);
+        }
+      }
+
+      if (createdList.length > 0) {
+        setCalendarEvents(prev => [...prev, ...createdList]);
+        showToast(`Loaded ${createdList.length} demo schedule slots!`);
+      } else {
+        showToast("Demo slots already loaded or time conflict detected.", "info");
+      }
+    } catch (err) {
+      showToast(err.message || "Failed to load demo schedule", "error");
+    }
+  };
+
   // Count active focus slots in active week
   const focusSlotsCount = filteredEvents.filter(e => e.type === 'ai_block' || e.aiGenerated).length;
 
@@ -361,64 +447,72 @@ export default function CalendarPage({ tasks }) {
         
         {/* Calendar Core Grid */}
         <div className="lg:col-span-9 bg-[#090909] border border-white/[0.04] rounded-3xl p-6 layered-shadow-lg overflow-x-auto">
-          <div className="min-w-[650px] h-[540px] overflow-y-auto pr-1 flex flex-col">
+          <div className="min-w-[650px] overflow-y-auto pr-1 flex flex-col">
             
-            {/* Days Column Headers */}
-            <div className="grid grid-cols-8 gap-4 border-b border-white/5 pb-4 mb-4 sticky top-0 bg-[#090909] z-20">
-              <div className="text-xs font-tech font-bold uppercase tracking-wider text-white/35 text-center bg-[#090909] py-2 flex items-center justify-center">Time</div>
-              {weekDates.map((d) => {
-                const isToday = new Date(d.fullDate).toDateString() === new Date().toDateString();
-                return (
-                  <div 
-                    key={d.dayOfWeek} 
-                    className={`text-center py-1.5 px-1 flex flex-col items-center rounded-xl transition-all duration-300 ${
-                      isToday 
-                        ? 'bg-[#E5B842]/10 border border-[#E5B842]/20 shadow-[0_0_10px_rgba(229,184,66,0.05)]' 
-                        : 'border border-transparent'
-                    }`}
-                  >
-                    <span className={`text-[9px] font-tech font-bold uppercase tracking-wider ${isToday ? 'text-[#E5B842]' : 'text-white/35'}`}>
-                      {d.dayOfWeek}
-                    </span>
-                    <span className={`text-xs font-black mt-0.5 w-6 h-6 flex items-center justify-center rounded-full transition-all duration-300 ${
-                      isToday 
-                        ? 'bg-[#E5B842] text-black shadow-[0_0_10px_rgba(229,184,66,0.4)]' 
-                        : 'text-white'
-                    }`}>
-                      {d.dateNum}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+            {/* Grid Table Container */}
+            <div className="border border-white/[0.06] rounded-2xl overflow-hidden bg-black/10 flex flex-col">
+              
+              {/* Days Column Headers */}
+              <div className="grid grid-cols-[80px_repeat(7,_1fr)] border-b border-white/[0.06] bg-[#0d0d0e]/60 sticky top-0 z-20">
+                <div className="text-[10px] font-tech font-bold uppercase tracking-wider text-white/30 text-center py-4 flex items-center justify-center border-r border-white/[0.06] select-none bg-[#090909]">
+                  Time
+                </div>
+                {weekDates.map((d) => {
+                  const isToday = new Date(d.fullDate).toDateString() === new Date().toDateString();
+                  return (
+                    <div 
+                      key={d.dayOfWeek} 
+                      className={`text-center py-2.5 px-1 flex flex-col items-center justify-center border-r border-white/[0.06] last:border-r-0 transition-all duration-300 bg-[#090909] ${
+                        isToday 
+                          ? 'bg-[#E5B842]/5' 
+                          : ''
+                      }`}
+                    >
+                      <span className={`text-[9px] font-tech font-bold uppercase tracking-wider ${isToday ? 'text-[#E5B842]' : 'text-white/40'}`}>
+                        {d.dayOfWeek}
+                      </span>
+                      <span className={`text-xs font-black mt-1 w-6 h-6 flex items-center justify-center rounded-full transition-all duration-300 ${
+                        isToday 
+                          ? 'bg-[#E5B842] text-black shadow-[0_0_10px_rgba(229,184,66,0.4)]' 
+                          : 'text-white/80'
+                      }`}>
+                        {d.dateNum}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
 
-            {/* Time Grid Rows */}
-            <div className="space-y-3.5 flex-1">
-              {hours.map((hour) => (
-                <div key={hour} className="grid grid-cols-8 gap-4 items-center">
-                  <div className="text-xs font-bold text-white/40 text-center">{hour}</div>
-                  
-                  {weekDates.map((dayObj) => {
-                    const match = findEventForCell(filteredEvents, dayObj.fullDate, hour);
-                    const isAiBlock = match && (match.type === 'ai_block' || match.aiGenerated);
+              {/* Time Grid Rows */}
+              <div className="divide-y divide-white/[0.04]">
+                {hours.map((hour) => (
+                  <div key={hour} className="grid grid-cols-[80px_repeat(7,_1fr)] items-stretch min-h-[64px]">
+                    <div className="text-[10px] font-tech font-bold text-white/40 flex items-center justify-center border-r border-white/[0.06] bg-[#0d0d0e]/30 select-none">
+                      {hour}
+                    </div>
                     
-                    return (
-                      <div 
-                        key={dayObj.dayOfWeek} 
-                        onClick={() => handleCellClick(dayObj.fullDate, hour)}
-                        className={`min-h-[52px] rounded-xl border transition-all duration-300 flex flex-col justify-center relative group cursor-pointer ${
-                          match 
-                            ? isAiBlock
-                              ? 'bg-[#E5B842]/10 border-[#E5B842]/30 hover:border-[#E5B842]/60 text-[#E5B842] shadow-[0_0_15px_rgba(229,184,66,0.1)]'
-                              : match.type === 'deadline'
-                                ? 'bg-status-red/[0.05] border border-status-red/20 hover:border-status-red/40 text-status-red shadow-[0_4px_12px_rgba(255,95,95,0.04)]'
-                                : 'bg-status-blue/[0.05] border border-status-blue/20 hover:border-status-blue/40 text-status-blue shadow-[0_4px_12px_rgba(74,158,255,0.04)]'
-                            : 'bg-transparent border border-white/[0.03] hover:border-white/[0.15] hover:bg-white/[0.02] hover:scale-[1.01] hover:shadow-[0_0_8px_rgba(255,255,255,0.02)]'
-                        } ${match && match._id === highlightedEventId ? 'animate-event-pulse' : ''}`}
-                      >
-                        {match ? (
-                          <>
-                            <div className="absolute inset-0 rounded-xl overflow-hidden pointer-events-none">
+                    {weekDates.map((dayObj) => {
+                      const match = findEventForCell(filteredEvents, dayObj.fullDate, hour);
+                      const isAiBlock = match && (match.type === 'ai_block' || match.aiGenerated);
+                      const isToday = new Date(dayObj.fullDate).toDateString() === new Date().toDateString();
+                      
+                      return (
+                        <div 
+                          key={dayObj.dayOfWeek} 
+                          onClick={() => handleCellClick(dayObj.fullDate, hour)}
+                          className={`p-1 border-r border-white/[0.04] last:border-r-0 transition-all duration-200 relative group cursor-pointer flex items-stretch ${
+                            isToday ? 'bg-[#E5B842]/[0.01]' : 'bg-transparent'
+                          } hover:bg-white/[0.02]`}
+                        >
+                          {match ? (
+                            <div className={`w-full rounded-lg border transition-all duration-300 flex flex-col justify-center p-2 relative overflow-hidden select-none hover:shadow-lg hover:scale-[1.01] ${
+                              isAiBlock
+                                ? 'bg-[#E5B842]/10 border-[#E5B842]/25 hover:border-[#E5B842]/45 text-[#E5B842] shadow-[0_0_12px_rgba(229,184,66,0.06)]'
+                                : match.type === 'deadline'
+                                  ? 'bg-status-red/10 border-status-red/20 hover:border-status-red/40 text-status-red shadow-[0_4px_12px_rgba(255,95,95,0.06)]'
+                                  : 'bg-status-blue/10 border-status-blue/20 hover:border-status-blue/40 text-status-blue shadow-[0_4px_12px_rgba(74,158,255,0.06)]'
+                            } ${match._id === highlightedEventId ? 'animate-event-pulse' : ''}`}>
+                              {/* Left stripe indicator */}
                               <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${
                                 isAiBlock 
                                   ? 'bg-gradient-to-b from-[#E5B842] to-[#FFF2CC]' 
@@ -426,46 +520,51 @@ export default function CalendarPage({ tasks }) {
                                     ? 'bg-status-red' 
                                     : 'bg-status-blue'
                               }`}></div>
-                              <div className="pl-3.5 pr-2 py-1.5 min-w-0 flex flex-col justify-center h-full">
+                              
+                              <div className="pl-2 min-w-0 flex flex-col justify-center h-full">
                                 <h5 className="text-[10px] font-bold uppercase truncate leading-tight tracking-wider">{match.title}</h5>
-                                <span className="text-[8px] opacity-60 font-semibold uppercase mt-0.5 block">
+                                <span className="text-[8px] opacity-60 font-semibold uppercase mt-0.5 block tracking-wider">
                                   {isAiBlock ? '🤖 AI Scheduled' : match.type.replace('_', ' ')}
                                 </span>
                               </div>
-                            </div>
 
-                            {/* Floating Custom Tooltip */}
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:flex flex-col w-52 p-3 bg-[#0D0D0E]/95 border border-white/10 rounded-2xl shadow-[0_12px_32px_rgba(0,0,0,0.95)] backdrop-blur-md text-left z-50 pointer-events-none transition-all">
-                              <span className={`text-[8px] font-tech font-bold uppercase tracking-[0.2em] mb-1 ${
-                                isAiBlock 
-                                  ? 'text-[#E5B842]' 
-                                  : match.type === 'deadline' 
-                                    ? 'text-status-red' 
-                                    : 'text-status-blue'
-                              }`}>
-                                {isAiBlock ? '🤖 AI Scheduled Layer' : match.type === 'deadline' ? '⚠️ Deadline Layer' : '👤 Sync Layer'}
-                              </span>
-                              <h6 className="text-[10px] font-bold text-white leading-snug mb-1.5 break-words">
-                                {match.title}
-                              </h6>
-                              <div className="flex items-center gap-1 text-[8px] text-white/50 font-semibold mb-1">
-                                <Clock className="w-2.5 h-2.5" />
-                                <span>{new Date(match.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                              {/* Hover Tooltip (Improved design) */}
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 hidden group-hover:flex flex-col w-52 p-3 bg-[#0c0c0d] border border-white/10 rounded-2xl shadow-[0_12px_32px_rgba(0,0,0,0.95)] backdrop-blur-md text-left z-50 pointer-events-none transition-all">
+                                <span className={`text-[8px] font-tech font-bold uppercase tracking-[0.2em] mb-1 ${
+                                  isAiBlock 
+                                    ? 'text-[#E5B842]' 
+                                    : match.type === 'deadline' 
+                                      ? 'text-status-red' 
+                                      : 'text-status-blue'
+                                }`}>
+                                  {isAiBlock ? '🤖 AI Scheduled' : match.type === 'deadline' ? '⚠️ Deadline' : '👤 Sync Layer'}
+                                </span>
+                                <h6 className="text-[10px] font-bold text-white leading-snug mb-1.5 break-words">
+                                  {match.title}
+                                </h6>
+                                <div className="flex items-center gap-1.5 text-[8px] text-white/50 font-semibold mb-1">
+                                  <Clock className="w-2.5 h-2.5" />
+                                  <span>{new Date(match.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(match.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                </div>
+                                {match.notes && (
+                                  <p className="text-[8px] text-white/40 leading-relaxed font-normal border-t border-white/5 pt-1 mt-1 break-words">
+                                    {match.notes}
+                                  </p>
+                                )}
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#0c0c0d] z-50"></div>
                               </div>
-                              {match.notes && (
-                                <p className="text-[8px] text-white/40 leading-relaxed font-normal border-t border-white/5 pt-1 mt-1">
-                                  {match.notes}
-                                </p>
-                              )}
-                              <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#0D0D0E]/95 z-50"></div>
                             </div>
-                          </>
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
+                          ) : (
+                            <div className="w-full h-full rounded-md transition-all duration-150 flex items-center justify-center select-none text-[8px] font-tech font-bold text-white/0 group-hover:text-white/20 uppercase tracking-widest">
+                              + Book
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
             </div>
 
           </div>
@@ -480,48 +579,50 @@ export default function CalendarPage({ tasks }) {
               <Layers className="w-4 h-4 text-white/50" />
               <h4 className="text-xs font-tech font-bold uppercase tracking-wider text-white/80">Chronos Layers</h4>
             </div>
-            <div className="space-y-3">
-              <label className="flex items-center gap-3 cursor-pointer group text-xs text-white/70 hover:text-white transition-colors">
-                <input 
-                  type="checkbox" 
-                  checked={layerFilters.ai_block} 
-                  onChange={e => setLayerFilters(prev => ({ ...prev, ai_block: e.target.checked }))}
-                  className="w-4 h-4 rounded border-white/10 text-[#E5B842] focus:ring-0 focus:ring-offset-0 bg-black cursor-pointer"
-                />
-                <span className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-[10px]">
-                  <span className="w-2.5 h-2.5 rounded bg-gradient-to-r from-[#E5B842] to-[#FFF2CC] inline-block shadow-[0_0_8px_rgba(229,184,66,0.4)]"></span>
-                  AI Scheduled Tasks
-                </span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer group text-xs text-white/70 hover:text-white transition-colors">
-                <input 
-                  type="checkbox" 
-                  checked={layerFilters.user_block} 
-                  onChange={e => setLayerFilters(prev => ({ ...prev, user_block: e.target.checked, meeting: e.target.checked }))}
-                  className="w-4 h-4 rounded border-white/10 text-status-blue focus:ring-0 focus:ring-offset-0 bg-black cursor-pointer"
-                />
-                <span className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-[10px]">
-                  <span className="w-2.5 h-2.5 rounded bg-status-blue inline-block shadow-[0_0_8px_rgba(74,158,255,0.4)]"></span>
-                  My Added Events
-                </span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer group text-xs text-white/70 hover:text-white transition-colors">
-                <input 
-                  type="checkbox" 
-                  checked={layerFilters.deadline} 
-                  onChange={e => setLayerFilters(prev => ({ ...prev, deadline: e.target.checked }))}
-                  className="w-4 h-4 rounded border-white/10 text-status-red focus:ring-0 focus:ring-offset-0 bg-black cursor-pointer"
-                />
-                <span className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-[10px]">
-                  <span className="w-2.5 h-2.5 rounded bg-status-red inline-block shadow-[0_0_8px_rgba(255,95,95,0.4)]"></span>
-                  Upcoming Deadlines
-                </span>
-              </label>
+            
+            {/* Custom Control Chips */}
+            <div className="flex flex-col gap-2">
+              {[
+                { key: 'ai_block', label: 'AI Scheduled Tasks', colorClass: 'bg-gradient-to-r from-[#E5B842] to-[#FFF2CC] border-[#E5B842]/30 text-[#E5B842]', shadowClass: 'shadow-[0_0_8px_rgba(229,184,66,0.3)]' },
+                { key: 'user_block', label: 'My Added Events', colorClass: 'bg-status-blue border-status-blue/30 text-status-blue', shadowClass: 'shadow-[0_0_8px_rgba(74,158,255,0.3)]' },
+                { key: 'deadline', label: 'Upcoming Deadlines', colorClass: 'bg-status-red border-status-red/30 text-status-red', shadowClass: 'shadow-[0_0_8px_rgba(255,95,95,0.3)]' },
+              ].map(filter => {
+                const checked = filter.key === 'ai_block' ? layerFilters.ai_block : filter.key === 'user_block' ? layerFilters.user_block : layerFilters.deadline;
+                const toggle = () => {
+                  if (filter.key === 'ai_block') {
+                    setLayerFilters(prev => ({ ...prev, ai_block: !prev.ai_block }));
+                  } else if (filter.key === 'user_block') {
+                    setLayerFilters(prev => ({ ...prev, user_block: !prev.user_block, meeting: !prev.user_block }));
+                  } else {
+                    setLayerFilters(prev => ({ ...prev, deadline: !prev.deadline }));
+                  }
+                };
+                return (
+                  <button
+                    key={filter.key}
+                    type="button"
+                    onClick={toggle}
+                    className={`w-full flex items-center justify-between p-3 rounded-xl border text-[10px] font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer ${
+                      checked 
+                        ? 'bg-white/[0.04] border-white/10 text-white' 
+                        : 'bg-transparent border-transparent text-white/30 hover:text-white/65'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className={`w-2 h-2 rounded-full inline-block ${filter.key === 'ai_block' ? 'bg-[#E5B842]' : filter.key === 'user_block' ? 'bg-status-blue' : 'bg-status-red'} ${checked ? filter.shadowClass : ''}`}></span>
+                      {filter.label}
+                    </span>
+                    <span className={`text-[8px] px-1.5 py-0.5 rounded-md font-mono ${checked ? 'bg-white/10 text-white/80' : 'bg-white/5 text-white/20'}`}>
+                      {checked ? 'SHOW' : 'HIDE'}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {/* AI Automated focus details */}
-          <div className="p-6 bg-white/[0.01] border border-[#E5B842]/20 rounded-3xl space-y-4 layered-shadow-lg card-shine-sweep relative overflow-hidden">
+          <div className="p-6 bg-white/[0.01] border border-[#E5B842]/20 rounded-3xl space-y-4 layered-shadow-lg card-shine-sweep relative overflow-hidden flex flex-col gap-1">
             <div className="flex items-center gap-1.5">
               <Sparkles className="w-4 h-4 text-[#E5B842] animate-pulse" />
               <span className="text-xs font-bold text-white tracking-wider uppercase font-display">Auto-Schedule Engine</span>
@@ -536,6 +637,14 @@ export default function CalendarPage({ tasks }) {
                 {focusSlotsCount} focus slots booked this week
               </span>
             </div>
+
+            <button
+              onClick={handleSeedDemoEvents}
+              type="button"
+              className="w-full py-2 bg-[#E5B842]/10 hover:bg-[#E5B842] text-[#E5B842] hover:text-black border border-[#E5B842]/20 hover:border-transparent rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98] mt-1"
+            >
+              <Sparkles className="w-3 h-3" /> Load Demo Schedule
+            </button>
           </div>
 
           {/* Sync status */}
@@ -550,6 +659,7 @@ export default function CalendarPage({ tasks }) {
                 <button 
                   onClick={() => setSyncSettings(prev => ({ ...prev, google: !prev.google }))}
                   className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-300 relative cursor-pointer ${syncSettings.google ? 'bg-[#E5B842]' : 'bg-white/10'}`}
+                  type="button"
                 >
                   <div className={`w-4 h-4 rounded-full bg-black transition-transform duration-300 ${syncSettings.google ? 'translate-x-4' : 'translate-x-0'}`} />
                 </button>
