@@ -511,15 +511,6 @@ export default function CalendarPage({ tasks }) {
                   <div className={`w-4 h-4 rounded-full bg-black transition-transform duration-300 ${syncSettings.google ? 'translate-x-4' : 'translate-x-0'}`} />
                 </button>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-white/70">Outlook Calendar</span>
-                <button 
-                  onClick={() => setSyncSettings(prev => ({ ...prev, outlook: !prev.outlook }))}
-                  className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-300 relative cursor-pointer ${syncSettings.outlook ? 'bg-[#E5B842]' : 'bg-white/10'}`}
-                >
-                  <div className={`w-4 h-4 rounded-full bg-black transition-transform duration-300 ${syncSettings.outlook ? 'translate-x-4' : 'translate-x-0'}`} />
-                </button>
-              </div>
             </div>
           </div>
 
