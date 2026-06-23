@@ -25,9 +25,10 @@ class WakeWordEngine {
     this.isInitialized = false;
     this.awaitingClarification = false;
     this.clarificationTimeoutTimer = null;
+    this.commandSilenceTimer = null;
 
     // Wake words for fuzzy matching
-    this.wakeWords = ["hey resq", "hey rescue", "hey res q", "hey resk", "hey risq", "a resq", "hey risk", "hey wreck", "hey wresq", "hey raceq", "hey race q", "hey raise key", "hey raise cue"];
+    this.wakeWords = ["hey resq", "hey rescue", "hey res q", "hey resk", "hey risq", "a resq", "hey risk", "hey wreck", "hey wresq", "hey raceq", "hey race q", "hey raise key", "hey raise cue", "hey req", "hey rec", "hey rex", "hey reqs", "hey rack"];
 
     // Bind event handlers
     this.handleVisibilityChange = this.handleVisibilityChange.bind(this);
@@ -74,6 +75,7 @@ class WakeWordEngine {
 
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
     if (this.commandTimeoutTimer) clearTimeout(this.commandTimeoutTimer);
+    if (this.commandSilenceTimer) clearTimeout(this.commandSilenceTimer);
     if (this.clarificationTimeoutTimer) clearTimeout(this.clarificationTimeoutTimer);
 
     if (this.recognition) {
@@ -399,6 +401,7 @@ class WakeWordEngine {
     }
 
     if (this.commandTimeoutTimer) clearTimeout(this.commandTimeoutTimer);
+    if (this.commandSilenceTimer) clearTimeout(this.commandSilenceTimer);
     this.latestTranscript = '';
 
     try {
@@ -425,6 +428,21 @@ class WakeWordEngine {
         this.latestTranscript = interimTranscript;
         console.log('[WakeWordEngine] Command interim:', interimTranscript);
         window.dispatchEvent(new CustomEvent('resq:interim-transcript', { detail: { transcript: interimTranscript } }));
+
+        if (this.commandSilenceTimer) clearTimeout(this.commandSilenceTimer);
+
+        // Quick finalization after 800ms of silence when a final segment is detected
+        const lastResult = event.results[event.results.length - 1];
+        if (lastResult && lastResult.isFinal) {
+          this.commandSilenceTimer = setTimeout(() => {
+            console.log('[WakeWordEngine] 800ms speech silence detected, stopping command recognition.');
+            if (this.commandRecognition) {
+              try {
+                this.commandRecognition.stop();
+              } catch (e) {}
+            }
+          }, 800);
+        }
       };
 
       recognition.onerror = (event) => {
@@ -455,6 +473,7 @@ class WakeWordEngine {
 
   stopCommandListening() {
     if (this.commandTimeoutTimer) clearTimeout(this.commandTimeoutTimer);
+    if (this.commandSilenceTimer) clearTimeout(this.commandSilenceTimer);
     if (this.commandRecognition) {
       this.commandRecognition.onend = null;
       try {
