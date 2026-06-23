@@ -26,10 +26,30 @@ class VoicePersonality {
     const voices = this.synth.getVoices();
     if (!voices || voices.length === 0) return null;
 
-    return voices.find(v => v.name.includes('Google UK English Female'))
-        || voices.find(v => v.name.includes('Sonia'))
-        || voices.find(v => v.name.includes('Samantha'))
-        || voices.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('female'))
+    // 1. Prioritize Microsoft Edge Online (Natural) Voices - extremely realistic human voice
+    const edgeNaturalVoice = voices.find(v => v.name.includes('Online (Natural)') && v.lang.startsWith('en'));
+    if (edgeNaturalVoice) return edgeNaturalVoice;
+
+    // 2. Google Cloud High-Quality Voices in Chrome
+    const googleUSVoice = voices.find(v => v.name === 'Google US English');
+    if (googleUSVoice) return googleUSVoice;
+
+    const googleUKVoice = voices.find(v => v.name === 'Google UK English Female');
+    if (googleUKVoice) return googleUKVoice;
+
+    // 3. Apple/MacOS High-Quality Voice
+    const samanthaVoice = voices.find(v => v.name === 'Samantha');
+    if (samanthaVoice) return samanthaVoice;
+
+    // 4. Windows Local SAPI Clear Offline Voices
+    const hazelVoice = voices.find(v => v.name.includes('Microsoft Hazel'));
+    if (hazelVoice) return hazelVoice;
+
+    const ziraVoice = voices.find(v => v.name.includes('Microsoft Zira'));
+    if (ziraVoice) return ziraVoice;
+
+    // 5. Fallback English Female / English / Default
+    return voices.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('female'))
         || voices.find(v => v.lang.startsWith('en'))
         || voices[0]
         || null;
@@ -49,11 +69,6 @@ class VoicePersonality {
       setTimeout(() => {
         const utterance = new SpeechSynthesisUtterance(text);
         
-        // Voice parameters
-        utterance.rate = this.rate !== undefined ? this.rate : 0.92;   // slightly slower than default — clear and unhurried
-        utterance.pitch = this.pitch !== undefined ? this.pitch : 1.08;  // slightly above neutral — warm, bright
-        utterance.volume = 0.95;
-
         // Select voice
         let voice = this.selectedVoice || this.selectVoice();
         if (!voice) {
@@ -64,6 +79,12 @@ class VoicePersonality {
         if (voice) {
           utterance.voice = voice;
         }
+
+        // Voice parameters (Keep premium cloud voices untuned to let them play at natural speed/pitch, tune legacy local robotic voices)
+        const isPremiumVoice = voice && (voice.name.includes('Google') || voice.name.includes('Online (Natural)'));
+        utterance.rate = this.rate !== undefined ? this.rate : (isPremiumVoice ? 1.0 : 0.95);
+        utterance.pitch = this.pitch !== undefined ? this.pitch : (isPremiumVoice ? 1.0 : 1.02);
+        utterance.volume = 0.95;
 
         // Handle Chrome bug: re-select voice if utterance.voice is null on speak
         if (!utterance.voice) {
