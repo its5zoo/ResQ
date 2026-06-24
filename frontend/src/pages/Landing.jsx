@@ -7,7 +7,6 @@ import DashboardPreview from '../components/Landing/DashboardPreview';
 import CoreWorkflowSection from '../components/Landing/CoreWorkflowSection';
 import GoalSystemSection from '../components/Landing/GoalSystemSection';
 import CalendarSection from '../components/Landing/CalendarSection';
-import AnalyticsSection from '../components/Landing/AnalyticsSection';
 import VoiceSection from '../components/Landing/VoiceSection';
 import MobileSection from '../components/Landing/MobileSection';
 import CTASection from '../components/Landing/CTASection';
@@ -53,7 +52,7 @@ export default function Landing() {
   }, []);
 
   return (
-    <div className="bg-[#080808] text-white min-h-screen relative bg-noise overflow-x-hidden">
+    <div className="bg-[#080808] text-white min-h-screen relative bg-noise overflow-x-hidden notranslate">
       <Navbar />
       <Hero />
       <FeatureStrip />
@@ -63,7 +62,6 @@ export default function Landing() {
       <CoreWorkflowSection />
       <GoalSystemSection />
       <CalendarSection />
-      <AnalyticsSection />
       
       {/* Existing Sections */}
       <VoiceSection />

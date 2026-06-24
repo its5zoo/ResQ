@@ -370,7 +370,7 @@ export default function TasksPage({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         {/* Main list */}
-        <div className={`space-y-3 transition-all duration-300 ${selectedTask ? 'lg:col-span-7' : 'lg:col-span-12'}`}>
+        <div className="space-y-3 transition-all duration-300 lg:col-span-12">
           {loading ? (
             <div className="space-y-4 animate-pulse">
               {[1, 2, 3].map(n => (
@@ -381,10 +381,9 @@ export default function TasksPage({
             sortedTasks.map((task) => (
               <div 
                 key={task._id} 
-                onClick={() => setSelectedTask(task)}
                 className={`p-5 border rounded-2xl hover:border-white/10 transition-all duration-300 cursor-pointer layered-shadow-lg ${
                   task.completed ? 'opacity-50' : ''
-                } ${selectedTask?._id === task._id ? 'border-[#E5B842]/60 bg-[#E5B842]/[0.02]' : 'border-white/15 bg-[#090909]'} ${
+                } border-white/15 bg-[#090909] ${
                   highlightedTaskId === task._id ? 'animate-gold-highlight' : ''
                 } ${
                   completedAnimationTaskId === task._id ? 'animate-completed-fade' : ''
@@ -450,89 +449,6 @@ export default function TasksPage({
             </div>
           )}
         </div>
-
-        {/* Selected Task Details Side-over Panel */}
-        {selectedTask && (
-          <div className="lg:col-span-5 bg-white/[0.015] border border-[#E5B842]/20 rounded-3xl p-6 space-y-6 animate-slide-up self-start layered-shadow-xl relative overflow-hidden card-shine-sweep">
-            <div className="flex items-center justify-between border-b border-white/5 pb-4">
-              <div className="flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-[#E5B842]" />
-                <span className="text-sm font-bold text-white tracking-wider uppercase font-display">AI Subtask Builder</span>
-              </div>
-              <button 
-                onClick={() => setSelectedTask(null)}
-                className="text-white/70 hover:text-white cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Task Info Header */}
-            <div>
-              <span className="text-sm bg-[#E5B842]/5 border border-[#E5B842]/20 text-[#E5B842] px-2.5 py-0.5 rounded-full font-bold uppercase mb-2 inline-block">
-                Priority: {selectedTask.urgency}
-              </span>
-              <h3 className="text-sm font-bold text-white leading-snug">{selectedTask.title}</h3>
-              <p className="text-sm text-white/70 mt-1">Due {selectedTask.dueDate ? new Date(selectedTask.dueDate).toLocaleDateString() : 'Today'} · Estimated {selectedTask.estimatedMinutes || selectedTask.duration || 30} Mins</p>
-            </div>
-
-            {/* Subtask Section */}
-            <div className="space-y-4">
-              <h4 className="text-sm font-bold uppercase tracking-wider text-white/45">Checklist milestones</h4>
-              
-              <div className="space-y-2">
-                {(selectedTask.subtasks || []).map((sub, idx) => (
-                  <div 
-                    key={idx}
-                    className="flex items-center gap-3 p-3 bg-black/45 border border-white/[0.03] rounded-xl hover:border-white/10 transition-all duration-300 layered-shadow-lg"
-                  >
-                    <button 
-                      onClick={() => toggleSubtask(idx)}
-                      className="text-white/60 hover:text-[#E5B842] transition-colors focus:outline-hidden cursor-pointer"
-                    >
-                      {sub.completed ? (
-                        <CheckCircle2 className="w-4 h-4 text-[#E5B842]" />
-                      ) : (
-                        <Circle className="w-4 h-4 text-white/50" />
-                      )}
-                    </button>
-                    <span className={`text-sm font-medium leading-none ${sub.completed ? 'line-through text-white/35' : 'text-white/70'}`}>
-                      {sub.title}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Add subtask Form */}
-              <form onSubmit={handleAddSubtask} className="flex gap-2">
-                <input 
-                  type="text"
-                  placeholder="Insert sub-step..."
-                  value={newSubtaskTitle}
-                  onChange={(e) => setNewSubtaskTitle(e.target.value)}
-                  className="flex-1 bg-[#0B0B0B] border border-white/10 hover:border-white/20 focus:border-[#E5B842]/40 rounded-xl px-3 py-2 text-sm text-white focus:outline-hidden transition-all duration-300"
-                  required
-                />
-                <button 
-                  type="submit"
-                  className="bg-black hover:bg-white hover:text-black text-white/60 p-2.5 rounded-xl border border-white/10 hover:border-[#E5B842]/40 transition-all cursor-pointer"
-                >
-                  <PlusCircle className="w-4.5 h-4.5" />
-                </button>
-              </form>
-            </div>
-
-            {/* AI Advisor Context Explanation */}
-            {selectedTask.aiReason && (
-              <div className="border-t border-white/5 pt-5 space-y-2">
-                <h5 className="text-sm font-bold uppercase tracking-wider text-[#E5B842]">AI Advice Reason</h5>
-                <p className="text-sm text-white/60 leading-relaxed bg-[#E5B842]/5 border border-[#E5B842]/10 p-3.5 rounded-xl">
-                  {selectedTask.aiReason}
-                </p>
-              </div>
-            )}
-          </div>
-        )}
 
       </div>
 

@@ -136,7 +136,8 @@ CRITICAL RULE: If you see ANY tasks, events, habits, or goals related to "meetin
 2. If there's an incomplete urgent task or missing daily habit today, remind them.
 3. Do NOT talk about Goals if they have pressing tasks or deadlines today. Focus on the immediate priority.
 4. HOWEVER, if there are NO pending tasks or deadlines today, but they do have Goals set, casually ask "How are your goals going?" or mention a specific goal to show you are paying attention.
-5. Return plain text only. No markdown formatting, no bullet points, no bolding.
+5. CRITICAL LANGUAGE RULE: You MUST write the entire summary in ${user.language === 'hi' ? 'Hindi' : 'English'} language. Do NOT use English if the language is Hindi.
+6. Return plain text only. No markdown formatting, no bullet points, no bolding.
 `;
 
     return await queryGemini(prompt, false);
@@ -158,14 +159,16 @@ export const generateTaskPriority = async (tasks = []) => {
 
     const prompt = `
 Analyze these tasks and re-rank them by urgency+importance matrix.
-CRITICAL RULE: Tasks containing keywords like "meeting", "exam", or "recharge" are highly critical to the user. Always rank them at the very top (highest priority).
+CRITICAL RULE 1: Tasks containing keywords like "meeting", "exam", or "recharge" are highly critical to the user. Always rank them at the very top (highest priority).
+CRITICAL RULE 2: The "reason" field MUST be written in very simple, easy-to-understand, friendly, and conversational English. DO NOT use complex words, jargon, or formal terms like "Quadrant I", "sustenance", or "necessity". Explain it like you're a helpful friend (e.g., "This is super important so you don't go hungry!" or "Knock this out first since the deadline is today!").
+
 Tasks (JSON format):
 ${JSON.stringify(tasks, null, 2)}
 
 Return ONLY a JSON array of task IDs in priority order with a short reason field for each. Absolutely no extra conversational text or wrappers.
 JSON Output Format:
 [
-  { "id": "task_id_here", "reason": "Short reason explaining its matrix rank" }
+  { "id": "task_id_here", "reason": "Simple, friendly reason here" }
 ]
 `;
 
@@ -402,7 +405,7 @@ Keep it brief and punchy (under 15 words). Return only the message text.
 /**
  * 8. Generates a unified global priority list across tasks, events, habits, and goals.
  */
-export const generateGlobalPriority = async (tasks = [], events = [], habits = [], goals = []) => {
+export const generateGlobalPriority = async (user, tasks = [], events = [], habits = [], goals = []) => {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey || apiKey.includes('your_google_gemini_api_key') || apiKey.includes('your_gemini_api_key_here')) {
@@ -422,9 +425,10 @@ Instructions:
 1. Compare all items across these 4 categories.
 2. Select exactly the top 4 highest priority items overall.
 3. For each selected item, assign a 'priorityScore' from 1 to 100 (100 being most critical).
-4. Provide a very short, specific 'reason' explaining exactly WHY this item is prioritized (e.g., "Deadline is in 2 hours", "You haven't studied for this goal yet", "Meeting starts soon").
+4. Provide a very short, specific 'reason' explaining exactly WHY this item is prioritized. The reason MUST be in simple, friendly, easy-to-understand conversational language (e.g., "You have a deadline in 2 hours!", "Let's knock out this meeting!", "You need to keep your streak going!"). Do NOT use robotic jargon or complex words.
 5. The 'type' field must be one of: "task", "event", "habit", "goal".
-6. Return ONLY a JSON array. No explanations, no markdown block formatting.
+6. CRITICAL LANGUAGE RULE: You MUST write the 'reason' in ${user?.language === 'hi' ? 'Hindi' : 'English'} language. Do NOT use English if the language is Hindi.
+7. Return ONLY a JSON array. No explanations, no markdown block formatting.
 
 JSON Output Format:
 [

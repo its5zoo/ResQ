@@ -12,7 +12,8 @@ import {
   User, 
   Check,
   AlertCircle,
-  X
+  X,
+  ChevronDown
 } from 'lucide-react';
 import { settings as apiSettings, auth, google as apiGoogle, voice } from '../../services/api.js';
 import { wakeWordEngine } from '../../services/WakeWordEngine.js';
@@ -63,6 +64,7 @@ export default function SettingsPage() {
   });
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [language, setLanguage] = useState('en');
+  const [isLangOpen, setIsLangOpen] = useState(false);
   const [soundVolume, setSoundVolume] = useState(80);
 
   // Voice AI
@@ -162,6 +164,7 @@ export default function SettingsPage() {
           setTheme(data.theme || 'dark');
           setSelectedPlan(data.plan || 'free');
           setFontSize(data.fontSize || 16);
+          setLanguage(data.language || 'en');
           setIsGoogleConnected(!!data.googleAccessToken);
           setAiVoiceEnabled(data.aiVoiceEnabled !== false);
           if (data.voiceAI) {
@@ -412,6 +415,26 @@ export default function SettingsPage() {
     }
   };
 
+  const handleLanguageChange = async (newLang) => {
+    try {
+      await apiSettings.updateLanguage(newLang);
+      setLanguage(newLang);
+      setIsLangOpen(false);
+      
+      const translateVal = newLang === 'hi' ? '/en/hi' : '/en/en';
+      document.cookie = `googtrans=${translateVal}; path=/`;
+      document.cookie = `googtrans=${translateVal}; domain=.${window.location.hostname}; path=/`;
+      
+      showToast('Language updated! Reloading interface...', 'success');
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (err) {
+      console.error('Error updating language:', err);
+      showToast('Failed to update language', 'error');
+    }
+  };
+
   // Apply font size on mount
   useEffect(() => {
     const saved = localStorage.getItem('resq-font-size');
@@ -533,14 +556,46 @@ export default function SettingsPage() {
               <div className="pt-4 border-t border-white/5 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-tech font-bold uppercase tracking-wider text-white/70 block mb-1.5">Language</label>
-                  <select 
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
-                    className="w-full bg-[#0B0B0B] border border-white/10 hover:border-white/20 focus:border-[#E5B842]/40 rounded-xl px-3 py-2.5 text-sm text-white outline-none transition-colors cursor-pointer"
-                  >
-                    <option value="en">English (US)</option>
-                    <option value="hi">हिन्दी (Hindi)</option>
-                  </select>
+                  <div className="relative">
+                    <button 
+                      type="button"
+                      onClick={() => setIsLangOpen(!isLangOpen)}
+                      className="w-full bg-[#0B0B0B] border border-white/10 hover:border-white/20 focus:border-[#E5B842]/40 rounded-xl px-4 py-2.5 text-sm text-white outline-none transition-colors cursor-pointer flex justify-between items-center"
+                    >
+                      <span className="notranslate">{language === 'en' ? 'English' : 'हिन्दी (Hindi)'}</span>
+                      <ChevronDown className={`w-4 h-4 text-white/50 transition-transform ${isLangOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    {/* Backdrop to close dropdown on outside click */}
+                    {isLangOpen && (
+                      <div 
+                        className="fixed inset-0 z-10" 
+                        onClick={() => setIsLangOpen(false)}
+                      ></div>
+                    )}
+                    
+                    {isLangOpen && (
+                      <div className="absolute top-full left-0 right-0 mt-2 bg-[#0a0a0a] border border-[#E5B842]/20 rounded-xl overflow-hidden z-20 shadow-[0_4px_20px_rgba(229,184,66,0.15)] animate-fade-in">
+                        <button
+                          type="button"
+                          onClick={() => handleLanguageChange('en')}
+                          className={`w-full flex items-center justify-between px-4 py-3 text-sm hover:bg-[#E5B842]/10 transition-colors cursor-pointer ${language === 'en' ? 'text-[#E5B842] font-semibold bg-[#E5B842]/5' : 'text-white/80'}`}
+                        >
+                          <span className="notranslate">English</span>
+                          {language === 'en' && <Check className="w-4 h-4 text-[#E5B842]" />}
+                        </button>
+                        <div className="w-full h-px bg-white/5"></div>
+                        <button
+                          type="button"
+                          onClick={() => handleLanguageChange('hi')}
+                          className={`w-full flex items-center justify-between px-4 py-3 text-sm hover:bg-[#E5B842]/10 transition-colors cursor-pointer ${language === 'hi' ? 'text-[#E5B842] font-semibold bg-[#E5B842]/5' : 'text-white/80'}`}
+                        >
+                          <span className="notranslate">हिन्दी (Hindi)</span>
+                          {language === 'hi' && <Check className="w-4 h-4 text-[#E5B842]" />}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 

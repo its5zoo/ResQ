@@ -69,7 +69,7 @@ export default function TasksAnimation() {
           
           <div className="flex gap-3">
              <div className="bg-[#090909] border border-white/10 rounded-xl px-3 py-3 flex items-center justify-between min-w-[120px]">
-                <span className="text-sm text-white/80">Urgency: 10</span>
+                <span className="text-sm text-white/80">Urgency: 100</span>
                 <span className="text-[10px] text-white/50 ml-2">▼</span>
              </div>
              
@@ -106,7 +106,7 @@ export default function TasksAnimation() {
                 <p className="text-[10px] font-bold text-[#E5B842] uppercase tracking-wider">WORK</p>
              </div>
              <div className="px-3 py-1 bg-[#E5B842]/10 border border-[#E5B842]/20 rounded-md text-[#E5B842] text-[10px] font-black uppercase tracking-widest">
-                Priority 10
+                Priority 100
              </div>
              <Trash2 className="w-4 h-4 text-white/20 ml-2" />
           </div>
@@ -130,11 +130,11 @@ export default function TasksAnimation() {
            </div>
            {phase === 'rearranging' ? (
               <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-md text-white/40 text-[10px] font-black uppercase tracking-widest">
-                Priority 6
+                Priority 60
               </div>
            ) : (
               <div className="relative px-3 py-1 bg-[#E5B842]/10 border border-[#E5B842]/20 rounded-md text-[#E5B842] text-[10px] font-black uppercase tracking-widest overflow-hidden">
-                Priority 6
+                Priority 60
                 {phase === 'completing' && <div className="absolute inset-0 bg-white/20 animate-pulse"></div>}
               </div>
            )}
@@ -154,7 +154,7 @@ export default function TasksAnimation() {
               <p className="text-[10px] font-bold text-white/30 uppercase tracking-wider">GENERAL</p>
            </div>
            <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-md text-white/40 text-[10px] font-black uppercase tracking-widest">
-              Priority 5
+              Priority 50
            </div>
            <Trash2 className="w-4 h-4 text-white/20 ml-2" />
         </div>

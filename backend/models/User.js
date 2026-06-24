@@ -35,6 +35,11 @@ const userSchema = new mongoose.Schema({
     start: { type: String, default: '09:00' },
     end: { type: String, default: '18:00' }
   },
+  language: {
+    type: String,
+    enum: ['en', 'hi'],
+    default: 'en'
+  },
   lastBriefingDate: {
     type: String,
     default: null

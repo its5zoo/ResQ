@@ -19,6 +19,15 @@ export const socket = io(getSocketUrl(), {
 socket.on('connect', () => console.log('Socket connected:', socket.id));
 socket.on('connect_error', (err) => console.error('Socket error:', err));
 
+socket.on('notification:new', (notification) => {
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification('ResQ AI Alert', {
+      body: typeof notification === 'string' ? notification : notification.message,
+      icon: '/favicon.ico'
+    });
+  }
+});
+
 export const connectSocket = (token) => {
   if (socket) {
     socket.auth.token = token;

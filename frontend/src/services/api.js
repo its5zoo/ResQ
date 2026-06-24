@@ -345,6 +345,14 @@ export const settings = {
       return handleRequestError(error);
     }
   },
+  updateLanguage: async (language) => {
+    try {
+      const response = await api.patch('/settings/language', { language });
+      return response.data;
+    } catch (error) {
+      return handleRequestError(error);
+    }
+  },
   updateAiVoice: async (aiVoiceEnabled) => {
     try {
       const response = await api.patch('/settings/ai-voice', { aiVoiceEnabled });

@@ -95,7 +95,7 @@ export const getGlobalPriority = async (req, res) => {
 
     const goals = await Goal.find({ userId: req.user._id, status: { $ne: 'completed' } });
 
-    const globalPriorityList = await generateGlobalPriority(tasks, events, incompleteHabits, goals);
+    const globalPriorityList = await generateGlobalPriority(req.user, tasks, events, incompleteHabits, goals);
     res.json(globalPriorityList);
   } catch (error) {
     res.status(500).json({ message: error.message });

@@ -241,9 +241,6 @@ export default function HabitsPage() {
                     <div className="flex items-center gap-3 text-sm font-bold uppercase tracking-wider text-white/60 mt-1.5">
                       <span>Streak: <span className="text-[#E5B842] font-extrabold">🔥 {habit.streak || 0}d</span></span>
                     </div>
-                    <div className="text-sm font-tech font-bold uppercase tracking-wider text-white/70 mt-1">
-                      Target: <span className="text-[#E5B842]/80 font-bold">{targetDaysLabel}</span>
-                    </div>
                   </div>
                   
                   <button 

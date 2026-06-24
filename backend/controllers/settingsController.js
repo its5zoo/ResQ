@@ -42,6 +42,20 @@ export const updatePlan = async (req, res) => {
   }
 };
 
+export const updateLanguage = async (req, res) => {
+  const { language } = req.body;
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    user.language = language;
+    await user.save();
+    res.json({ message: 'Language updated successfully', language: user.language });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export const updateWorkingHours = async (req, res) => {
   const { start, end } = req.body;
   try {

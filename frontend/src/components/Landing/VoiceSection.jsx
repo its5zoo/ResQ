@@ -1,134 +1,165 @@
-import { useState } from 'react';
-import { Mic, MicOff, Volume2, Sparkles } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Mic, MicOff, Volume2, Sparkles, Send } from 'lucide-react';
 
 export default function VoiceSection() {
   const [isListening, setIsListening] = useState(false);
-  const [transcript, setTranscript] = useState('Click the mic and ask: "What does my day look like?"');
-  const [aiResponse, setAiResponse] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [messages, setMessages] = useState([
+    { role: 'ai', text: "Hello! I am your ResQ AI companion. Ask me to outline your day, list your critical deadlines, or organize calendar blocks for you." }
+  ]);
+  const chatContainerRef = useRef(null);
 
-  const samplePrompts = [
-    { q: "What's on my plate today?", a: "You have 3 tasks. The Vibe2Ship Hackathon submission is due in 2 hours. Focus session is booked for 4:00 PM." },
-    { q: "Create a critical task for tomorrow", a: "Task 'Database schema optimization' created and synced to Google Calendar with High priority." },
-    { q: "Check my habit streaks", a: "You are on a 7-day Gym streak. You have not checked it off today. Shall I schedule a slot?" }
-  ];
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [messages, isProcessing, isListening]);
 
-  const handlePromptClick = (prompt) => {
-    setIsListening(true);
-    setTranscript(prompt.q);
-    setAiResponse('Processing voice input...');
+  useEffect(() => {
+    let step = 0;
+    let isActive = true;
     
-    setTimeout(() => {
-      setIsListening(false);
-      setAiResponse(prompt.a);
-      // Trigger voice speech synthesis if available
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(prompt.a);
-        utterance.pitch = 1.0;
-        utterance.rate = 1.0;
-        window.speechSynthesis.speak(utterance);
+    const conversationLoop = [
+      { q: "What is due today?", a: "You have one item due today: 'Bring vegetable'. You're all caught up on your other tasks!" },
+      { q: "Organize my afternoon", a: "I have blocked 2:00 PM to 4:00 PM for Deep Work, and scheduled a 15-minute break at 4:00 PM." }
+    ];
+
+    const runAnimation = async () => {
+      while (isActive) {
+        const currentPrompt = conversationLoop[step % conversationLoop.length];
+
+        await new Promise(r => setTimeout(r, 2000));
+        if (!isActive) break;
+
+        setIsListening(true);
+        await new Promise(r => setTimeout(r, 1500));
+        if (!isActive) break;
+        setIsListening(false);
+        setMessages(prev => [...prev, { role: 'user', text: currentPrompt.q }]);
+
+        setIsProcessing(true);
+        await new Promise(r => setTimeout(r, 1000));
+        if (!isActive) break;
+        setIsProcessing(false);
+
+        setMessages(prev => [...prev, { role: 'ai', text: currentPrompt.a }]);
+
+        await new Promise(r => setTimeout(r, 4000));
+        step++;
       }
-    }, 1200);
-  };
+    };
+
+    runAnimation();
+
+    return () => { isActive = false; };
+  }, []);
 
   return (
-    <section id="voice" className="py-20 lg:py-44 relative bg-[#050505] bg-noise overflow-hidden border-t border-white/[0.03]">
-      <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-white/[0.015] rounded-full blur-[130px] pointer-events-none"></div>
+    <section id="voice" className="voice-section py-20 lg:py-44 relative overflow-hidden border-t border-white/[0.03]">
+      <div className="absolute top-0 right-1/4 w-[600px] h-[600px] voice-section-glow rounded-full blur-[130px] pointer-events-none"></div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-8 relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center">
         
-        {/* Left Column: Waveform Simulator */}
-        <div className="lg:col-span-6 flex flex-col items-center justify-center p-6 lg:p-10 bg-[#090909] border border-white/[0.05] rounded-3xl min-h-[340px] lg:min-h-[420px] relative hover:border-white/10 transition-all duration-500 font-sans layered-shadow-lg">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.01),transparent_70%)] pointer-events-none"></div>
+        {/* Left Column: Voice Assistant Auto-Animation */}
+        <div className="lg:col-span-7 flex flex-col p-5 lg:p-8 voice-card rounded-3xl h-[520px] lg:h-[580px] relative transition-all duration-500 font-sans pointer-events-none">
           
-          {/* Animated Waveform */}
-          <div className="flex items-end justify-center gap-2.5 h-36 mb-12 w-full max-w-[300px]">
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map((val) => (
-              <span 
-                key={val} 
-                className={`w-1 rounded-full transition-all duration-300 ${
-                  isListening 
-                    ? 'bg-white animate-wave-bar' 
-                    : 'bg-white/10 h-8'
-                }`}
-                style={{
-                  animationDelay: `${val * 0.1}s`,
-                  height: isListening ? undefined : `${(val % 4 + 1) * 10}px`
-                }}
-              ></span>
-            ))}
-          </div>
-
-          {/* Mic Button */}
-          <button 
-            onClick={() => {
-              setIsListening(!isListening);
-              if (!isListening) {
-                setTranscript('Listening for command...');
-                setAiResponse('');
-              } else {
-                setTranscript('Click the mic and ask: "What does my day look like?"');
-              }
-            }}
-            className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-500 shadow-xl cursor-pointer ${
-              isListening 
-                ? 'bg-white text-black' 
-                : 'bg-[#121212] text-white/70 border border-white/5 hover:border-white/40 hover:text-white'
-            }`}
-          >
-            {isListening ? <Mic className="w-7 h-7 animate-pulse" /> : <MicOff className="w-7 h-7" />}
-          </button>
-
-          <span className="text-sm font-tech font-bold text-white/70 uppercase tracking-widest mt-5">
-            {isListening ? "Listening Active" : "Click to Speak"}
-          </span>
-        </div>
-
-        {/* Right Column: Transcript Dialogue */}
-        <div className="lg:col-span-6 flex flex-col justify-center">
-          <span className="text-sm font-tech font-bold tracking-[0.3em] uppercase text-white/50 block mb-5 font-sans">
-            VOICE CONVERSATION
-          </span>
-          <h2 className="text-4xl sm:text-5xl font-display font-black mb-8 leading-tight tracking-tight">
-            <span className="text-silver-gradient text-shine-sweep">Talk to your </span>
-            <span className="text-[#E5B842]">AI companion</span> <br />
-            <span className="text-silver-gradient text-shine-sweep">on the go.</span>
-          </h2>
-          
-          <div className="space-y-5 mb-10">
-            {/* User Transcript bubble */}
-            <div className="p-5 rounded-2xl bg-[#090909] border border-white/[0.04] self-end font-sans">
-              <span className="text-sm uppercase tracking-wider text-white/35 block mb-2 font-tech">User Command</span>
-              <p className="text-sm text-white/80 font-medium">"{transcript}"</p>
+          {/* Top Header */}
+          <div className="voice-card-header border-b pb-4 lg:pb-5 flex items-center justify-between mb-5 lg:mb-6 shrink-0 relative z-10">
+            <div>
+              <span className="text-xs lg:text-sm font-tech font-bold tracking-[0.3em] voice-label block mb-1">AUDIO SHIELD</span>
+              <h2 className="text-xl lg:text-2xl font-display font-black tracking-tight voice-heading leading-none">
+                Hands-Free Voice Assistant
+              </h2>
             </div>
-
-            {/* AI Response bubble */}
-            {aiResponse && (
-              <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 animate-fade-in font-sans">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Sparkles className="w-3.5 h-3.5 text-white" />
-                  <span className="text-sm uppercase tracking-wider text-white/75 font-bold font-tech">ResQ AI</span>
-                </div>
-                <p className="text-sm text-white/90 leading-relaxed font-normal">{aiResponse}</p>
-              </div>
-            )}
+            <div className="p-2.5 rounded-xl border bg-[#E5B842]/10 border-[#E5B842]/30 text-[#E5B842]">
+              <Volume2 className="w-4 h-4" />
+            </div>
           </div>
 
-          {/* Quick Prompts */}
-          <div className="font-sans">
-            <span className="text-sm uppercase font-bold tracking-wider text-white/70 block mb-4 font-tech">Tap to Simulate Query:</span>
-            <div className="flex flex-wrap gap-3">
-              {samplePrompts.map((p, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handlePromptClick(p)}
-                  className="px-4 py-2.5 rounded-xl bg-transparent hover:bg-[#070707] border border-white/[0.05] hover:border-white/30 text-sm font-semibold tracking-wider uppercase text-white/60 hover:text-white transition-all flex items-center gap-2 focus:outline-hidden cursor-pointer"
+          {/* Main chat window */}
+          <div 
+            ref={chatContainerRef}
+            className="flex-1 overflow-y-auto space-y-4 pr-2 mb-6 relative z-10 custom-scrollbar flex flex-col justify-end scroll-smooth"
+          >
+            <div className="space-y-4">
+              {messages.map((msg, idx) => (
+                <div 
+                  key={idx} 
+                  className={`max-w-[90%] lg:max-w-[85%] p-4 rounded-2xl border leading-relaxed text-sm font-normal animate-fade-in-up voice-msg ${
+                    msg.role === 'ai' ? 'self-start' : 'ml-auto'
+                  }`}
                 >
-                  <Volume2 className="w-3.5 h-3.5 text-white/70" /> {p.q}
-                </button>
+                  {msg.role === 'ai' && (
+                    <div className="flex items-center gap-1.5 mb-2 shrink-0">
+                      <Sparkles className="w-3.5 h-3.5 text-[#E5B842]" />
+                      <span className="text-xs font-bold voice-ai-label uppercase font-display">Guardian AI</span>
+                    </div>
+                  )}
+                  <p className="voice-msg-text font-medium">{msg.text}</p>
+                </div>
+              ))}
+
+              {isProcessing && (
+                <div className="max-w-[85%] p-4 rounded-2xl voice-msg voice-processing text-sm font-medium animate-pulse font-display relative">
+                  Companion is formulating response...
+                </div>
+              )}
+              
+              {isListening && !isProcessing && (
+                <div className="max-w-[85%] p-4 rounded-2xl bg-[#E5B842]/10 border border-[#E5B842]/30 text-[#E5B842] text-sm font-medium animate-pulse font-display relative">
+                  Listening to your voice...
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Bottom control mock */}
+          <div className="space-y-4 shrink-0 mt-auto relative z-10 pt-4">
+            {/* Suggested Queries Mock */}
+            <div className="flex flex-wrap justify-center gap-2">
+              {["What is due today?", "Organize my afternoon", "Check my habit streaks"].map((label, i) => (
+                <div key={i} className={`px-3 py-1.5 lg:px-4 lg:py-2.5 voice-chip rounded-xl flex items-center gap-1.5 font-bold uppercase tracking-wider ${i === 2 ? 'hidden sm:flex' : ''}`}>
+                  <Volume2 className="w-3.5 h-3.5 text-[#E5B842]" />
+                  <span className="text-xs lg:text-sm">{label}</span>
+                </div>
               ))}
             </div>
+
+            {/* Input area mock */}
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 lg:w-12 lg:h-12 rounded-xl flex items-center justify-center shrink-0 border transition-all duration-300 ${
+                isListening 
+                  ? 'bg-[#E5B842] border-[#E5B842] text-black shadow-lg shadow-[#E5B842]/20' 
+                  : 'voice-mic-idle'
+              }`}>
+                {isListening ? <Mic className="w-4 h-4 lg:w-5 lg:h-5 text-black" /> : <MicOff className="w-4 h-4 lg:w-5 lg:h-5" />}
+              </div>
+
+              <div className="flex-1 relative flex items-center">
+                <div className="w-full voice-input rounded-xl pl-4 pr-12 py-2.5 lg:py-3.5 text-xs lg:text-sm">
+                  Send instruction message...
+                </div>
+                <div className="absolute right-3 voice-input-icon">
+                  <Send className="w-4 h-4" />
+                </div>
+              </div>
+            </div>
           </div>
+        </div>
+
+        {/* Right Column: Title and Context */}
+        <div className="lg:col-span-5 flex flex-col justify-center pl-0 lg:pl-6">
+          <span className="text-sm font-tech font-bold tracking-[0.3em] uppercase voice-label block mb-5 font-sans">
+            AI VOICE CAPABILITIES
+          </span>
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-display font-black mb-8 leading-tight tracking-tight voice-heading">
+            Command your <br />
+            workflow with <br />
+            <span className="text-[#E5B842]">natural speech.</span>
+          </h2>
+          <p className="voice-body text-lg font-light leading-relaxed mb-8 max-w-md">
+            Experience hands-free control. Our AI understands complex requests, from organizing detailed calendar events to summarizing your critical deadlines on the fly.
+          </p>
         </div>
 
       </div>

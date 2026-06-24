@@ -64,7 +64,7 @@ export default function CoreWorkflowSection() {
                 </div>
                 <h4 className="text-sm font-bold text-white tracking-wide">AI Priority Ranking</h4>
                 <p className="text-sm text-white/70 leading-relaxed">
-                  Tasks are scored from 1-10 based on urgency and context. No more decision fatigue.
+                  Tasks are scored from 1-100 based on urgency and context. No more decision fatigue.
                 </p>
               </div>
               <div className="space-y-3">
@@ -95,7 +95,7 @@ export default function CoreWorkflowSection() {
               </div>
               <div>
                 <p className="text-sm font-bold text-white/70 uppercase tracking-widest mb-0.5">Top Priority</p>
-                <p className="text-sm font-semibold text-white">Score: 10/10</p>
+                <p className="text-sm font-semibold text-white">Score: 100/100</p>
               </div>
             </div>
           </div>

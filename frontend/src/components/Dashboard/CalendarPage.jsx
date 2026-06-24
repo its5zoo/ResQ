@@ -14,7 +14,8 @@ import {
   Layers,
   User,
   AlertTriangle,
-  Bot
+  Bot,
+  Activity
 } from 'lucide-react';
 import { calendar as apiCalendar, tasks as apiTasks, habits as apiHabits } from '../../services/api.js';
 import { useSocket } from '../../services/socket.js';
@@ -43,7 +44,8 @@ export default function CalendarPage({ tasks }) {
     user_block: true,
     deadline: true,
     study: true,
-    meeting: true
+    meeting: true,
+    habit: true
   });
 
   // Sync settings
@@ -494,6 +496,16 @@ export default function CalendarPage({ tasks }) {
             </button>
           </div>
           
+          {currentWeekOffset !== 0 && (
+            <button
+              onClick={() => setCurrentWeekOffset(0)}
+              className="px-3 sm:px-4 py-2 bg-white/5 hover:bg-white/10 text-white/80 hover:text-white border border-white/10 text-sm font-bold uppercase tracking-wider rounded-xl transition-all duration-300 animate-fade-in cursor-pointer active:scale-[0.98]"
+              style={{ minHeight: 'auto' }}
+            >
+              Today
+            </button>
+          )}
+
           <button 
             onClick={handleOpenCreateModal}
             className="px-3 sm:px-4 py-2 bg-transparent text-[#E5B842] border border-[#E5B842]/40 hover:bg-[#E5B842] hover:text-black hover:border-transparent text-sm font-bold uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center gap-1 cursor-pointer active:scale-[0.98]"
@@ -548,7 +560,7 @@ export default function CalendarPage({ tasks }) {
                     <div className="flex-1 p-2.5 flex flex-col gap-4">
 
                       {/* Daily Habits (All-Day equivalent) */}
-                      {dayHabits.length > 0 && (
+                      {layerFilters.habit && dayHabits.length > 0 && (
                         <div className="flex flex-col gap-2 mb-1">
                            {dayHabits.map(habit => (
                              <div key={habit._id} className="w-full rounded-xl border border-purple-500/30 bg-purple-500/10 hover:border-purple-500/50 text-purple-400 p-3 shadow-[0_0_12px_rgba(168,85,247,0.15)] transition-all duration-300 relative overflow-hidden flex items-start gap-2 select-none hover:scale-[1.02]">
@@ -604,7 +616,7 @@ export default function CalendarPage({ tasks }) {
                                       </div>
                                       <h5 className="text-[10px] font-bold uppercase leading-tight tracking-wide mb-1 break-words">{item.title}</h5>
                                       <span className="text-[10px] opacity-60 font-semibold uppercase tracking-wider block">
-                                        {isAiBlock ? (item.taskId && (localTasks.find(t => t._id === item.taskId)?.urgency >= 8) ? '🔥 Priority Focus' : '🤖 AI Scheduled') : item.type === 'deadline' ? '⚠️ Deadline' : '👤 Synced Event'}
+                                        {isAiBlock ? (item.taskId && (localTasks.find(t => t._id === item.taskId)?.urgency >= 8) ? '🔥 Priority Focus' : '') : item.type === 'deadline' ? '⚠️ Deadline' : '👤 Synced Event'}
                                       </span>
                                     </div>
                                  </div>
@@ -653,16 +665,19 @@ export default function CalendarPage({ tasks }) {
             {/* Custom Control Chips */}
             <div className="flex flex-col gap-3">
               {[
-                { key: 'ai_block', label: 'AI Scheduled Tasks', icon: Bot, textColor: 'text-[#E5B842]', bgColor: 'bg-[#E5B842]/10', borderColor: 'border-[#E5B842]/30', shadowColor: 'shadow-[0_0_15px_rgba(229,184,66,0.3)]' },
-                { key: 'user_block', label: 'My Added Events', icon: User, textColor: 'text-[#4A9EFF]', bgColor: 'bg-[#4A9EFF]/10', borderColor: 'border-[#4A9EFF]/30', shadowColor: 'shadow-[0_0_15px_rgba(74,158,255,0.3)]' },
-                { key: 'deadline', label: 'Upcoming Deadlines', icon: AlertTriangle, textColor: 'text-[#FF5F5F]', bgColor: 'bg-[#FF5F5F]/10', borderColor: 'border-[#FF5F5F]/30', shadowColor: 'shadow-[0_0_15px_rgba(255,95,95,0.3)]' },
+                { key: 'ai_block', label: 'AI Scheduled', icon: Bot, textColor: 'text-[#E5B842]', bgColor: 'bg-[#E5B842]/10', borderColor: 'border-[#E5B842]/30', shadowColor: 'shadow-[0_0_15px_rgba(229,184,66,0.3)]' },
+                { key: 'user_block', label: 'My Events', icon: User, textColor: 'text-[#4A9EFF]', bgColor: 'bg-[#4A9EFF]/10', borderColor: 'border-[#4A9EFF]/30', shadowColor: 'shadow-[0_0_15px_rgba(74,158,255,0.3)]' },
+                { key: 'deadline', label: 'Deadlines', icon: AlertTriangle, textColor: 'text-[#FF5F5F]', bgColor: 'bg-[#FF5F5F]/10', borderColor: 'border-[#FF5F5F]/30', shadowColor: 'shadow-[0_0_15px_rgba(255,95,95,0.3)]' },
+                { key: 'habit', label: 'Daily Habits', icon: Activity, textColor: 'text-purple-400', bgColor: 'bg-purple-500/10', borderColor: 'border-purple-500/30', shadowColor: 'shadow-[0_0_15px_rgba(168,85,247,0.3)]' },
               ].map(filter => {
-                const checked = filter.key === 'ai_block' ? layerFilters.ai_block : filter.key === 'user_block' ? layerFilters.user_block : layerFilters.deadline;
+                const checked = filter.key === 'ai_block' ? layerFilters.ai_block : filter.key === 'user_block' ? layerFilters.user_block : filter.key === 'habit' ? layerFilters.habit : layerFilters.deadline;
                 const toggle = () => {
                   if (filter.key === 'ai_block') {
                     setLayerFilters(prev => ({ ...prev, ai_block: !prev.ai_block }));
                   } else if (filter.key === 'user_block') {
                     setLayerFilters(prev => ({ ...prev, user_block: !prev.user_block, meeting: !prev.user_block }));
+                  } else if (filter.key === 'habit') {
+                    setLayerFilters(prev => ({ ...prev, habit: !prev.habit }));
                   } else {
                     setLayerFilters(prev => ({ ...prev, deadline: !prev.deadline }));
                   }
@@ -681,15 +696,15 @@ export default function CalendarPage({ tasks }) {
                         : 'bg-white/[0.01] border-white/5 text-white/70 hover:text-white/80 hover:bg-white/[0.02]'
                     }`}
                   >
-                    <span className="flex items-center gap-3.5">
-                      <div className={`p-2.5 rounded-xl flex items-center justify-center transition-all duration-300 border ${checked ? `${filter.bgColor} ${filter.borderColor} ${filter.shadowColor}` : 'bg-white/5 border-transparent'}`}>
+                    <span className="flex items-center gap-3">
+                      <div className={`p-2.5 shrink-0 rounded-xl flex items-center justify-center transition-all duration-300 border ${checked ? `${filter.bgColor} ${filter.borderColor} ${filter.shadowColor}` : 'bg-white/5 border-transparent'}`}>
                          <Icon className={`w-4 h-4 ${checked ? filter.textColor : 'text-white/70'}`} />
                       </div>
-                      <span className={`text-[13px] font-bold uppercase tracking-wide font-tech transition-opacity ${checked ? 'opacity-100 text-white' : 'opacity-60'}`}>
+                      <span className={`text-[12px] sm:text-[13px] text-left leading-tight font-bold uppercase tracking-wide font-tech transition-opacity ${checked ? 'opacity-100 text-white' : 'opacity-60'}`}>
                         {filter.label}
                       </span>
                     </span>
-                    <span className={`text-sm px-3 py-1.5 rounded-lg font-bold tracking-widest transition-all ${checked ? `${filter.bgColor} ${filter.textColor} ${filter.borderColor} border` : 'bg-transparent border border-white/10 text-white/70'}`}>
+                    <span className={`text-xs sm:text-sm px-2.5 sm:px-3 py-1.5 rounded-lg font-bold tracking-widest shrink-0 transition-all ${checked ? `${filter.bgColor} ${filter.textColor} ${filter.borderColor} border` : 'bg-transparent border border-white/10 text-white/70'}`}>
                       {checked ? 'SHOW' : 'HIDE'}
                     </span>
                   </button>

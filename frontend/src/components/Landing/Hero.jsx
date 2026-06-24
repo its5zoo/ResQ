@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Play } from 'lucide-react';
-import dashboardPreview from '../../assets/dashboard_preview.png';
 
 export default function Hero() {
   const navigate = useNavigate();
@@ -169,7 +168,7 @@ export default function Hero() {
                 {/* Dashboard Image */}
                 <div className="relative overflow-hidden rounded-lg bg-black aspect-[1920/1009] border border-white/5">
                   <img 
-                    src={dashboardPreview} 
+                    src="/dashboard_v3.png" 
                     alt="ResQ Dashboard Preview" 
                     className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-[1.015]"
                   />

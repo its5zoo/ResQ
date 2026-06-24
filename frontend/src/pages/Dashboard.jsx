@@ -88,6 +88,11 @@ export default function Dashboard({ currentTab: propTab, setCurrentTab: propSetT
     } else {
       root.classList.add('free-active');
     }
+
+    // Request native browser notification permissions
+    if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+      Notification.requestPermission();
+    }
   }, []);
 
   // Lock body scroll when mobile drawer is open

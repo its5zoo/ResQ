@@ -45,11 +45,27 @@ export default function DashboardHome({ setCurrentTab }) {
     }
   };
 
+  const refreshAISummary = async () => {
+    try {
+      const summaryData = await ai.getDailySummary().catch(() => ({ summary: 'No summary available today.' }));
+      setSummary(summaryData?.summary || 'No summary available today.');
+    } catch (err) {
+      console.error('Error refreshing summary:', err);
+    }
+  };
+
   useEffect(() => {
     const load = async () => {
       await fetchDashboardData();
     };
     load();
+
+    // Hourly update for AI summary
+    const intervalId = setInterval(() => {
+      refreshAISummary();
+    }, 60 * 60 * 1000); // 1 hour in ms
+
+    return () => clearInterval(intervalId);
   }, []);
 
   // Listen to 'ai:priority-update' to re-render tasks
@@ -73,6 +89,7 @@ export default function DashboardHome({ setCurrentTab }) {
       if (!task) return;
       const updated = await apiTasks.update(id, { completed: !task.completed });
       setLocalTasks(prev => prev.map(t => t._id === id ? updated : t));
+      refreshAISummary();
     } catch (err) {
       console.error('Error toggling task:', err);
     }
@@ -82,6 +99,7 @@ export default function DashboardHome({ setCurrentTab }) {
     try {
       const updated = await apiHabits.markComplete(id);
       setLocalHabits(prev => prev.map(h => h._id === id ? updated : h));
+      refreshAISummary();
     } catch (err) {
       console.error('Error toggling habit:', err);
     }

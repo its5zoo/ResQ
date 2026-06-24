@@ -21,7 +21,7 @@ export default function MobileTopBar({ currentTab, setCurrentTab, onMenuOpen }) 
       {/* Brand */}
       <button
         onClick={() => navigate('/')}
-        className="font-display font-black text-2xl tracking-tighter flex items-center cursor-pointer"
+        className="font-display font-black text-2xl tracking-tighter flex items-center cursor-pointer notranslate"
         style={{ minHeight: 'auto' }}
       >
         <span className="text-silver-gradient text-shine-sweep">Res</span>

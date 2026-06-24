@@ -45,12 +45,24 @@ export default function Sidebar({ currentTab, setCurrentTab }) {
             className="cursor-pointer group flex items-center justify-center"
           >
             {isSidebarOpen ? (
-              <span className="font-display font-black text-3xl xl:text-4xl tracking-tighter flex items-center">
-                <span className="text-silver-gradient text-shine-sweep">Res</span>
-                <span className="text-gold-sweep text-glow-gold">Q</span>
-              </span>
+              <div className="flex items-start gap-2">
+                <span className="font-display font-black text-3xl xl:text-4xl tracking-tighter flex items-center notranslate">
+                  <span className="text-silver-gradient text-shine-sweep">Res</span>
+                  <span className="text-gold-sweep text-glow-gold">Q</span>
+                </span>
+                {user?.plan === 'premium' && (
+                  <div className="relative mt-0.5 ml-1.5 group cursor-default">
+                    <div className="absolute inset-0 bg-[#E5B842] rounded-md blur-md opacity-40 group-hover:opacity-80 transition-opacity duration-300"></div>
+                    <div className="relative px-2 py-1 rounded-md bg-[#111] border border-[#E5B842]/60 flex items-center justify-center">
+                      <span className="text-[10px] font-display font-black tracking-[0.15em] text-[#E5B842] uppercase leading-none">
+                        PREMIUM
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
             ) : (
-              <span className="font-display font-black text-2xl tracking-tighter flex items-center">
+              <span className="font-display font-black text-2xl tracking-tighter flex items-center notranslate">
                 <span className="text-gold-sweep text-glow-gold">Q</span>
               </span>
             )}

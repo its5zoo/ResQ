@@ -271,8 +271,17 @@ html.light body,
 html.light main {
   background-color: #F8F9FA !important;
   background-image: none !important;
-  color: #111113 !important;
+  color: #0F0F11 !important;
 }
+
+/* ---- LIGHT MODE TEXT HIERARCHY ----
+   Level 1 – Primary / Headings    : #0F0F11  (near-black)
+   Level 2 – Strong emphasis       : #1F2937  (slate-800)
+   Level 3 – Medium body           : #374151  (slate-700)
+   Level 4 – Subdued / labels      : #4B5563  (slate-600)
+   Level 5 – Muted / secondary     : #6B7280  (slate-500)
+   Level 6 – Faint / placeholders  : #9CA3AF  (slate-400)
+   ---------------------------------------------------------------- */
 
 html.light h1, 
 html.light h2, 
@@ -280,30 +289,95 @@ html.light h3,
 html.light h4, 
 html.light h5, 
 html.light h6 {
-  color: #111113 !important;
+  color: #0F0F11 !important;
 }
 
-html.light p, 
-html.light span, 
+/* Primary body text */
+html.light p {
+  color: #374151 !important;
+}
+
+/* Spans and labels vary — keep flexible via specific overrides below */
 html.light label {
   color: #4B5563 !important;
 }
 
-html.light .text-white,
-html.light .text-white\/95,
-html.light .text-white\/85, 
-html.light .text-white\/80,
-html.light .text-white\/70 {
-  color: #111113 !important;
+/* ---- Mapping white opacity classes to light-mode hierarchy ---- */
+
+/* Full white / near-white → primary text */
+html.light .text-white {
+  color: #0F0F11 !important;
 }
 
+/* 90–95% → strong emphasis (headings used as inline text) */
+html.light .text-white\/95,
+html.light .text-white\/90 {
+  color: #1F2937 !important;
+}
+
+/* 80–85% → medium-strong body text */
+html.light .text-white\/85,
+html.light .text-white\/80 {
+  color: #374151 !important;
+}
+
+/* 70% → subdued body / secondary labels */
+html.light .text-white\/70 {
+  color: #4B5563 !important;
+}
+
+/* 55–65% → muted text / supporting copy */
+html.light .text-white\/65,
 html.light .text-white\/60,
-html.light .text-white\/50, 
-html.light .text-white\/45, 
-html.light .text-white\/40, 
-html.light .text-white\/35, 
-html.light .text-white\/30 {
+html.light .text-white\/55 {
   color: #6B7280 !important;
+}
+
+/* 40–50% → faint / helper text / timestamps */
+html.light .text-white\/50,
+html.light .text-white\/45,
+html.light .text-white\/40 {
+  color: #9CA3AF !important;
+}
+
+/* 30–35% → very faint / disabled states — still readable in light mode */
+html.light .text-white\/35,
+html.light .text-white\/30 {
+  color: #9CA3AF !important;
+}
+
+/* ---- Dashboard span context overrides for proper visual hierarchy ----
+   The global span rule is omitted so spans inside dashboard cards
+   inherit the correct level based on their own opacity class above.   */
+
+/* Sidebar & nav labels — medium emphasis */
+html.light .sidebar-nav-label,
+html.light nav span {
+  color: #374151 !important;
+}
+
+/* Section header labels (uppercase tracking-wider labels above stats) */
+html.light span.uppercase.tracking-wider,
+html.light span.tracking-widest {
+  color: #6B7280 !important;
+}
+
+/* Large stat values inside dashboard cards */
+html.light .text-2xl.font-bold,
+html.light .text-3xl.font-bold,
+html.light .text-4xl.font-bold {
+  color: #0F0F11 !important;
+}
+
+/* Notification / alert title text */
+html.light .font-semibold:not(.text-\[\#E5B842\]) {
+  color: #1F2937 !important;
+}
+
+/* Timestamp / meta text — explicitly faint */
+html.light .font-tech.text-white\/35,
+html.light span.text-white\/35 {
+  color: #9CA3AF !important;
 }
 
 html.light .bg-\[\#090909\], 
@@ -340,7 +414,7 @@ html.light select,
 html.light textarea {
   background-color: #F3F4F6 !important;
   border-color: #D1D5DB !important;
-  color: #111113 !important;
+  color: #0F0F11 !important;
 }
 
 html.light input::placeholder {
@@ -349,7 +423,7 @@ html.light input::placeholder {
 
 html.light .html-light-btn-white {
   background-color: #FFFFFF !important;
-  color: #111113 !important;
+  color: #0F0F11 !important;
   border-color: #E5E7EB !important;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02) !important;
 }
@@ -372,7 +446,7 @@ html.light .bg-\[\#0A0A0A\] {
 
 /* Ensure the silver-gradient brand text shifts to solid charcoal in light mode */
 html.light .text-silver-gradient {
-  color: #111113 !important;
+  color: #0F0F11 !important;
   background: none !important;
   -webkit-text-fill-color: initial !important;
   -webkit-background-clip: initial !important;
@@ -417,7 +491,7 @@ html.light.free-active .bg-\[\#E5B842\]\/10,
 html.light.free-active .bg-\[\#E5B842\]\/10 *,
 html.light.free-active .bg-\[\#E5B842\]\/5,
 html.light.free-active .bg-\[\#E5B842\]\/5 * {
-  color: #111113 !important;
+  color: #0F0F11 !important;
 }
 
 html.light.free-active .hover\:bg-\%5B\%23E5B842\%5D:hover,
@@ -534,7 +608,7 @@ html.light nav button:not(.border-white\/40):hover {
 html.light nav button.border-white\/40 {
   border-color: rgba(0, 0, 0, 0.15) !important;
   background-color: #FFFFFF !important;
-  color: #111113 !important;
+  color: #0F0F11 !important;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02) !important;
 }
 
@@ -607,7 +681,7 @@ html.light .auth-card label {
 }
 
 html.light .auth-card h3 {
-  color: #111113 !important;
+  color: #0F0F11 !important;
 }
 
 html.light .auth-card p {
@@ -617,7 +691,7 @@ html.light .auth-card p {
 html.light .auth-card input {
   background-color: #F9FAFB !important;
   border-color: #E5E7EB !important;
-  color: #111113 !important;
+  color: #0F0F11 !important;
 }
 
 html.light .auth-card input:hover {
@@ -645,12 +719,12 @@ html.light .auth-card button.bg-\[\#0B0B0B\] {
 html.light .auth-card button.bg-\[\#0B0B0B\]:hover {
   background-color: #F9FAFB !important;
   border-color: #9CA3AF !important;
-  color: #111113 !important;
+  color: #0F0F11 !important;
 }
 
 html.light .auth-card button[type="submit"] {
   border-color: #E5B842 !important;
-  color: #111113 !important;
+  color: #0F0F11 !important;
 }
 
 html.light .auth-card button[type="submit"]:hover {
@@ -718,7 +792,7 @@ html.light .voice-wave-bar.bg-white\/20 {
 
 /* User speech transcript box */
 html.light .voice-console p.text-white\/90 {
-  color: #111113 !important;
+  color: #0F0F11 !important;
   border-left-color: #D1D5DB !important;
 }
 
@@ -1139,5 +1213,273 @@ html.matrix .border-[#E5B842]\/40 {
 .scrollbar-none::-webkit-scrollbar {
   display: none;
 }
+
+
+
+/* Calendar Blocks Text Color Redesign for Light Mode */
+html.light .bg-purple-500\/10 h5,
+html.light .bg-purple-500\/10 .text-white {
+  color: #4C1D95 !important; /* Deep Purple */
+}
+html.light .bg-purple-500\/10 span.text-purple-400 {
+  color: #6D28D9 !important; /* Medium Deep Purple */
+}
+
+html.light .bg-\[\#E5B842\]\/10 h5,
+html.light .bg-\[\#E5B842\]\/10 .text-white {
+  color: #78350F !important; /* Deep Amber */
+}
+html.light .bg-\[\#E5B842\]\/10 span,
+html.light .bg-\[\#E5B842\]\/10 svg {
+  color: #92400E !important; /* Medium Amber */
+}
+
+html.light .bg-\[\#FF5F5F\]\/10 h5,
+html.light .bg-\[\#FF5F5F\]\/10 .text-white {
+  color: #7F1D1D !important; /* Deep Red */
+}
+html.light .bg-\[\#FF5F5F\]\/10 span,
+html.light .bg-\[\#FF5F5F\]\/10 svg {
+  color: #B91C1C !important; /* Medium Red */
+}
+
+html.light .bg-\[\#4A9EFF\]\/10 h5,
+html.light .bg-\[\#4A9EFF\]\/10 .text-white {
+  color: #1E3A8A !important; /* Deep Blue */
+}
+html.light .bg-\[\#4A9EFF\]\/10 span,
+html.light .bg-\[\#4A9EFF\]\/10 svg {
+  color: #1D4ED8 !important; /* Medium Blue */
+}
+
+/* ==========================================================================
+   Light Mode — Calendar Day Header & Grid Fixes
+   Only overrides surface colors; does NOT touch dark mode.
+   ========================================================================== */
+
+/* The calendar outer grid container (bg-[#090909]) */
+html.light .rounded-3xl.bg-\[\#090909\],
+html.light .rounded-2xl.bg-\[\#090909\] {
+  background-color: #FFFFFF !important;
+  border-color: #E5E7EB !important;
+}
+
+/* The 7-column day grid wrapper */
+html.light .grid.grid-cols-\[repeat\(7\,_1fr\)\] {
+  background-color: #FFFFFF !important;
+  border-color: #E5E7EB !important;
+  box-shadow: none !important;
+}
+
+/* Sticky day-header cells — was near-black, now clean white */
+html.light .sticky.bg-\[\#090909\]\/95,
+html.light [class*="bg-[#090909]/95"] {
+  background-color: rgba(255, 255, 255, 0.97) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-bottom-color: #E5E7EB !important;
+}
+
+/* Column dividers in the grid */
+html.light .divide-x.divide-white\/\[0\.06\] > * {
+  border-right-color: #E5E7EB !important;
+}
+html.light .border-white\/\[0\.06\] {
+  border-color: #E5E7EB !important;
+}
+
+/* Column hover state background */
+html.light .hover\:bg-white\/\[0\.01\]:hover {
+  background-color: rgba(229, 184, 66, 0.03) !important;
+}
+
+/* Day number text for non-today columns */
+html.light .group-hover\/col\:text-white {
+  color: #0F0F11 !important;
+}
+
+/* ==========================================================================
+   Light Mode — Habits Heatmap Matrix Fixes
+   ========================================================================== */
+
+/* Non-completed target day cells — was bg-black/50 (near-black on white) */
+html.light .bg-black\/50 {
+  background-color: #F1F5F9 !important; /* slate-100 — subtle light gray */
+  border-color: #E2E8F0 !important;     /* slate-200 */
+}
+
+/* Non-target dashed cells */
+html.light .border-dashed.border-white\/5 {
+  border-color: #E2E8F0 !important;
+}
+
+/* Invisible dot on non-completed target days — was bg-white/15 */
+html.light .bg-white\/15 {
+  background-color: #CBD5E1 !important; /* slate-300 — visible subtle dot */
+}
+
+/* Heatmap day label text for non-completed cells (inherits text-white/50) */
+html.light .bg-black\/50 span {
+  color: #64748B !important; /* slate-500 — clearly readable */
+}
+
+/* Non-target day dashes */
+html.light .border-dashed span {
+  color: #CBD5E1 !important;
+}
+
+/* ==========================================================================
+   Light Mode — Calendar Sticky Page Header Fix
+   The sticky -top-6 bg-[#080808] z-30 header needs a higher-specificity rule
+   so it doesn't bleed through as a dark rectangle when scrolling.
+   ========================================================================== */
+html.light .sticky.z-30 {
+  background-color: #F8F9FA !important;
+  border-bottom-color: #E5E7EB !important;
+}
+
+/* ==========================================================================
+   Light Mode — Dashboard "Today's Focus Slots" Timeline Dot Fix
+   The dot uses border-black (hardcoded) which stays black on light surfaces.
+   ========================================================================== */
+
+/* Timeline dot border — was border-black (looks odd on white) */
+html.light .border-black {
+  border-color: #FFFFFF !important;
+}
+
+/* The left timeline rule lines — strengthen from near-invisible */
+html.light .border-l-2.border-\[\#E5B842\]\/20 {
+  border-left-color: rgba(229, 184, 66, 0.5) !important;
+}
+html.light .border-l-2.border-orange-500\/20 {
+  border-left-color: rgba(249, 115, 22, 0.5) !important;
+}
+
+/* Focus Slots item time text — was text-[#E5B842]/70 which is too faint in light */
+html.light .text-\[\#E5B842\]\/70 {
+  color: #B8860B !important;
+}
+
+/* ==========================================================================
+   CalendarAnimation Component — Semantic Theme Classes
+   Dark mode (default) preserves the original dark aesthetic.
+   Light mode flips surfaces to white/light-gray.
+   ========================================================================== */
+
+/* ---- Dark Mode (default) ---- */
+.cal-anim-root {
+  background-color: #050505;
+  color: #ffffff;
+}
+.cal-anim-divider    { border-color: rgba(255,255,255,0.05); }
+.cal-anim-heading    { color: #ffffff; }
+.cal-anim-label      { color: rgba(255,255,255,0.50); }
+.cal-anim-event-text { color: #ffffff; }
+.cal-anim-sidebar    { background-color: #090909; }
+.cal-anim-cell       { border-color: rgba(255,255,255,0.05); background-color: rgba(255,255,255,0.02); }
+.cal-anim-widget     { border-color: rgba(255,255,255,0.05); background-color: rgba(255,255,255,0.02); }
+
+/* Form overlay */
+.cal-anim-form         { background-color: #0A0A0A; }
+.cal-anim-form-border  { border-color: rgba(255,255,255,0.10); }
+.cal-anim-form-heading { color: #ffffff; }
+.cal-anim-input        { background-color: #050505; }
+.cal-anim-input-border { border-color: rgba(255,255,255,0.10); }
+.cal-anim-input-text   { color: #ffffff; }
+.cal-anim-placeholder  { color: rgba(255,255,255,0.30); }
+.cal-anim-type-btn {
+  background-color: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.50);
+}
+.cal-anim-save-btn {
+  background-color: #ffffff;
+  color: #000000;
+}
+.cal-anim-save-btn:hover { background-color: rgba(255,255,255,0.90); }
+
+/* ---- Light Mode Overrides ---- */
+html.light .cal-anim-root {
+  background-color: #FFFFFF !important;
+  color: #0F0F11 !important;
+}
+html.light .cal-anim-divider { border-color: #E5E7EB !important; }
+html.light .cal-anim-heading { color: #0F0F11 !important; }
+html.light .cal-anim-label   { color: #6B7280 !important; }
+html.light .cal-anim-event-text { color: #1F2937 !important; }
+html.light .cal-anim-sidebar { background-color: #F9FAFB !important; }
+html.light .cal-anim-cell {
+  border-color: #E5E7EB !important;
+  background-color: #F9FAFB !important;
+}
+html.light .cal-anim-widget {
+  border-color: #E5E7EB !important;
+  background-color: #FFFFFF !important;
+}
+
+/* Form overlay in light */
+html.light .cal-anim-form {
+  background-color: #FFFFFF !important;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.08) !important;
+}
+html.light .cal-anim-form-border  { border-color: #E5E7EB !important; }
+html.light .cal-anim-form-heading { color: #0F0F11 !important; }
+html.light .cal-anim-input        { background-color: #F3F4F6 !important; }
+html.light .cal-anim-input-border { border-color: #D1D5DB !important; }
+html.light .cal-anim-input-text   { color: #0F0F11 !important; }
+html.light .cal-anim-placeholder  { color: #9CA3AF !important; }
+html.light .cal-anim-type-btn {
+  background-color: #F3F4F6 !important;
+  border-color: #D1D5DB !important;
+  color: #6B7280 !important;
+}
+html.light .cal-anim-save-btn {
+  background-color: #0F0F11 !important;
+  color: #FFFFFF !important;
+}
+html.light .cal-anim-save-btn:hover { background-color: #374151 !important; }
+
+/* ==========================================================================
+   VoiceSection Component — Semantic Theme Classes
+   Dark mode (default) = original dark aesthetic.
+   Light mode = clean white card.
+   ========================================================================== */
+
+/* ---- Dark Mode (default) ---- */
+.voice-section              { background-color: #050505; }
+.voice-section-glow         { background-color: rgba(255,255,255,0.015); }
+.voice-card                 { background-color: #090909; border: 1px solid rgba(255,255,255,0.05); box-shadow: 0 10px 30px -10px rgba(0,0,0,0.8), 0 1px 0 0 rgba(255,255,255,0.05) inset; }
+.voice-card-header          { border-color: rgba(255,255,255,0.05); }
+.voice-label                { color: rgba(255,255,255,0.50); }
+.voice-heading              { color: #ffffff; }
+.voice-body                 { color: rgba(255,255,255,0.50); }
+.voice-msg                  { background-color: rgba(255,255,255,0.01); border-color: rgba(229,184,66,0.20); }
+.voice-ai-label             { color: #ffffff; }
+.voice-msg-text             { color: rgba(255,255,255,0.80); }
+.voice-processing           { background-color: rgba(255,255,255,0.01); border: 1px solid rgba(229,184,66,0.20); color: rgba(255,255,255,0.70); }
+.voice-chip                 { background-color: rgba(0,0,0,0.40); border: 1px solid rgba(255,255,255,0.06); color: rgba(255,255,255,0.60); }
+.voice-mic-idle             { background-color: #0B0B0B; border-color: rgba(255,255,255,0.10); color: rgba(255,255,255,0.50); }
+.voice-input                { background-color: #0B0B0B; border: 1px solid rgba(255,255,255,0.10); color: rgba(255,255,255,0.40); }
+.voice-input-icon           { color: rgba(255,255,255,0.30); }
+
+/* ---- Light Mode Overrides ---- */
+html.light .voice-section              { background-color: #FFFFFF !important; border-top-color: #F1F5F9 !important; }
+html.light .voice-section-glow         { background-color: #F8FAFC !important; }
+html.light .voice-card                 { background-color: #FFFFFF !important; border: 1px solid #E5E7EB !important; box-shadow: 0 8px 30px rgba(0,0,0,0.04) !important; }
+html.light .voice-card-header          { border-color: #F1F5F9 !important; }
+html.light .voice-label                { color: #6B7280 !important; }
+html.light .voice-heading              { color: #0F0F11 !important; }
+html.light .voice-body                 { color: #6B7280 !important; }
+html.light .voice-msg                  { background-color: #FFFFFF !important; border-color: #E5E7EB !important; box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important; }
+html.light .voice-ai-label             { color: #0F0F11 !important; }
+html.light .voice-msg-text             { color: #374151 !important; }
+html.light .voice-processing           { background-color: #FFFFFF !important; border-color: #E5E7EB !important; color: #6B7280 !important; }
+html.light .voice-chip                 { background-color: #FFFFFF !important; border-color: #E5E7EB !important; color: #4B5563 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important; }
+html.light .voice-mic-idle             { background-color: #F9FAFB !important; border-color: #E5E7EB !important; color: #9CA3AF !important; }
+html.light .voice-input                { background-color: #FFFFFF !important; border-color: #E5E7EB !important; color: #9CA3AF !important; box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important; }
+html.light .voice-input-icon           { color: #D1D5DB !important; }
+
+
 
 
