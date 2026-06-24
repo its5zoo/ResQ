@@ -60,9 +60,24 @@ html.matrix {
   }
 }
 
-@keyframes voiceWave {
-  0%, 100% { transform: scaleY(0.7); }
-  50% { transform: scaleY(var(--orb-scale-wave)); }
+@keyframes proRipple {
+  0% { transform: translate(-50%, -50%) scale(0.9); opacity: 0; border-width: 2px; }
+  20% { opacity: 0.8; border-width: 1.5px; }
+  100% { transform: translate(-50%, -50%) scale(3); opacity: 0; border-width: 0.5px; }
+}
+
+.pro-ripple-1 {
+  animation: proRipple 3s cubic-bezier(0.2, 0.6, 0.2, 1) infinite;
+}
+
+.pro-ripple-2 {
+  animation: proRipple 3s cubic-bezier(0.2, 0.6, 0.2, 1) infinite;
+  animation-delay: 1s;
+}
+
+.pro-ripple-3 {
+  animation: proRipple 3s cubic-bezier(0.2, 0.6, 0.2, 1) infinite;
+  animation-delay: 2s;
 }
 
 .animate-fade-in-up {
