@@ -460,55 +460,56 @@ export default function CalendarPage({ tasks }) {
   const unscheduledTasks = (tasks || []).filter(t => !t.completed && !scheduledTaskIds.includes(t._id));
 
   return (
-    <div className="space-y-8 animate-fade-in font-sans relative">
+    <div className="space-y-5 lg:space-y-8 animate-fade-in font-sans relative">
       
       {/* Header */}
-      <div className="sticky -top-6 bg-[#080808] z-30 flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-white/5 pb-6 pt-6 -mt-6">
+      <div className="sticky -top-6 bg-[#080808] z-30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4 lg:pb-6 pt-4 lg:pt-6 -mt-2 lg:-mt-6">
         <div>
-          <span className="text-[10px] font-tech font-bold tracking-[0.3em] text-[#E5B842] block mb-2 uppercase flex items-center gap-2">
+          <span className="text-xs lg:text-sm font-tech font-bold tracking-[0.3em] text-[#E5B842] block mb-1.5 lg:mb-2 uppercase flex items-center gap-2">
             <Sparkles className="w-3.5 h-3.5" /> AI Time Management
           </span>
-          <h2 className="text-3xl sm:text-4xl font-display font-black tracking-tight text-white leading-none">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-display font-black tracking-tight text-white leading-none">
             Chronos Auto-Pilot
           </h2>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 bg-[#0B0B0B] border border-white/[0.06] rounded-xl p-1">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1 sm:gap-1.5 bg-[#0B0B0B] border border-white/[0.06] rounded-xl p-1">
             <button 
               onClick={() => setCurrentWeekOffset(prev => prev - 1)}
-              className="p-1.5 hover:bg-white/[0.05] rounded-lg transition-colors text-white/40 hover:text-white cursor-pointer"
+              className="p-1.5 hover:bg-white/[0.05] rounded-lg transition-colors text-white/70 hover:text-white cursor-pointer"
+              style={{ minHeight: 'auto' }}
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="text-xs font-bold uppercase px-2 text-white/80 min-w-[130px] text-center">
+            <span className="text-xs sm:text-sm font-bold uppercase px-1 sm:px-2 text-white/80 min-w-[90px] sm:min-w-[130px] text-center">
               {displayWeekRange}
             </span>
             <button 
               onClick={() => setCurrentWeekOffset(prev => prev + 1)}
-              className="p-1.5 hover:bg-white/[0.05] rounded-lg transition-colors text-white/40 hover:text-white cursor-pointer"
+              className="p-1.5 hover:bg-white/[0.05] rounded-lg transition-colors text-white/70 hover:text-white cursor-pointer"
+              style={{ minHeight: 'auto' }}
             >
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
           
-
-
           <button 
             onClick={handleOpenCreateModal}
-            className="px-4 py-2 bg-transparent text-[#E5B842] border border-[#E5B842]/40 hover:bg-[#E5B842] hover:text-black hover:border-transparent text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center gap-1 cursor-pointer active:scale-[0.98]"
+            className="px-3 sm:px-4 py-2 bg-transparent text-[#E5B842] border border-[#E5B842]/40 hover:bg-[#E5B842] hover:text-black hover:border-transparent text-sm font-bold uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center gap-1 cursor-pointer active:scale-[0.98]"
+            style={{ minHeight: 'auto' }}
           >
-            <Plus className="w-3.5 h-3.5" /> Book Slot
+            <Plus className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Book Slot</span>
           </button>
         </div>
       </div>
 
       {/* Main Grid View and list */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-8 items-stretch">
         
         {/* Calendar Core Grid */}
-        <div className="lg:col-span-9 bg-[#090909] border border-white/[0.04] rounded-3xl p-6 layered-shadow-lg overflow-x-auto">
-          <div className="min-w-[650px] overflow-y-auto pr-1 flex flex-col">
+        <div className="lg:col-span-9 bg-[#090909] border border-white/[0.04] rounded-3xl p-3 lg:p-6 layered-shadow-lg overflow-x-auto">
+          <div className="min-w-[600px] lg:min-w-[650px] overflow-y-auto pr-1 flex flex-col">
             
             {/* Main Grid: Days Columns */}
             <div className="grid grid-cols-[repeat(7,_1fr)] divide-x divide-white/[0.06] bg-[#090909] border border-white/[0.06] rounded-2xl overflow-hidden shadow-inner">
@@ -531,7 +532,7 @@ export default function CalendarPage({ tasks }) {
                     
                     {/* Day Header */}
                     <div className="p-4 border-b border-white/[0.06] flex flex-col items-center justify-center sticky top-0 bg-[#090909]/95 backdrop-blur-md z-10 transition-colors">
-                      <span className={`text-[10px] font-tech font-bold uppercase tracking-wider ${isToday ? 'text-[#E5B842]' : 'text-white/40'}`}>
+                      <span className={`text-sm font-tech font-bold uppercase tracking-wider ${isToday ? 'text-[#E5B842]' : 'text-white/70'}`}>
                         {dayObj.dayOfWeek}
                       </span>
                       <span className={`text-sm font-black mt-1 w-8 h-8 flex items-center justify-center rounded-full transition-all duration-300 ${
@@ -553,8 +554,8 @@ export default function CalendarPage({ tasks }) {
                              <div key={habit._id} className="w-full rounded-xl border border-purple-500/30 bg-purple-500/10 hover:border-purple-500/50 text-purple-400 p-3 shadow-[0_0_12px_rgba(168,85,247,0.15)] transition-all duration-300 relative overflow-hidden flex items-start gap-2 select-none hover:scale-[1.02]">
                                <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.8)]"></div>
                                <div className="flex-1 min-w-0 pl-1.5">
-                                  <h5 className="text-[11px] font-bold uppercase leading-tight tracking-wide break-words text-white mb-1">{habit.name}</h5>
-                                  <span className="text-[8px] opacity-80 font-bold uppercase tracking-wider flex items-center gap-1 text-purple-400">
+                                  <h5 className="text-[10px] font-bold uppercase leading-tight tracking-wide break-words text-white mb-1">{habit.name}</h5>
+                                  <span className="text-[10px] opacity-80 font-bold uppercase tracking-wider flex items-center gap-1 text-purple-400">
                                      🔥 Daily Habit
                                   </span>
                                </div>
@@ -599,10 +600,10 @@ export default function CalendarPage({ tasks }) {
                                     <div className="pl-1">
                                       <div className="flex items-center gap-1.5 mb-1.5 opacity-70">
                                         <Clock className="w-3 h-3" />
-                                        <span className="text-[9px] font-bold tracking-wider">{new Date(item.startTime).toLocaleTimeString('en-US', {hour: 'numeric', minute:'2-digit', hour12: true})}</span>
+                                        <span className="text-[10px] font-bold tracking-wider">{new Date(item.startTime).toLocaleTimeString('en-US', {hour: 'numeric', minute:'2-digit', hour12: true})}</span>
                                       </div>
-                                      <h5 className="text-[11px] font-bold uppercase leading-tight tracking-wide mb-1 break-words">{item.title}</h5>
-                                      <span className="text-[8px] opacity-60 font-semibold uppercase tracking-wider block">
+                                      <h5 className="text-[10px] font-bold uppercase leading-tight tracking-wide mb-1 break-words">{item.title}</h5>
+                                      <span className="text-[10px] opacity-60 font-semibold uppercase tracking-wider block">
                                         {isAiBlock ? (item.taskId && (localTasks.find(t => t._id === item.taskId)?.urgency >= 8) ? '🔥 Priority Focus' : '🤖 AI Scheduled') : item.type === 'deadline' ? '⚠️ Deadline' : '👤 Synced Event'}
                                       </span>
                                     </div>
@@ -624,7 +625,7 @@ export default function CalendarPage({ tasks }) {
                             duration: 45
                           }));
                           setIsModalOpen(true);
-                        }} className="flex-1 w-full flex flex-col items-center justify-center border border-dashed border-white/5 rounded-xl text-white/20 hover:text-white/60 hover:border-white/20 transition-all duration-300 font-tech font-bold uppercase tracking-widest text-[10px] cursor-pointer group hover:bg-white/[0.02] min-h-[100px]">
+                        }} className="flex-1 w-full flex flex-col items-center justify-center border border-dashed border-white/5 rounded-xl text-white/50 hover:text-white/60 hover:border-white/20 transition-all duration-300 font-tech font-bold uppercase tracking-widest text-sm cursor-pointer group hover:bg-white/[0.02] min-h-[100px]">
                           <Plus className="w-4 h-4 mb-2 opacity-0 group-hover:opacity-100 transition-opacity transform group-hover:scale-110" /> 
                           <span className="opacity-50 group-hover:opacity-100 transition-opacity">Book Slot</span>
                         </button>
@@ -640,13 +641,13 @@ export default function CalendarPage({ tasks }) {
         </div>
 
         {/* Side Panel: Scheduled Lists & Filters */}
-        <div className="lg:col-span-3 space-y-6 sticky top-32 h-fit">
+        <div className="lg:col-span-3 space-y-5 lg:space-y-6 lg:sticky lg:top-32 h-fit">
           
           {/* Chronos Layers Filter */}
           <div className="p-6 bg-[#090909] border border-white/[0.04] rounded-3xl space-y-4 layered-shadow-lg">
             <div className="flex items-center gap-2 border-b border-white/5 pb-2">
               <Layers className="w-4 h-4 text-white/50" />
-              <h4 className="text-xs font-tech font-bold uppercase tracking-wider text-white/80">Chronos Layers</h4>
+              <h4 className="text-sm font-tech font-bold uppercase tracking-wider text-white/80">Chronos Layers</h4>
             </div>
             
             {/* Custom Control Chips */}
@@ -677,18 +678,18 @@ export default function CalendarPage({ tasks }) {
                     className={`w-full flex items-center justify-between p-3.5 rounded-2xl border transition-all duration-300 cursor-pointer hover:scale-[1.02] ${
                       checked 
                         ? `bg-white/[0.02] ${filter.borderColor} text-white shadow-lg` 
-                        : 'bg-white/[0.01] border-white/5 text-white/40 hover:text-white/80 hover:bg-white/[0.02]'
+                        : 'bg-white/[0.01] border-white/5 text-white/70 hover:text-white/80 hover:bg-white/[0.02]'
                     }`}
                   >
                     <span className="flex items-center gap-3.5">
                       <div className={`p-2.5 rounded-xl flex items-center justify-center transition-all duration-300 border ${checked ? `${filter.bgColor} ${filter.borderColor} ${filter.shadowColor}` : 'bg-white/5 border-transparent'}`}>
-                         <Icon className={`w-4 h-4 ${checked ? filter.textColor : 'text-white/40'}`} />
+                         <Icon className={`w-4 h-4 ${checked ? filter.textColor : 'text-white/70'}`} />
                       </div>
                       <span className={`text-[13px] font-bold uppercase tracking-wide font-tech transition-opacity ${checked ? 'opacity-100 text-white' : 'opacity-60'}`}>
                         {filter.label}
                       </span>
                     </span>
-                    <span className={`text-[9px] px-3 py-1.5 rounded-lg font-bold tracking-widest transition-all ${checked ? `${filter.bgColor} ${filter.textColor} ${filter.borderColor} border` : 'bg-transparent border border-white/10 text-white/40'}`}>
+                    <span className={`text-sm px-3 py-1.5 rounded-lg font-bold tracking-widest transition-all ${checked ? `${filter.bgColor} ${filter.textColor} ${filter.borderColor} border` : 'bg-transparent border border-white/10 text-white/70'}`}>
                       {checked ? 'SHOW' : 'HIDE'}
                     </span>
                   </button>
@@ -697,31 +698,6 @@ export default function CalendarPage({ tasks }) {
             </div>
           </div>
 
-          {/* AI Automated focus details */}
-          <div className="p-6 bg-white/[0.01] border border-[#E5B842]/20 rounded-3xl space-y-4 layered-shadow-lg card-shine-sweep relative overflow-hidden flex flex-col gap-1">
-            <div className="flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-[#E5B842] animate-pulse" />
-              <span className="text-xs font-bold text-white tracking-wider uppercase font-display">Auto-Schedule Engine</span>
-            </div>
-            <p className="text-xs text-white/70 leading-relaxed font-normal">
-              ResQ proactively analyzes your empty spots and populates AI Scheduled Tasks to ensure tasks are completed way before their deadlines.
-            </p>
-
-            <div className="flex items-center gap-2 p-2.5 bg-black/60 rounded-xl border border-[#E5B842]/20">
-              <Check className="w-3.5 h-3.5 text-[#E5B842]" />
-              <span className="text-[10px] font-bold text-[#E5B842] uppercase tracking-wide">
-                {focusSlotsCount} focus slots booked this week
-              </span>
-            </div>
-
-            <button
-              onClick={handleSeedDemoEvents}
-              type="button"
-              className="w-full py-2 bg-[#E5B842]/10 hover:bg-[#E5B842] text-[#E5B842] hover:text-black border border-[#E5B842]/20 hover:border-transparent rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98] mt-1"
-            >
-              <Sparkles className="w-3 h-3" /> Load Demo Schedule
-            </button>
-          </div>
 
 
 
@@ -746,7 +722,7 @@ export default function CalendarPage({ tasks }) {
               </h3>
               <button 
                 onClick={() => setIsModalOpen(false)}
-                className="p-2 hover:bg-white/5 rounded-2xl transition-colors text-white/40 hover:text-white cursor-pointer"
+                className="p-2 hover:bg-white/5 rounded-2xl transition-colors text-white/70 hover:text-white cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -755,7 +731,7 @@ export default function CalendarPage({ tasks }) {
             {/* Modal Form */}
             <form onSubmit={handleSaveModal} className="space-y-5">
               <div>
-                <label className="text-[10px] font-tech font-bold uppercase tracking-wider text-white/40 block mb-1.5">Slot Title</label>
+                <label className="text-sm font-tech font-bold uppercase tracking-wider text-white/70 block mb-1.5">Slot Title</label>
                 <input 
                   type="text"
                   placeholder="e.g. Focus Block: Coding task"
@@ -766,7 +742,7 @@ export default function CalendarPage({ tasks }) {
               </div>
 
               <div>
-                <label className="text-[10px] font-tech font-bold uppercase tracking-wider text-white/40 block mb-2.5">Layer Type</label>
+                <label className="text-sm font-tech font-bold uppercase tracking-wider text-white/70 block mb-2.5">Layer Type</label>
                 <div className={`grid ${modalData._id && modalData.type === 'ai_block' ? 'grid-cols-3' : 'grid-cols-2'} gap-3`}>
                   {[
                     ...(modalData._id && modalData.type === 'ai_block' ? [{
@@ -774,28 +750,28 @@ export default function CalendarPage({ tasks }) {
                       icon: <Bot className="w-5 h-5 mb-0.5" />,
                       label: 'AI Scheduled', 
                       activeClass: 'border-[#E5B842]/50 bg-gradient-to-br from-[#E5B842]/20 to-[#E5B842]/5 text-[#E5B842] shadow-[0_0_25px_rgba(229,184,66,0.25)] ring-1 ring-[#E5B842]/30 scale-[1.02]', 
-                      inactiveClass: 'border-white/5 bg-white/[0.02] text-white/40 hover:text-white hover:bg-white/[0.04] hover:shadow-[0_0_15px_rgba(255,255,255,0.05)] hover:-translate-y-0.5' 
+                      inactiveClass: 'border-white/5 bg-white/[0.02] text-white/70 hover:text-white hover:bg-white/[0.04] hover:shadow-[0_0_15px_rgba(255,255,255,0.05)] hover:-translate-y-0.5' 
                     }] : []),
                     { 
                       key: 'user_block', 
                       icon: <User className="w-5 h-5 mb-0.5" />,
                       label: 'User Block', 
                       activeClass: 'border-status-blue/50 bg-gradient-to-br from-status-blue/20 to-status-blue/5 text-status-blue shadow-[0_0_25px_rgba(74,158,255,0.25)] ring-1 ring-status-blue/30 scale-[1.02]', 
-                      inactiveClass: 'border-white/5 bg-white/[0.02] text-white/40 hover:text-white hover:bg-white/[0.04] hover:shadow-[0_0_15px_rgba(255,255,255,0.05)] hover:-translate-y-0.5' 
+                      inactiveClass: 'border-white/5 bg-white/[0.02] text-white/70 hover:text-white hover:bg-white/[0.04] hover:shadow-[0_0_15px_rgba(255,255,255,0.05)] hover:-translate-y-0.5' 
                     },
                     { 
                       key: 'deadline', 
                       icon: <AlertTriangle className="w-5 h-5 mb-0.5" />,
                       label: 'Deadline', 
                       activeClass: 'border-status-red/50 bg-gradient-to-br from-status-red/20 to-status-red/5 text-status-red shadow-[0_0_25px_rgba(255,95,95,0.25)] ring-1 ring-status-red/30 scale-[1.02]', 
-                      inactiveClass: 'border-white/5 bg-white/[0.02] text-white/40 hover:text-white hover:bg-white/[0.04] hover:shadow-[0_0_15px_rgba(255,255,255,0.05)] hover:-translate-y-0.5' 
+                      inactiveClass: 'border-white/5 bg-white/[0.02] text-white/70 hover:text-white hover:bg-white/[0.04] hover:shadow-[0_0_15px_rgba(255,255,255,0.05)] hover:-translate-y-0.5' 
                     }
                   ].map(tab => (
                     <button
                       key={tab.key}
                       type="button"
                       onClick={() => setModalData(prev => ({ ...prev, type: tab.key }))}
-                      className={`flex flex-col items-center justify-center gap-1.5 py-3 px-2 text-[10px] font-bold uppercase tracking-wider rounded-2xl border text-center transition-all duration-300 cursor-pointer ${
+                      className={`flex flex-col items-center justify-center gap-1.5 py-3 px-2 text-sm font-bold uppercase tracking-wider rounded-2xl border text-center transition-all duration-300 cursor-pointer ${
                         modalData.type === tab.key ? tab.activeClass : tab.inactiveClass
                       }`}
                     >
@@ -809,7 +785,7 @@ export default function CalendarPage({ tasks }) {
               {/* Start Date & Time input */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-tech font-bold uppercase tracking-wider text-white/40 block mb-1.5">Start Time</label>
+                  <label className="text-sm font-tech font-bold uppercase tracking-wider text-white/70 block mb-1.5">Start Time</label>
                   <input 
                     type="datetime-local" 
                     value={modalData.startTime ? new Date(new Date(modalData.startTime).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ''}
@@ -819,7 +795,7 @@ export default function CalendarPage({ tasks }) {
                 </div>
                 {modalData.type === 'deadline' ? (
                   <div>
-                    <label className="text-[10px] font-tech font-bold uppercase tracking-wider text-status-red/70 block mb-1.5 flex items-center gap-1.5">
+                    <label className="text-sm font-tech font-bold uppercase tracking-wider text-status-red/70 block mb-1.5 flex items-center gap-1.5">
                       <Clock className="w-3 h-3" /> Ending Time
                     </label>
                     <input 
@@ -836,7 +812,7 @@ export default function CalendarPage({ tasks }) {
                   </div>
                 ) : (
                   <div>
-                    <label className="text-[10px] font-tech font-bold uppercase tracking-wider text-white/40 block mb-1.5">Duration (mins)</label>
+                    <label className="text-sm font-tech font-bold uppercase tracking-wider text-white/70 block mb-1.5">Duration (mins)</label>
                     <input 
                       type="number" 
                       value={modalData.duration}
@@ -848,7 +824,7 @@ export default function CalendarPage({ tasks }) {
               </div>
 
               <div>
-                <label className="text-[10px] font-tech font-bold uppercase tracking-wider text-white/40 block mb-1.5">Notes</label>
+                <label className="text-sm font-tech font-bold uppercase tracking-wider text-white/70 block mb-1.5">Notes</label>
                 <textarea 
                   placeholder="Additional context/notes..."
                   value={modalData.notes}
@@ -865,7 +841,7 @@ export default function CalendarPage({ tasks }) {
                     <button 
                       type="button"
                       onClick={handleDeleteEvent}
-                      className="px-3 py-2 bg-status-red/10 hover:bg-status-red/20 text-status-red border border-status-red/20 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer"
+                      className="px-3 py-2 bg-status-red/10 hover:bg-status-red/20 text-status-red border border-status-red/20 rounded-xl text-sm font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" /> Remove
                     </button>
@@ -876,13 +852,13 @@ export default function CalendarPage({ tasks }) {
                   <button 
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="px-6 py-2.5 bg-white/[0.03] border border-white/10 hover:bg-white/[0.08] hover:border-white/20 rounded-2xl text-xs font-bold uppercase tracking-wider transition-all duration-300 text-white/70 hover:text-white cursor-pointer"
+                    className="px-6 py-2.5 bg-white/[0.03] border border-white/10 hover:bg-white/[0.08] hover:border-white/20 rounded-2xl text-sm font-bold uppercase tracking-wider transition-all duration-300 text-white/70 hover:text-white cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button 
                     type="submit"
-                    className="px-8 py-2.5 bg-gradient-to-r from-[#E5B842] to-[#FFD566] hover:brightness-110 text-black rounded-2xl text-xs font-black uppercase tracking-wider transition-all duration-300 flex items-center gap-1.5 cursor-pointer shadow-[0_0_20px_rgba(229,184,66,0.2)] hover:shadow-[0_0_30px_rgba(229,184,66,0.4)] hover:-translate-y-0.5"
+                    className="px-8 py-2.5 bg-gradient-to-r from-[#E5B842] to-[#FFD566] hover:brightness-110 text-black rounded-2xl text-sm font-black uppercase tracking-wider transition-all duration-300 flex items-center gap-1.5 cursor-pointer shadow-[0_0_20px_rgba(229,184,66,0.2)] hover:shadow-[0_0_30px_rgba(229,184,66,0.4)] hover:-translate-y-0.5"
                   >
                     <Check className="w-4 h-4" /> Save
                   </button>
@@ -902,7 +878,7 @@ export default function CalendarPage({ tasks }) {
             : 'bg-black/90 border-[#E5B842]/30 text-[#E5B842]'
         }`}>
           {toast.type === 'error' ? <AlertCircle className="w-4 h-4" /> : <Check className="w-4 h-4" />}
-          <span className="text-xs font-bold tracking-wide uppercase">{toast.message}</span>
+          <span className="text-sm font-bold tracking-wide uppercase">{toast.message}</span>
         </div>,
         document.body
       )}

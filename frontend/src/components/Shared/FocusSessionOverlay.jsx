@@ -360,12 +360,12 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#E5B842] opacity-75"></span>
               <span className="relative inline-flex rounded-full h-3 w-3 bg-[#E5B842]"></span>
             </span>
-            <span className="text-xs font-tech font-bold uppercase tracking-[0.25em] text-[#E5B842]">
+            <span className="text-sm font-tech font-bold uppercase tracking-[0.25em] text-[#E5B842]">
               {phase === 'focus' ? 'COGNITIVE SHIELD ACTIVE' : 'RECOVERY BREAK PERIOD'}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-tech px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/50 uppercase tracking-wider font-semibold">
+            <span className="text-sm font-tech px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/50 uppercase tracking-wider font-semibold">
               Hands-Free Mode Active
             </span>
           </div>
@@ -421,7 +421,7 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
               >
                 {formatTime(remainingSeconds)}
               </span>
-              <span className="text-[10px] font-tech font-bold uppercase tracking-widest text-white/40">
+              <span className="text-sm font-tech font-bold uppercase tracking-widest text-white/70">
                 {isPaused ? 'PAUSED' : phase === 'focus' ? 'FOCUSING' : 'RESTING'}
               </span>
             </div>
@@ -430,13 +430,13 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
           {/* Right Side Objective & Sounds */}
           <div className="flex-1 flex flex-col justify-center space-y-8 max-w-md text-center md:text-left">
             <div>
-              <span className="text-[9px] font-tech text-[#E5B842] uppercase tracking-[0.2em] font-black block mb-2">
+              <span className="text-sm font-tech text-[#E5B842] uppercase tracking-[0.2em] font-black block mb-2">
                 {phase === 'focus' ? 'Current Objective' : 'Recovery Buffer'}
               </span>
               <h2 className="text-2xl font-display font-black tracking-tight leading-snug mb-3">
                 {phase === 'focus' ? taskName : 'Take a moment to unwind'}
               </h2>
-              <p className="text-xs text-white/50 leading-relaxed max-w-sm">
+              <p className="text-sm text-white/50 leading-relaxed max-w-sm">
                 {phase === 'focus' 
                   ? 'Your notifications are muted. The ResQ AI shield is protecting your session from external interruptions.'
                   : 'Let your cognitive load recover. Skipping or ending will resume your normal dashboard environment.'
@@ -446,14 +446,14 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
 
             {/* Sound Selector */}
             <div className="space-y-3.5 bg-white/[0.02] border border-white/[0.03] p-5 rounded-3xl">
-              <span className="text-[9px] font-tech text-white/45 uppercase tracking-[0.15em] font-black block">Ambient Sound Matrix</span>
+              <span className="text-sm font-tech text-white/45 uppercase tracking-[0.15em] font-black block">Ambient Sound Matrix</span>
               <div className="flex gap-3 pt-1">
                 <button
                   onClick={() => handleAmbientSoundMatrixToggle('brown_noise')}
-                  className={`flex-1 p-4 rounded-2xl border text-[10px] font-tech font-bold uppercase tracking-wider flex flex-col items-center gap-2 transition-all duration-300 cursor-pointer ${
+                  className={`flex-1 p-4 rounded-2xl border text-sm font-tech font-bold uppercase tracking-wider flex flex-col items-center gap-2 transition-all duration-300 cursor-pointer ${
                     ambientSound === 'brown_noise'
                       ? 'bg-[#E5B842]/15 border-[#E5B842]/40 text-[#E5B842] shadow-[0_0_15px_rgba(229,184,66,0.1)]'
-                      : 'bg-black/40 border-white/5 text-white/40 hover:text-white hover:border-white/15'
+                      : 'bg-black/40 border-white/5 text-white/70 hover:text-white hover:border-white/15'
                   }`}
                 >
                   <Wind className="w-4.5 h-4.5" />
@@ -469,7 +469,7 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
                   setIsPaused(!isPaused);
                   speakBack(isPaused ? "Resuming session." : "Session paused.");
                 }}
-                className={`px-5 py-3 border text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center gap-1.5 cursor-pointer active:scale-95 ${
+                className={`px-5 py-3 border text-sm font-bold uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center gap-1.5 cursor-pointer active:scale-95 ${
                   isPaused 
                     ? 'bg-[#E5B842] text-black border-transparent hover:brightness-110 shadow-md shadow-[#E5B842]/20' 
                     : 'bg-black/60 border-white/10 hover:bg-white/5 text-white/80'
@@ -482,7 +482,7 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
               {phase === 'break' && (
                 <button
                   onClick={handleSkipBreak}
-                  className="px-5 py-3 bg-[#E5B842]/5 border border-[#E5B842]/20 hover:bg-[#E5B842] hover:text-black hover:border-transparent text-[#E5B842] text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center gap-1.5 cursor-pointer active:scale-95"
+                  className="px-5 py-3 bg-[#E5B842]/5 border border-[#E5B842]/20 hover:bg-[#E5B842] hover:text-black hover:border-transparent text-[#E5B842] text-sm font-bold uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center gap-1.5 cursor-pointer active:scale-95"
                 >
                   <Coffee className="w-3.5 h-3.5" />
                   <span>Skip Break</span>
@@ -494,7 +494,7 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
                   setShowEndConfirmation(true);
                   speakBack("Are you sure you want to end the session? Just say stop session or click End.");
                 }}
-                className="px-5 py-3 bg-[#EF4444]/10 border border-[#EF4444]/20 hover:bg-[#EF4444] hover:text-white hover:border-transparent text-[#EF4444] text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center gap-1.5 cursor-pointer active:scale-95"
+                className="px-5 py-3 bg-[#EF4444]/10 border border-[#EF4444]/20 hover:bg-[#EF4444] hover:text-white hover:border-transparent text-[#EF4444] text-sm font-bold uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center gap-1.5 cursor-pointer active:scale-95"
               >
                 <X className="w-3.5 h-3.5" />
                 <span>End Session</span>
@@ -506,11 +506,11 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
         {/* Confirmation Slide-Over banner */}
         {showEndConfirmation && (
           <div className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-[#0C0C0E] border border-[#EF4444]/30 px-8 py-5 rounded-2xl flex items-center gap-6 shadow-2xl relative z-20 animate-fade-in-up">
-            <span className="text-xs font-bold text-white/80">Are you sure? Say "yes" or click End to confirm.</span>
+            <span className="text-sm font-bold text-white/80">Are you sure? Say "yes" or click End to confirm.</span>
             <div className="flex gap-2">
               <button 
                 onClick={handleEndSessionConfirm}
-                className="px-4 py-2 bg-[#EF4444] text-white hover:brightness-110 text-[10px] font-bold uppercase tracking-wider rounded-xl cursor-pointer"
+                className="px-4 py-2 bg-[#EF4444] text-white hover:brightness-110 text-sm font-bold uppercase tracking-wider rounded-xl cursor-pointer"
               >
                 End
               </button>
@@ -519,7 +519,7 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
                   setShowEndConfirmation(false);
                   speakBack("Confirmation cancelled. Resuming focus.");
                 }}
-                className="px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 text-white/70 text-[10px] font-bold uppercase tracking-wider rounded-xl cursor-pointer"
+                className="px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 text-white/70 text-sm font-bold uppercase tracking-wider rounded-xl cursor-pointer"
               >
                 Cancel
               </button>
@@ -529,8 +529,8 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
 
         {/* HUD bottom context bar */}
         <div className="mt-16 w-full max-w-3xl border-t border-white/5 pt-6 flex flex-col items-center gap-2 relative z-10">
-          <span className="text-[8px] font-tech text-white/20 uppercase tracking-[0.3em]">RESQ SHIELD RADAR</span>
-          <p className="text-xs text-white/35 italic text-center max-w-lg leading-relaxed">
+          <span className="text-sm font-tech text-white/50 uppercase tracking-[0.3em]">RESQ SHIELD RADAR</span>
+          <p className="text-sm text-white/35 italic text-center max-w-lg leading-relaxed">
             "Direct focus commands: say 'pause', 'resume', 'how much time left', or 'stop session' anytime."
           </p>
         </div>

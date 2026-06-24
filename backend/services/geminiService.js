@@ -228,13 +228,13 @@ export const generateHabitInsight = async (habit, completionHistory = []) => {
     }
 
     const prompt = `
-Analyze this habit: ${habit.title}.
+Analyze this habit: "${habit.name || habit.title || 'Unknown Habit'}".
 Completion history last 30 days:
 ${JSON.stringify(completionHistory, null, 2)}
 
 Current streak: ${habit.streak || 0} days.
 
-Give one encouraging insight based on their history and one improvement tip to ensure they do not miss their goal.
+Give one encouraging insight based on their history and one specific, actionable improvement tip directly related to the habit topic to ensure they do not miss their goal. The tip MUST be tailored to the actual habit (e.g. if the habit is "React Native", mention coding or mobile dev; if it's "score 90%", mention studying or practice). Do not give generic tips.
 Return ONLY JSON:
 {
   "insight": "Your encouraging insight text here",
@@ -399,6 +399,52 @@ Keep it brief and punchy (under 15 words). Return only the message text.
 };
 
 
+/**
+ * 8. Generates a unified global priority list across tasks, events, habits, and goals.
+ */
+export const generateGlobalPriority = async (tasks = [], events = [], habits = [], goals = []) => {
+  try {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || apiKey.includes('your_google_gemini_api_key') || apiKey.includes('your_gemini_api_key_here')) {
+      return getMockGlobalPriority(tasks, events, habits, goals);
+    }
+
+    const prompt = `
+You are ResQ's core Priority Engine. Your job is to analyze all of the user's pending items across all modules and determine the TOP 4 most important things the user needs to focus on right now.
+
+Here is the data for today:
+Pending Tasks: ${JSON.stringify(tasks, null, 2)}
+Today's Calendar Events: ${JSON.stringify(events, null, 2)}
+Incomplete Daily Habits: ${JSON.stringify(habits, null, 2)}
+Active Goals: ${JSON.stringify(goals, null, 2)}
+
+Instructions:
+1. Compare all items across these 4 categories.
+2. Select exactly the top 4 highest priority items overall.
+3. For each selected item, assign a 'priorityScore' from 1 to 100 (100 being most critical).
+4. Provide a very short, specific 'reason' explaining exactly WHY this item is prioritized (e.g., "Deadline is in 2 hours", "You haven't studied for this goal yet", "Meeting starts soon").
+5. The 'type' field must be one of: "task", "event", "habit", "goal".
+6. Return ONLY a JSON array. No explanations, no markdown block formatting.
+
+JSON Output Format:
+[
+  {
+    "id": "item_id_here",
+    "type": "task",
+    "title": "Item title or name",
+    "priorityScore": 95,
+    "reason": "Deadline is approaching fast"
+  }
+]
+`;
+
+    return await queryGemini(prompt, true);
+  } catch (err) {
+    console.error('Error generating global priority:', err);
+    return getMockGlobalPriority(tasks, events, habits, goals);
+  }
+};
+
 // ==========================================
 // LOCAL MOCK FALLBACKS (For Robust Recovery)
 // ==========================================
@@ -441,7 +487,7 @@ const getMockAutoSchedule = (tasks, existingEvents) => {
 
 const getMockHabitInsight = (habit) => {
   return {
-    insight: `You have successfully completed ${habit.title} streaks in the last week!`,
+    insight: `You have successfully completed ${habit.name || habit.title || 'this habit'} streaks in the last week!`,
     tip: "Try scheduling this habit at the exact same hour every day to build stronger muscle memory."
   };
 };
@@ -583,3 +629,14 @@ Return ONLY a valid integer between 1 and 10. No text, no markdown.
     return 5;
   }
 };
+
+const getMockGlobalPriority = (tasks, events, habits, goals) => {
+  const items = [];
+  tasks.slice(0, 2).forEach(t => items.push({ id: t._id, type: 'task', title: t.title, priorityScore: 90, reason: "Urgent task deadline" }));
+  events.slice(0, 1).forEach(e => items.push({ id: e._id, type: 'event', title: e.title, priorityScore: 95, reason: "Meeting starting soon" }));
+  habits.slice(0, 1).forEach(h => items.push({ id: h._id, type: 'habit', title: h.name, priorityScore: 80, reason: "Maintain your streak" }));
+  goals.slice(0, 1).forEach(g => items.push({ id: g._id, type: 'goal', title: g.title, priorityScore: 85, reason: "Progress needed for milestone" }));
+  
+  return items.sort((a, b) => b.priorityScore - a.priorityScore).slice(0, 4);
+};
+

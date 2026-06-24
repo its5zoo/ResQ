@@ -1,6 +1,7 @@
 import { Calendar as CalendarIcon, Clock, Move } from 'lucide-react';
 import { useRef, useEffect } from 'react';
 import gsap from 'gsap';
+import CalendarAnimation from './CalendarAnimation';
 
 export default function CalendarSection() {
   const containerRef = useRef(null);
@@ -34,14 +35,14 @@ export default function CalendarSection() {
   }, []);
 
   return (
-    <section ref={containerRef} className="py-32 relative z-10 overflow-hidden bg-black border-b border-white/[0.02]">
-      <div className="container mx-auto px-6 max-w-7xl relative">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
+    <section ref={containerRef} className="py-16 lg:py-32 relative z-10 overflow-hidden bg-black border-b border-white/[0.02]">
+      <div className="container mx-auto px-4 sm:px-6 max-w-7xl relative">
+        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
           
-          <div className="space-y-8">
+          <div className="space-y-6 lg:space-y-8">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 cal-text">
               <CalendarIcon className="w-4 h-4 text-blue-400" />
-              <span className="text-xs font-bold uppercase tracking-widest text-blue-400">Time Blocking</span>
+              <span className="text-sm font-bold uppercase tracking-widest text-blue-400">Time Blocking</span>
             </div>
             
             <h2 className="text-4xl md:text-5xl font-display font-black text-white leading-[1.1] cal-text">
@@ -59,7 +60,7 @@ export default function CalendarSection() {
                   <Move className="w-5 h-5 text-white/70" />
                 </div>
                 <h4 className="text-sm font-bold text-white tracking-wide">Drag & Drop</h4>
-                <p className="text-xs text-white/40 leading-relaxed">
+                <p className="text-sm text-white/70 leading-relaxed">
                   Seamlessly drag tasks from your backlog directly onto your weekly agenda.
                 </p>
               </div>
@@ -68,7 +69,7 @@ export default function CalendarSection() {
                   <Clock className="w-5 h-5 text-white/70" />
                 </div>
                 <h4 className="text-sm font-bold text-white tracking-wide">Dynamic Duration</h4>
-                <p className="text-xs text-white/40 leading-relaxed">
+                <p className="text-sm text-white/70 leading-relaxed">
                   Events automatically size themselves based on the AI-estimated effort of the task.
                 </p>
               </div>
@@ -79,12 +80,8 @@ export default function CalendarSection() {
             {/* Glassmorphic border container */}
             <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/20 to-transparent rounded-3xl blur-2xl opacity-40"></div>
             <div className="relative rounded-3xl border border-white/10 bg-black/50 overflow-hidden shadow-2xl backdrop-blur-sm p-2">
-              <div className="rounded-2xl overflow-hidden border border-white/[0.05]">
-                <img 
-                  src="/screenshots/calendar_agenda.png" 
-                  alt="Calendar Time Blocking" 
-                  className="w-full h-auto object-cover opacity-90 hover:opacity-100 transition-opacity duration-500"
-                />
+              <div className="rounded-2xl overflow-hidden border border-white/[0.05] relative bg-[#050505]">
+                <CalendarAnimation />
               </div>
             </div>
           </div>

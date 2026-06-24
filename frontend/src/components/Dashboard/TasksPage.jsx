@@ -41,7 +41,7 @@ export default function TasksPage({
       <div className="relative">
         <div 
           onClick={() => setOpenDropdown(isOpen ? null : name)}
-          className={`bg-[#0B0B0B] border ${isOpen ? 'border-[#E5B842]/40 shadow-[0_0_10px_rgba(229,184,66,0.1)]' : 'border-white/10'} hover:border-white/20 rounded-xl px-3 py-3 text-[11px] text-white flex items-center justify-between cursor-pointer transition-all duration-300`}
+          className={`bg-[#0B0B0B] border ${isOpen ? 'border-[#E5B842]/40 shadow-[0_0_10px_rgba(229,184,66,0.1)]' : 'border-white/10'} hover:border-white/20 rounded-xl px-3 py-3 text-sm text-white flex items-center justify-between cursor-pointer transition-all duration-300`}
         >
           <span className="truncate font-semibold text-white/80">{selectedLabel}</span>
           <ChevronDown className={`w-3.5 h-3.5 text-[#E5B842] transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
@@ -56,7 +56,7 @@ export default function TasksPage({
                   onChange(opt.value);
                   setOpenDropdown(null);
                 }}
-                className={`px-3 py-2.5 text-[11px] cursor-pointer transition-all font-medium ${
+                className={`px-3 py-2.5 text-sm cursor-pointer transition-all font-medium ${
                   value.toString() === opt.value.toString() ? 'text-[#E5B842] bg-[#E5B842]/5' : 'text-white/60 hover:text-white hover:bg-white/5'
                 } ${i !== options.length - 1 ? 'border-b border-white/[0.02]' : ''}`}
               >
@@ -246,35 +246,35 @@ export default function TasksPage({
   };
 
   return (
-    <div className="space-y-8 animate-fade-in relative font-sans">
+    <div className="space-y-5 lg:space-y-8 animate-fade-in relative font-sans">
       
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-white/5 pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-5">
         <div>
-          <span className="text-xs font-tech font-bold tracking-[0.3em] text-[#E5B842] block mb-2">TASK SHEETS</span>
-          <h2 className="text-3xl font-display font-black tracking-tight text-white leading-none">
-            Manage Tasks & Deadlines
+          <span className="text-xs lg:text-sm font-tech font-bold tracking-[0.3em] text-[#E5B842] block mb-1.5 lg:mb-2">TASK SHEETS</span>
+          <h2 className="text-2xl lg:text-3xl font-display font-black tracking-tight text-white leading-none">
+            Manage Tasks
           </h2>
         </div>
       </div>
 
       {/* Task Creation Form */}
-      <form onSubmit={handleCreateTask} className="p-6 bg-[#090909] border border-white/[0.04] rounded-2xl space-y-4 layered-shadow-lg">
-        <h3 className="text-[10px] font-bold text-[#E5B842] tracking-widest uppercase font-display mb-4">Quick Add Priority Node</h3>
+      <form onSubmit={handleCreateTask} className="p-4 lg:p-6 bg-[#090909] border border-white/[0.04] rounded-2xl space-y-4 layered-shadow-lg">
+        <h3 className="text-sm font-bold text-[#E5B842] tracking-widest uppercase font-display mb-3 lg:mb-4">Quick Add Priority Node</h3>
         
-        <div className="flex flex-col lg:flex-row gap-4 items-center w-full">
+        <div className="flex flex-col gap-3">
           <input 
             type="text"
             placeholder="What needs to be finished?"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="flex-1 w-full bg-[#0B0B0B] border border-white/10 hover:border-white/20 focus:border-[#E5B842]/40 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-hidden transition-all duration-300"
+            className="w-full bg-[#0B0B0B] border border-white/10 hover:border-white/20 focus:border-[#E5B842]/40 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-hidden transition-all duration-300"
             required
           />
 
-          <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {/* Urgency */}
-            <div className="w-full sm:w-[150px] shrink-0">
+            <div className="col-span-1">
               {renderDropdown('urgency', urgency, [
                 { value: '', label: 'Set Urgency' },
                 { value: 4, label: 'Urgency: 4' },
@@ -285,7 +285,7 @@ export default function TasksPage({
             </div>
 
             {/* Due date */}
-            <div className="w-full sm:w-[160px] shrink-0">
+            <div className="col-span-1">
               <CustomDatePicker 
                 value={dueDate}
                 onChange={(dateStr) => setDueDate(dateStr)}
@@ -294,7 +294,7 @@ export default function TasksPage({
 
             <button 
               type="submit"
-              className="w-full sm:w-auto px-6 py-3 bg-transparent text-[#E5B842] border border-[#E5B842]/40 hover:bg-[#E5B842] hover:text-black hover:border-transparent text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-300 flex justify-center items-center gap-1.5 cursor-pointer font-sans active:scale-[0.98] shrink-0"
+              className="col-span-2 lg:col-span-2 px-4 py-3 bg-transparent text-[#E5B842] border border-[#E5B842]/40 hover:bg-[#E5B842] hover:text-black hover:border-transparent text-sm font-bold uppercase tracking-wider rounded-xl transition-all duration-300 flex justify-center items-center gap-1.5 cursor-pointer font-sans active:scale-[0.98]"
             >
               <Plus className="w-4 h-4" /> Deploy Task
             </button>
@@ -303,14 +303,15 @@ export default function TasksPage({
       </form>
 
       {/* Filters and sorting strip */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
-        {/* Filters */}
-        <div className="flex flex-wrap gap-2">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-white/5 pb-4">
+        {/* Filters — horizontal scroll on mobile */}
+        <div className="flex gap-2 overflow-x-auto scrollbar-none w-full sm:w-auto pb-1 sm:pb-0">
           {['all', 'pending', 'completed', 'critical'].map((item) => (
             <button
               key={item}
               onClick={() => setFilter(item)}
-              className={`px-3.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider border transition-all duration-300 cursor-pointer ${
+              style={{ minHeight: 'auto' }}
+              className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold uppercase tracking-wider border transition-all duration-300 cursor-pointer shrink-0 ${
                 filter === item 
                   ? 'bg-[#E5B842]/5 border-[#E5B842]/20 text-[#E5B842] shadow-md' 
                   : 'bg-transparent border-white/5 text-white/50 hover:text-white hover:border-white/10'
@@ -324,13 +325,13 @@ export default function TasksPage({
         {/* Sort */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <SlidersHorizontal className="w-3.5 h-3.5 text-white/40" />
-            <span className="text-[10px] text-white/40 uppercase font-bold">Sort:</span>
+            <SlidersHorizontal className="w-3.5 h-3.5 text-white/70" />
+            <span className="text-sm text-white/70 uppercase font-bold">Sort:</span>
           </div>
           <div className="relative min-w-[140px]">
             <div 
               onClick={() => setOpenDropdown(openDropdown === 'sort' ? null : 'sort')}
-              className={`bg-[#0B0B0B] border ${openDropdown === 'sort' ? 'border-[#E5B842]/40 shadow-[0_0_10px_rgba(229,184,66,0.1)]' : 'border-white/10'} hover:border-white/20 rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white flex items-center justify-between cursor-pointer transition-all duration-300`}
+              className={`bg-[#0B0B0B] border ${openDropdown === 'sort' ? 'border-[#E5B842]/40 shadow-[0_0_10px_rgba(229,184,66,0.1)]' : 'border-white/10'} hover:border-white/20 rounded-lg px-3 py-1.5 text-sm font-bold uppercase tracking-wider text-white flex items-center justify-between cursor-pointer transition-all duration-300`}
             >
               <span className="truncate">{
                 sortBy === 'priorityRank' ? 'AI Priority Rank' : 
@@ -352,7 +353,7 @@ export default function TasksPage({
                       setSortBy(opt.value);
                       setOpenDropdown(null);
                     }}
-                    className={`px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-all ${
+                    className={`px-3 py-2.5 text-sm font-bold uppercase tracking-wider cursor-pointer transition-all ${
                       sortBy === opt.value ? 'text-[#E5B842] bg-[#E5B842]/5' : 'text-white/60 hover:text-white hover:bg-white/5'
                     } ${i !== arr.length - 1 ? 'border-b border-white/[0.02]' : ''}`}
                   >
@@ -383,7 +384,7 @@ export default function TasksPage({
                 onClick={() => setSelectedTask(task)}
                 className={`p-5 border rounded-2xl hover:border-white/10 transition-all duration-300 cursor-pointer layered-shadow-lg ${
                   task.completed ? 'opacity-50' : ''
-                } ${selectedTask?._id === task._id ? 'border-[#E5B842]/40 bg-[#E5B842]/[0.01]' : 'border-white/[0.03] bg-black'} ${
+                } ${selectedTask?._id === task._id ? 'border-[#E5B842]/60 bg-[#E5B842]/[0.02]' : 'border-white/15 bg-[#090909]'} ${
                   highlightedTaskId === task._id ? 'animate-gold-highlight' : ''
                 } ${
                   completedAnimationTaskId === task._id ? 'animate-completed-fade' : ''
@@ -398,54 +399,44 @@ export default function TasksPage({
                         e.stopPropagation();
                         handleToggleTask(task._id);
                       }}
-                      className="text-white/30 hover:text-[#E5B842] transition-colors focus:outline-hidden cursor-pointer"
+                      className="text-white/60 hover:text-[#E5B842] transition-colors focus:outline-hidden cursor-pointer"
                     >
                       {task.completed ? (
                         <CheckCircle2 className="w-5 h-5 text-[#E5B842]" />
                       ) : (
-                        <Circle className="w-5 h-5 text-white/20 hover:text-white/40" />
+                        <Circle className="w-5 h-5 text-white/50 hover:text-white/70" />
                       )}
                     </button>
                     <div className="min-w-0">
-                      <h4 className={`text-sm font-semibold truncate ${task.completed ? 'line-through text-white/40' : 'text-white/80'} ${
+                      <h4 className={`text-sm font-semibold truncate ${task.completed ? 'line-through text-white/70' : 'text-white/80'} ${
                         completedAnimationTaskId === task._id ? 'animate-strikethrough' : ''
                       }`}>
                         {task.title}
                       </h4>
-                      <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">{task.category || 'WORK'}</span>
+                      <span className="text-sm text-white/70 font-bold uppercase tracking-wider">{task.category || 'WORK'}</span>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-4 shrink-0" onClick={(e) => e.stopPropagation()}>
                     <span 
                       title={task.aiReason || 'AI Re-ranking is pending...'}
-                      className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#E5B842]/5 border border-[#E5B842]/20 text-[#E5B842] cursor-help relative group"
+                      className="text-sm font-bold px-2.5 py-0.5 rounded-full bg-[#E5B842]/5 border border-[#E5B842]/20 text-[#E5B842] cursor-help relative group"
                     >
                       Priority {task.urgency}
                       {task.aiReason && (
-                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-56 p-2 bg-[#090909] border border-white/10 text-[9px] text-white/80 rounded-lg shadow-lg z-50 normal-case font-normal text-center leading-normal">
+                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-56 p-2 bg-[#090909] border border-white/10 text-sm text-white/80 rounded-lg shadow-lg z-50 normal-case font-normal text-center leading-normal">
                           {task.aiReason}
                         </span>
                       )}
                     </span>
-                    
-                    <span className="text-xs text-white/45 flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5 text-white/40" /> {task.estimatedMinutes || task.duration || 30}m
-                    </span>
+
 
                     <button 
                       onClick={() => handleDeleteTask(task._id)}
-                      className="text-white/20 hover:text-red-500 transition-colors cursor-pointer"
+                      className="text-white/50 hover:text-red-500 transition-colors cursor-pointer"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
-                  </div>
-                </div>
-
-                {/* Progress Line */}
-                <div className="mt-4">
-                  <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-[#E5B842] to-[#C97D2E] rounded-full" style={{ width: task.completed ? '100%' : `${(task.urgency || 5) * 10}%` }}></div>
                   </div>
                 </div>
               </div>
@@ -455,7 +446,7 @@ export default function TasksPage({
           {!loading && sortedTasks.length === 0 && (
             <div className="text-center py-20 bg-[#090909] border border-white/[0.04] rounded-2xl layered-shadow-lg">
               <CheckCircle2 className="w-10 h-10 text-[#E5B842]/30 mx-auto mb-3" />
-              <p className="text-sm text-white/40 font-light">No tasks matched your filter rules.</p>
+              <p className="text-sm text-white/70 font-light">No tasks matched your filter rules.</p>
             </div>
           )}
         </div>
@@ -466,11 +457,11 @@ export default function TasksPage({
             <div className="flex items-center justify-between border-b border-white/5 pb-4">
               <div className="flex items-center gap-1.5">
                 <Sparkles className="w-4 h-4 text-[#E5B842]" />
-                <span className="text-[10px] font-bold text-white tracking-wider uppercase font-display">AI Subtask Builder</span>
+                <span className="text-sm font-bold text-white tracking-wider uppercase font-display">AI Subtask Builder</span>
               </div>
               <button 
                 onClick={() => setSelectedTask(null)}
-                className="text-white/40 hover:text-white cursor-pointer"
+                className="text-white/70 hover:text-white cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -478,16 +469,16 @@ export default function TasksPage({
 
             {/* Task Info Header */}
             <div>
-              <span className="text-[9px] bg-[#E5B842]/5 border border-[#E5B842]/20 text-[#E5B842] px-2.5 py-0.5 rounded-full font-bold uppercase mb-2 inline-block">
+              <span className="text-sm bg-[#E5B842]/5 border border-[#E5B842]/20 text-[#E5B842] px-2.5 py-0.5 rounded-full font-bold uppercase mb-2 inline-block">
                 Priority: {selectedTask.urgency}
               </span>
               <h3 className="text-sm font-bold text-white leading-snug">{selectedTask.title}</h3>
-              <p className="text-[10px] text-white/40 mt-1">Due {selectedTask.dueDate ? new Date(selectedTask.dueDate).toLocaleDateString() : 'Today'} · Estimated {selectedTask.estimatedMinutes || selectedTask.duration || 30} Mins</p>
+              <p className="text-sm text-white/70 mt-1">Due {selectedTask.dueDate ? new Date(selectedTask.dueDate).toLocaleDateString() : 'Today'} · Estimated {selectedTask.estimatedMinutes || selectedTask.duration || 30} Mins</p>
             </div>
 
             {/* Subtask Section */}
             <div className="space-y-4">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-white/45">Checklist milestones</h4>
+              <h4 className="text-sm font-bold uppercase tracking-wider text-white/45">Checklist milestones</h4>
               
               <div className="space-y-2">
                 {(selectedTask.subtasks || []).map((sub, idx) => (
@@ -497,15 +488,15 @@ export default function TasksPage({
                   >
                     <button 
                       onClick={() => toggleSubtask(idx)}
-                      className="text-white/30 hover:text-[#E5B842] transition-colors focus:outline-hidden cursor-pointer"
+                      className="text-white/60 hover:text-[#E5B842] transition-colors focus:outline-hidden cursor-pointer"
                     >
                       {sub.completed ? (
                         <CheckCircle2 className="w-4 h-4 text-[#E5B842]" />
                       ) : (
-                        <Circle className="w-4 h-4 text-white/20" />
+                        <Circle className="w-4 h-4 text-white/50" />
                       )}
                     </button>
-                    <span className={`text-[11px] font-medium leading-none ${sub.completed ? 'line-through text-white/35' : 'text-white/70'}`}>
+                    <span className={`text-sm font-medium leading-none ${sub.completed ? 'line-through text-white/35' : 'text-white/70'}`}>
                       {sub.title}
                     </span>
                   </div>
@@ -519,7 +510,7 @@ export default function TasksPage({
                   placeholder="Insert sub-step..."
                   value={newSubtaskTitle}
                   onChange={(e) => setNewSubtaskTitle(e.target.value)}
-                  className="flex-1 bg-[#0B0B0B] border border-white/10 hover:border-white/20 focus:border-[#E5B842]/40 rounded-xl px-3 py-2 text-[11px] text-white focus:outline-hidden transition-all duration-300"
+                  className="flex-1 bg-[#0B0B0B] border border-white/10 hover:border-white/20 focus:border-[#E5B842]/40 rounded-xl px-3 py-2 text-sm text-white focus:outline-hidden transition-all duration-300"
                   required
                 />
                 <button 
@@ -534,8 +525,8 @@ export default function TasksPage({
             {/* AI Advisor Context Explanation */}
             {selectedTask.aiReason && (
               <div className="border-t border-white/5 pt-5 space-y-2">
-                <h5 className="text-[9px] font-bold uppercase tracking-wider text-[#E5B842]">AI Advice Reason</h5>
-                <p className="text-[11px] text-white/60 leading-relaxed bg-[#E5B842]/5 border border-[#E5B842]/10 p-3.5 rounded-xl">
+                <h5 className="text-sm font-bold uppercase tracking-wider text-[#E5B842]">AI Advice Reason</h5>
+                <p className="text-sm text-white/60 leading-relaxed bg-[#E5B842]/5 border border-[#E5B842]/10 p-3.5 rounded-xl">
                   {selectedTask.aiReason}
                 </p>
               </div>

@@ -47,7 +47,7 @@ export default function FeaturesGrid() {
       renderMockup: () => (
         <div className="w-full h-full flex flex-col justify-between bg-[#0b0b0b] border border-white/[0.04] rounded-2xl p-6 layered-shadow-lg font-sans">
           <div className="flex items-center justify-between border-b border-white/5 pb-3 mb-4">
-            <span className="text-[8px] font-tech text-white/40 uppercase tracking-widest">Momentum Tracker</span>
+            <span className="text-sm font-tech text-white/70 uppercase tracking-widest">Momentum Tracker</span>
             <span className="text-[7px] font-tech bg-white/5 border border-white/10 text-white/50 px-2 py-0.5 rounded-full">Streaks</span>
           </div>
           <div className="space-y-3.5">
@@ -55,16 +55,16 @@ export default function FeaturesGrid() {
               <div className="flex items-center gap-2.5">
                 <Flame className="w-4 h-4 text-white animate-pulse" />
                 <div>
-                  <span className="text-[10px] font-bold text-white block">Gym Workout</span>
-                  <span className="text-[8px] text-white/40 block">🔥 7 Days Streak</span>
+                  <span className="text-sm font-bold text-white block">Gym Workout</span>
+                  <span className="text-sm text-white/70 block">🔥 7 Days Streak</span>
                 </div>
               </div>
-              <span className="text-[8px] bg-white/10 border border-white/20 text-white px-2.5 py-0.5 rounded-full font-bold">DONE</span>
+              <span className="text-sm bg-white/10 border border-white/20 text-white px-2.5 py-0.5 rounded-full font-bold">DONE</span>
             </div>
             <div className="grid grid-cols-7 gap-1">
               {['M','T','W','T','F','S','S'].map((day, dIdx) => (
-                <div key={dIdx} className={`p-1.5 rounded-lg border flex flex-col items-center justify-center ${dIdx < 5 ? 'bg-white/10 border-white/20 text-white' : 'bg-transparent border-white/5 text-white/20'}`}>
-                  <span className="text-[8px] font-bold">{day}</span>
+                <div key={dIdx} className={`p-1.5 rounded-lg border flex flex-col items-center justify-center ${dIdx < 5 ? 'bg-white/10 border-white/20 text-white' : 'bg-transparent border-white/5 text-white/50'}`}>
+                  <span className="text-sm font-bold">{day}</span>
                   <div className={`w-1 h-1 rounded-full mt-1 ${dIdx < 5 ? 'bg-white' : 'bg-white/10'}`}></div>
                 </div>
               ))}
@@ -80,21 +80,21 @@ export default function FeaturesGrid() {
       renderMockup: () => (
         <div className="w-full h-full flex flex-col justify-between bg-[#0b0b0b] border border-white/[0.04] rounded-2xl p-6 layered-shadow-lg font-sans">
           <div className="flex items-center justify-between border-b border-white/5 pb-3 mb-4">
-            <span className="text-[8px] font-tech text-white/40 uppercase tracking-widest">Agent Checklist</span>
+            <span className="text-sm font-tech text-white/70 uppercase tracking-widest">Agent Checklist</span>
             <span className="text-[7px] font-tech bg-white/5 border border-white/10 text-white/50 px-2 py-0.5 rounded-full">Executing</span>
           </div>
           <div className="space-y-2">
             <div className="flex items-center gap-2.5 p-2 bg-white/5 border border-white/10 rounded-lg">
               <CheckCircle2 className="w-3.5 h-3.5 text-status-green" />
-              <span className="text-[10px] text-white/80">Deconstruct project requirements</span>
+              <span className="text-sm text-white/80">Deconstruct project requirements</span>
             </div>
             <div className="flex items-center gap-2.5 p-2 bg-white/[0.02] border border-white/5 rounded-lg">
               <span className="w-3.5 h-3.5 rounded-full border border-white/35 animate-spin border-t-transparent shrink-0"></span>
-              <span className="text-[10px] text-white/70">Formulate core structure</span>
+              <span className="text-sm text-white/70">Formulate core structure</span>
             </div>
             <div className="flex items-center gap-2.5 p-2 bg-transparent opacity-40 rounded-lg">
-              <Circle className="w-3.5 h-3.5 text-white/20" />
-              <span className="text-[10px] text-white/40">Audit code performance</span>
+              <Circle className="w-3.5 h-3.5 text-white/50" />
+              <span className="text-sm text-white/70">Audit code performance</span>
             </div>
           </div>
         </div>
@@ -107,12 +107,12 @@ export default function FeaturesGrid() {
       renderMockup: () => (
         <div className="w-full h-full flex flex-col justify-between bg-[#0b0b0b] border border-white/[0.04] rounded-2xl p-6 layered-shadow-lg font-sans">
           <div className="flex items-center justify-between border-b border-white/5 pb-3 mb-4">
-            <span className="text-[8px] font-tech text-white/40 uppercase tracking-widest">Cognitive State</span>
+            <span className="text-sm font-tech text-white/70 uppercase tracking-widest">Cognitive State</span>
             <span className="text-[7px] font-tech bg-white/5 border border-white/10 text-white/50 px-2 py-0.5 rounded-full">Synced</span>
           </div>
           <div className="space-y-3.5">
             <div>
-              <div className="flex justify-between items-center text-[10px] mb-1.5">
+              <div className="flex justify-between items-center text-sm mb-1.5">
                 <span className="text-white/50 font-medium">Cognitive Focus capacity:</span>
                 <span className="text-white font-bold">85% (High Focus)</span>
               </div>
@@ -123,8 +123,8 @@ export default function FeaturesGrid() {
             <div className="p-3 bg-white/5 border border-white/10 rounded-xl flex items-center gap-2.5">
               <Zap className="w-4 h-4 text-white animate-pulse" />
               <div>
-                <span className="text-[10px] font-bold text-white block">Suggested: Deep Work block</span>
-                <span className="text-[8px] text-white/40 block">Ideal time for React architecture</span>
+                <span className="text-sm font-bold text-white block">Suggested: Deep Work block</span>
+                <span className="text-sm text-white/70 block">Ideal time for React architecture</span>
               </div>
             </div>
           </div>
@@ -138,7 +138,7 @@ export default function FeaturesGrid() {
       renderMockup: () => (
         <div className="w-full h-full flex flex-col justify-between bg-[#0b0b0b] border border-white/[0.04] rounded-2xl p-6 layered-shadow-lg font-sans">
           <div className="flex items-center justify-between border-b border-white/5 pb-3 mb-4">
-            <span className="text-[8px] font-tech text-white/40 uppercase tracking-widest">Hazard Radar</span>
+            <span className="text-sm font-tech text-white/70 uppercase tracking-widest">Hazard Radar</span>
             <span className="text-[7px] font-tech bg-white/5 border border-white/10 text-white/50 px-2 py-0.5 rounded-full">Active</span>
           </div>
           <div className="space-y-3">
@@ -149,12 +149,12 @@ export default function FeaturesGrid() {
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-status-red"></span>
                 </span>
                 <div>
-                  <span className="text-[10px] font-bold text-white block">Submission Hazard Alert</span>
-                  <span className="text-[8px] text-white/40 block">Overdue risk level: CRITICAL</span>
+                  <span className="text-sm font-bold text-white block">Submission Hazard Alert</span>
+                  <span className="text-sm text-white/70 block">Overdue risk level: CRITICAL</span>
                 </div>
               </div>
             </div>
-            <div className="flex justify-between items-center text-[10px] text-white/50 px-1">
+            <div className="flex justify-between items-center text-sm text-white/50 px-1">
               <span>Timeline buffer:</span>
               <span className="text-status-red font-bold font-tech">45 mins remaining</span>
             </div>
@@ -165,34 +165,34 @@ export default function FeaturesGrid() {
   ];
 
   return (
-    <section id="features" className="pt-24 pb-44 relative bg-[#050505] bg-noise overflow-hidden border-t border-white/[0.03]">
+    <section id="features" className="pt-16 lg:pt-24 pb-20 lg:pb-44 relative bg-[#050505] bg-noise overflow-hidden border-t border-white/[0.03]">
       {/* Decorative side glow */}
       <div className="absolute top-1/3 right-0 w-[500px] h-[500px] bg-white/[0.015] rounded-full blur-[130px] pointer-events-none"></div>
 
-      <div className="max-w-7xl mx-auto px-8 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-8 relative z-10">
         
         {/* Section Header with generous bottom margin */}
-        <div className="text-center max-w-3xl mx-auto mb-32 font-sans">
-          <span className="text-xs font-tech font-bold tracking-[0.3em] uppercase text-white/50 block mb-5">
+        <div className="text-center max-w-3xl mx-auto mb-12 lg:mb-32 font-sans">
+          <span className="text-sm font-tech font-bold tracking-[0.3em] uppercase text-white/50 block mb-5">
             SYSTEM ENGINE
           </span>
-          <h2 className="text-4xl sm:text-5xl md:text-6xl font-display font-black text-silver-gradient text-shine-sweep mb-6 leading-tight tracking-tight">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-display font-black text-silver-gradient text-shine-sweep mb-6 leading-tight tracking-tight">
             Custom built to combat <br />
             <span className="text-[#E5B842]" style={{ background: 'none', WebkitTextFillColor: '#E5B842', WebkitBackgroundClip: 'initial' }}>cognitive</span> overload.
           </h2>
-          <p className="text-sm sm:text-base text-white/50 leading-relaxed font-normal max-w-xl mx-auto tracking-normal">
+          <p className="text-sm text-white/50 leading-relaxed font-normal max-w-xl mx-auto tracking-normal">
             No templates. No simple checklists. We designed ResQ around cognitive neuroscience and agentic automation principles.
           </p>
         </div>
 
         {/* Alternating Feature Rows */}
-        <div className="space-y-36 lg:space-y-48">
+        <div className="space-y-16 lg:space-y-36 xl:space-y-48">
           {features.map((feat, idx) => {
             const isEven = idx % 2 === 0;
             return (
               <div 
                 key={idx}
-                className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-center border-b border-white/[0.02] pb-24 lg:pb-32 last:border-0"
+                className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 xl:gap-20 items-center border-b border-white/[0.02] pb-12 lg:pb-24 xl:pb-32 last:border-0"
               >
                 {/* Text Column */}
                 <div 
@@ -204,13 +204,13 @@ export default function FeaturesGrid() {
                     {feat.icon}
                   </div>
                   <div className="space-y-3 font-sans">
-                    <span className="text-xs font-tech text-white/45 uppercase tracking-[0.2em] block">
+                    <span className="text-sm font-tech text-white/45 uppercase tracking-[0.2em] block">
                       RQ-ENG-0{idx+1} // Core Node
                     </span>
                     <h3 className="text-2xl lg:text-3xl font-display font-black text-white tracking-tight leading-snug">
                       {feat.title}
                     </h3>
-                    <p className="text-sm sm:text-base text-white/50 leading-relaxed font-normal tracking-wide font-sans">
+                    <p className="text-sm sm:text-sm text-white/50 leading-relaxed font-normal tracking-wide font-sans">
                       {feat.desc}
                     </p>
                   </div>

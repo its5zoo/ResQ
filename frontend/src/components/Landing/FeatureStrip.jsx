@@ -25,9 +25,9 @@ export default function FeatureStrip() {
   ];
 
   return (
-    <section className="pt-20 pb-12 border-y border-white/[0.03] bg-[#050505] bg-noise relative z-20">
-      <div className="max-w-7xl mx-auto px-10">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 font-sans">
+    <section className="pt-12 lg:pt-20 pb-8 lg:pb-12 border-y border-white/[0.03] bg-[#050505] bg-noise relative z-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-12 font-sans">
           {steps.map((step, idx) => (
             <div 
               key={idx} 

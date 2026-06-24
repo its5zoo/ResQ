@@ -2,7 +2,7 @@ import Task from '../models/Task.js';
 import Habit from '../models/Habit.js';
 import CalendarEvent from '../models/CalendarEvent.js';
 import Goal from '../models/Goal.js';
-import { generateDailySummary, handleVoiceCommand } from '../services/geminiService.js';
+import { generateDailySummary, handleVoiceCommand, generateGlobalPriority } from '../services/geminiService.js';
 
 export const getDailySummary = async (req, res) => {
   try {
@@ -62,6 +62,41 @@ export const askAdvisor = async (req, res) => {
     const aiResponse = await handleVoiceCommand(question, userContext);
     const responseObj = typeof aiResponse === 'string' ? JSON.parse(aiResponse) : aiResponse;
     res.json(responseObj);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getGlobalPriority = async (req, res) => {
+  try {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const tasks = await Task.find({
+      userId: req.user._id,
+      completed: false
+    });
+
+    const events = await CalendarEvent.find({
+      userId: req.user._id,
+      startTime: { $gte: todayStart, $lte: todayEnd }
+    });
+
+    const habits = await Habit.find({ userId: req.user._id });
+    
+    // Filter habits to those not completed today
+    const incompleteHabits = habits.filter(h => {
+      const todayStr = new Date().toDateString();
+      const doneToday = h.completions?.some(c => new Date(c.date).toDateString() === todayStr && c.completed);
+      return !doneToday;
+    });
+
+    const goals = await Goal.find({ userId: req.user._id, status: { $ne: 'completed' } });
+
+    const globalPriorityList = await generateGlobalPriority(tasks, events, incompleteHabits, goals);
+    res.json(globalPriorityList);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

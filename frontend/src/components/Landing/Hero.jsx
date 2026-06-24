@@ -75,8 +75,8 @@ export default function Hero() {
       </div>
 
       {/* 12-Column Grid Container */}
-      <div className="max-w-[1440px] w-full mx-auto px-5 sm:px-8 xl:px-20 relative z-10 pt-28 pb-20">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-8 items-center w-full">
+      <div className="max-w-[1440px] w-full mx-auto px-4 sm:px-8 xl:px-20 relative z-10 pt-24 sm:pt-28 pb-16 sm:pb-20">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 items-center w-full">
           
           {/* LEFT CONTENT COLUMN (5 Columns) */}
           <div 
@@ -92,13 +92,13 @@ export default function Hero() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
               </span>
-              <span className="text-[9px] font-semibold tracking-[0.25em] uppercase text-white/30 font-tech">
+              <span className="text-sm font-semibold tracking-[0.25em] uppercase text-white/60 font-tech">
                 — AI PRODUCTIVITY COMPANION · WORKSPACE V1.0
               </span>
             </div>
 
             {/* Title with stagger letter reveals */}
-            <h1 className="text-[90px] sm:text-[120px] lg:text-[140px] font-display font-black leading-[0.85] tracking-tight mb-8">
+            <h1 className="text-[72px] sm:text-[100px] lg:text-[120px] xl:text-[140px] font-display font-black leading-[0.85] tracking-tight mb-6 sm:mb-8">
               {brandName.map((char, idx) => (
                 <span 
                   key={idx}
@@ -114,33 +114,33 @@ export default function Hero() {
 
             {/* Persuasive copy (Problem -> Transformation -> Outcome) */}
             <div 
-              className="space-y-4 max-w-lg mb-10 opacity-0 animate-fade-in" 
+              className="space-y-3 max-w-lg mb-8 sm:mb-10 opacity-0 animate-fade-in" 
               style={{ animationDelay: '0.4s', animationFillMode: 'forwards' }}
             >
               <h3 className="text-sm font-bold uppercase tracking-wider text-white/75">
                 Stop reacting to deadlines.
               </h3>
-              <p className="text-base sm:text-lg text-white/60 font-normal leading-relaxed tracking-normal font-sans">
+              <p className="text-sm sm:text-base lg:text-lg text-white/60 font-normal leading-relaxed tracking-normal font-sans">
                 ResQ predicts priorities, organizes chaos, and executes before problems become emergencies.
               </p>
             </div>
 
             {/* CTA buttons */}
             <div 
-              className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto opacity-0 animate-fade-in"
+              className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto opacity-0 animate-fade-in"
               style={{ animationDelay: '0.6s', animationFillMode: 'forwards' }}
             >
               <button 
                 onClick={() => navigate('/dashboard')}
-                className="w-full sm:w-auto px-8 py-4 rounded-xl text-xs font-bold tracking-wider uppercase bg-transparent text-white border border-white hover:bg-white hover:text-black shadow-lg shadow-white/5 hover:shadow-white/20 transition-all duration-500 hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 cursor-pointer font-tech active:scale-[0.98]"
+                className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl text-sm font-bold tracking-wider uppercase bg-transparent text-white border border-white hover:bg-white hover:text-black shadow-lg shadow-white/5 hover:shadow-white/20 transition-all duration-500 hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 cursor-pointer font-tech active:scale-[0.98]"
               >
                 Get started free <ArrowRight className="w-3.5 h-3.5" />
               </button>
               <button 
                 onClick={() => navigate('/dashboard')}
-                className="w-full sm:w-auto px-8 py-4 rounded-xl text-xs font-bold tracking-wider uppercase border border-white/5 hover:border-white/20 text-white/70 hover:text-white transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer font-tech active:scale-[0.98] group"
+                className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl text-sm font-bold tracking-wider uppercase border border-white/5 hover:border-white/20 text-white/70 hover:text-white transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer font-tech active:scale-[0.98] group"
               >
-                <Play className="w-3 h-3 fill-white/10 text-white/30 group-hover:scale-110 group-hover:text-white transition-all" /> 
+                <Play className="w-3 h-3 fill-white/10 text-white/60 group-hover:scale-110 group-hover:text-white transition-all" /> 
                 <span className="group-hover:hidden">Watch demo</span>
                 <span className="hidden group-hover:inline">▶ Play Preview</span>
               </button>
@@ -150,7 +150,7 @@ export default function Hero() {
 
           {/* RIGHT DASHBOARD PREVIEW COLUMN (7 Columns) */}
           <div 
-            className="lg:col-span-7 flex justify-center lg:justify-end transition-all duration-500 ease-spring opacity-0 animate-fade-in"
+            className="lg:col-span-7 hidden sm:flex justify-center lg:justify-end transition-all duration-500 ease-spring opacity-0 animate-fade-in"
             style={{
               transform: `translate3d(${mousePos.x * 8}px, ${mousePos.y * 8 + dashboardTranslateY}px, 0) scale(${dashboardScale})`,
               animationDelay: '0.3s',

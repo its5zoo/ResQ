@@ -4,6 +4,7 @@ import { voice as apiVoice } from '../../services/api.js';
 
 export default function VoiceAIPage() {
   const [isListening, setIsListening] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [messages, setMessages] = useState([
     { role: 'ai', text: "Hello! I am your ResQ AI companion. Ask me to outline your day, list your critical deadlines, or organize calendar blocks for you." }
@@ -47,17 +48,17 @@ export default function VoiceAIPage() {
     // Add user message
     setMessages(prev => [...prev, { role: 'user', text: textVal }]);
     setInputText('');
-    setIsListening(true);
+    setIsProcessing(true);
 
     try {
       const result = await apiVoice.sendCommand(textVal);
-      setIsListening(false);
+      setIsProcessing(false);
       
       setMessages(prev => [...prev, { role: 'ai', text: result.response }]);
       speakResponse(result.response);
     } catch (err) {
       console.error('Error in Voice AI page command:', err);
-      setIsListening(false);
+      setIsProcessing(false);
       const errReply = "Sorry, I had trouble communicating with the Gemini brain.";
       setMessages(prev => [...prev, { role: 'ai', text: errReply }]);
       speakResponse(errReply);
@@ -96,6 +97,11 @@ export default function VoiceAIPage() {
     rec.onerror = (event) => {
       console.error('Local speech error:', event.error);
       setIsListening(false);
+      if (event.error === 'not-allowed') {
+        alert("Microphone access is blocked! Please allow microphone access in your browser settings URL bar.");
+      } else if (event.error === 'no-speech') {
+        console.warn("No speech detected.");
+      }
     };
 
     rec.onend = () => {
@@ -131,13 +137,13 @@ export default function VoiceAIPage() {
   }, []);
 
   return (
-    <div className="animate-fade-in flex flex-col h-full min-h-[82vh] font-sans">
+    <div className="animate-fade-in flex flex-col h-full min-h-[75vh] lg:min-h-[82vh] font-sans">
       
       {/* Top Header */}
-      <div className="border-b border-white/5 pb-6 flex items-center justify-between mb-8 shrink-0">
+      <div className="border-b border-white/5 pb-4 lg:pb-6 flex items-center justify-between mb-5 lg:mb-8 shrink-0">
         <div>
-          <span className="text-xs font-tech font-bold tracking-[0.3em] text-[#E5B842] block mb-2">AUDIO SHIELD</span>
-          <h2 className="text-3xl font-display font-black tracking-tight text-white leading-none">
+          <span className="text-xs lg:text-sm font-tech font-bold tracking-[0.3em] text-[#E5B842] block mb-1.5 lg:mb-2">AUDIO SHIELD</span>
+          <h2 className="text-2xl lg:text-3xl font-display font-black tracking-tight text-white leading-none">
             Hands-Free Voice Assistant
           </h2>
         </div>
@@ -156,7 +162,7 @@ export default function VoiceAIPage() {
       </div>
 
       {/* Main chat window */}
-      <div className="flex-1 overflow-y-auto space-y-4 pr-2 p-6 bg-[#090909] border border-white/[0.04] rounded-3xl layered-shadow-lg mb-8 min-h-[300px]">
+      <div className="flex-1 overflow-y-auto space-y-4 pr-2 p-4 lg:p-6 bg-[#090909] border border-white/[0.04] rounded-3xl layered-shadow-lg mb-5 lg:mb-8 min-h-[240px] lg:min-h-[300px]">
         {messages.map((msg, idx) => (
           <div 
             key={idx} 
@@ -169,16 +175,22 @@ export default function VoiceAIPage() {
             {msg.role === 'ai' && (
               <div className="flex items-center gap-1.5 mb-1.5 shrink-0">
                 <Sparkles className="w-3.5 h-3.5 text-[#E5B842]" />
-                <span className="text-xs font-bold text-white uppercase font-display">Guardian AI</span>
+                <span className="text-sm font-bold text-white uppercase font-display">Guardian AI</span>
               </div>
             )}
             <p>{msg.text}</p>
           </div>
         ))}
 
-        {isListening && (
+        {isProcessing && (
           <div className="max-w-xs p-4 rounded-2xl bg-white/[0.01] border border-[#E5B842]/20 text-white/70 text-sm font-medium animate-pulse font-display relative overflow-hidden card-shine-sweep">
-            Companion is formulated or listening...
+            Companion is formulating response...
+          </div>
+        )}
+        
+        {isListening && !isProcessing && (
+          <div className="max-w-xs p-4 rounded-2xl bg-[#E5B842]/10 border border-[#E5B842]/30 text-[#E5B842] text-sm font-medium animate-pulse font-display relative overflow-hidden">
+            Listening to your voice...
           </div>
         )}
       </div>
@@ -191,7 +203,7 @@ export default function VoiceAIPage() {
             <button
               key={idx}
               onClick={() => handleSend(qItem.q)}
-              className="px-3.5 py-2 bg-black/40 hover:bg-white/[0.05] border border-white/[0.06] hover:border-white/20 text-xs text-white/60 hover:text-white rounded-xl transition-all flex items-center gap-1.5 focus:outline-hidden font-bold uppercase tracking-wider cursor-pointer"
+              className="px-3.5 py-2 bg-black/40 hover:bg-white/[0.05] border border-white/[0.06] hover:border-white/20 text-sm text-white/60 hover:text-white rounded-xl transition-all flex items-center gap-1.5 focus:outline-hidden font-bold uppercase tracking-wider cursor-pointer"
             >
               <Volume2 className="w-3.5 h-3.5 text-[#E5B842]" /> {qItem.q}
             </button>
@@ -225,7 +237,7 @@ export default function VoiceAIPage() {
             />
             <button 
               onClick={() => handleSend(inputText)}
-              className="absolute right-3 text-white/40 hover:text-white transition-colors cursor-pointer"
+              className="absolute right-3 text-white/70 hover:text-white transition-colors cursor-pointer"
             >
               <Send className="w-4 h-4" />
             </button>

@@ -34,9 +34,9 @@ export default function AnalyticsSection() {
   }, []);
 
   return (
-    <section ref={containerRef} className="py-32 relative z-10 overflow-hidden bg-[#050505]">
-      <div className="container mx-auto px-6 max-w-7xl relative">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
+    <section ref={containerRef} className="py-16 lg:py-32 relative z-10 overflow-hidden bg-[#050505]">
+      <div className="container mx-auto px-4 sm:px-6 max-w-7xl relative">
+        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
           
           <div className="order-2 lg:order-1 relative analytics-img">
             {/* Glassmorphic border container */}
@@ -55,7 +55,7 @@ export default function AnalyticsSection() {
           <div className="space-y-8 order-1 lg:order-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 analytics-text">
               <Activity className="w-4 h-4 text-purple-400" />
-              <span className="text-xs font-bold uppercase tracking-widest text-purple-400">Weekly Insights</span>
+              <span className="text-sm font-bold uppercase tracking-widest text-purple-400">Weekly Insights</span>
             </div>
             
             <h2 className="text-4xl md:text-5xl font-display font-black text-white leading-[1.1] analytics-text">
@@ -74,7 +74,7 @@ export default function AnalyticsSection() {
                 </div>
                 <div>
                   <h4 className="text-sm font-bold text-white tracking-wide">Completion Velocity</h4>
-                  <p className="text-xs text-white/40 leading-relaxed mt-1">Track the exact percentage of tasks and milestones you crush every week.</p>
+                  <p className="text-sm text-white/70 leading-relaxed mt-1">Track the exact percentage of tasks and milestones you crush every week.</p>
                 </div>
               </div>
               
@@ -84,7 +84,7 @@ export default function AnalyticsSection() {
                 </div>
                 <div>
                   <h4 className="text-sm font-bold text-white tracking-wide">AI Burnout Detection</h4>
-                  <p className="text-xs text-white/40 leading-relaxed mt-1">Our engine recognizes when you're taking on too much and suggests schedule adjustments.</p>
+                  <p className="text-sm text-white/70 leading-relaxed mt-1">Our engine recognizes when you're taking on too much and suggests schedule adjustments.</p>
                 </div>
               </div>
             </div>

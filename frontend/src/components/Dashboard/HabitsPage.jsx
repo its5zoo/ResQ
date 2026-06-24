@@ -121,32 +121,33 @@ export default function HabitsPage() {
   };
 
   return (
-    <div className="space-y-8 animate-fade-in font-sans relative">
+    <div className="space-y-5 lg:space-y-8 animate-fade-in font-sans relative">
       
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-white/5 pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-5">
         <div>
-          <span className="text-xs font-tech font-bold tracking-[0.3em] text-[#E5B842] block mb-2">MOMENTUM CHIPS</span>
-          <h2 className="text-3xl font-display font-black tracking-tight text-white leading-none">
-            Daily Habits & Streaks
+          <span className="text-xs lg:text-sm font-tech font-bold tracking-[0.3em] text-[#E5B842] block mb-1.5 lg:mb-2">MOMENTUM CHIPS</span>
+          <h2 className="text-2xl lg:text-3xl font-display font-black tracking-tight text-white leading-none">
+            Daily Habits &amp; Streaks
           </h2>
         </div>
       </div>
 
       {/* Add Habit Panel */}
-      <form onSubmit={handleAddHabit} className="p-6 bg-[#090909] border border-white/[0.04] rounded-2xl flex flex-col gap-4 layered-shadow-lg">
-        <div className="flex gap-3 w-full">
+      <form onSubmit={handleAddHabit} className="p-4 lg:p-6 bg-[#090909] border border-white/[0.04] rounded-2xl flex flex-col gap-4 layered-shadow-lg">
+        <div className="flex flex-col sm:flex-row gap-3 w-full">
           <input 
             type="text"
             placeholder="What habit are you locking in? (e.g. Meditate for 10m)"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="flex-1 bg-[#0B0B0B] border border-white/10 hover:border-white/20 focus:border-[#E5B842]/40 rounded-xl px-4 py-3 text-xs text-white placeholder-white/30 focus:outline-none transition-all duration-300"
+            className="flex-1 bg-[#0B0B0B] border border-white/10 hover:border-white/20 focus:border-[#E5B842]/40 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none transition-all duration-300"
             required
           />
           <button 
             type="submit"
-            className="px-6 py-3 bg-transparent text-[#E5B842] border border-[#E5B842]/40 hover:bg-[#E5B842] hover:text-black hover:border-transparent text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center gap-1.5 shrink-0 cursor-pointer active:scale-[0.98]"
+            className="sm:shrink-0 px-6 py-3 bg-transparent text-[#E5B842] border border-[#E5B842]/40 hover:bg-[#E5B842] hover:text-black hover:border-transparent text-sm font-bold uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98]"
+            style={{ minHeight: 'auto' }}
           >
             <Plus className="w-4 h-4" /> Add Habit
           </button>
@@ -155,8 +156,8 @@ export default function HabitsPage() {
         {/* Selected Days Selector */}
         <div className="flex flex-col gap-2 mt-2 pt-4 border-t border-white/5 w-full">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-tech font-bold uppercase tracking-wider text-white/40">Target Days Schedule</span>
-            <span className="text-[10px] text-white/30 font-bold uppercase tracking-wider">
+            <span className="text-sm font-tech font-bold uppercase tracking-wider text-white/70">Target Days Schedule</span>
+            <span className="text-sm text-white/60 font-bold uppercase tracking-wider">
               {selectedDays.length === 7 ? 'Daily' : `${selectedDays.length} days a week`}
             </span>
           </div>
@@ -168,10 +169,10 @@ export default function HabitsPage() {
                   key={day}
                   type="button"
                   onClick={() => toggleDaySelection(day)}
-                  className={`px-3.5 py-2 rounded-xl border text-[10px] font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer ${
+                  className={`px-3.5 py-2 rounded-xl border text-sm font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer ${
                     isSelected 
                       ? 'bg-[#E5B842]/10 border-[#E5B842]/30 text-[#E5B842] shadow-[0_0_12px_rgba(229,184,66,0.06)]' 
-                      : 'bg-black/40 border-white/5 text-white/40 hover:text-white hover:border-white/10'
+                      : 'bg-black/40 border-white/5 text-white/70 hover:text-white hover:border-white/10'
                   }`}
                 >
                   {day}
@@ -182,14 +183,14 @@ export default function HabitsPage() {
               <button
                 type="button"
                 onClick={() => setSelectedDays(daysOfWeek)}
-                className="px-3 py-1.5 rounded-lg border border-white/5 bg-white/[0.01] hover:bg-white/[0.04] text-[9px] font-bold uppercase tracking-wider text-white/50 hover:text-white transition-colors cursor-pointer"
+                className="px-3 py-1.5 rounded-lg border border-white/5 bg-white/[0.01] hover:bg-white/[0.04] text-sm font-bold uppercase tracking-wider text-white/50 hover:text-white transition-colors cursor-pointer"
               >
                 All
               </button>
               <button
                 type="button"
                 onClick={() => setSelectedDays([])}
-                className="px-3 py-1.5 rounded-lg border border-white/5 bg-white/[0.01] hover:bg-white/[0.04] text-[9px] font-bold uppercase tracking-wider text-white/50 hover:text-white transition-colors cursor-pointer"
+                className="px-3 py-1.5 rounded-lg border border-white/5 bg-white/[0.01] hover:bg-white/[0.04] text-sm font-bold uppercase tracking-wider text-white/50 hover:text-white transition-colors cursor-pointer"
               >
                 None
               </button>
@@ -227,27 +228,27 @@ export default function HabitsPage() {
                     className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-300 cursor-pointer ${
                       doneToday 
                         ? 'bg-[#E5B842] border-[#E5B842] text-black shadow-lg shadow-[#E5B842]/20' 
-                        : 'bg-black border-white/10 text-white/30 hover:border-[#E5B842]/30 hover:text-white'
+                        : 'bg-black border-white/10 text-white/60 hover:border-[#E5B842]/30 hover:text-white'
                     }`}
                   >
                     <Check className="w-5 h-5" />
                   </button>
 
                   <div className="flex-1 min-w-0">
-                    <h3 className={`text-xs font-bold truncate ${doneToday ? 'line-through text-white/40' : 'text-white/85'}`}>
+                    <h3 className={`text-sm font-bold truncate ${doneToday ? 'line-through text-white/70' : 'text-white/85'}`}>
                       {habit.name}
                     </h3>
-                    <div className="flex items-center gap-3 text-[9px] font-bold uppercase tracking-wider text-white/30 mt-1.5">
+                    <div className="flex items-center gap-3 text-sm font-bold uppercase tracking-wider text-white/60 mt-1.5">
                       <span>Streak: <span className="text-[#E5B842] font-extrabold">🔥 {habit.streak || 0}d</span></span>
                     </div>
-                    <div className="text-[8px] font-tech font-bold uppercase tracking-wider text-white/40 mt-1">
+                    <div className="text-sm font-tech font-bold uppercase tracking-wider text-white/70 mt-1">
                       Target: <span className="text-[#E5B842]/80 font-bold">{targetDaysLabel}</span>
                     </div>
                   </div>
                   
                   <button 
                     onClick={() => handleDeleteHabit(habit._id)}
-                    className="text-white/20 hover:text-red-500 transition-colors p-2 shrink-0 cursor-pointer"
+                    className="text-white/50 hover:text-red-500 transition-colors p-2 shrink-0 cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -255,7 +256,7 @@ export default function HabitsPage() {
 
                 {/* Right Col: 7 Day Heatmap */}
                 <div className="lg:col-span-8 flex flex-col gap-2.5">
-                  <span className="text-[10px] uppercase font-bold text-white/30 tracking-widest text-left">Weekly Heatmap Matrix</span>
+                  <span className="text-sm uppercase font-bold text-white/60 tracking-widest text-left">Weekly Heatmap Matrix</span>
                   <div className="grid grid-cols-7 gap-2">
                     {weekDays.map((dayObj) => {
                       const completed = isHabitCompletedOnDate(habit.completions, dayObj.dateObj);
@@ -268,15 +269,15 @@ export default function HabitsPage() {
                             completed 
                               ? 'bg-[#E5B842]/5 border border-[#E5B842]/20 text-[#E5B842] shadow-sm' 
                               : isTarget 
-                                ? 'bg-black/50 border border-white/[0.02] text-white/20' 
+                                ? 'bg-black/50 border border-white/[0.02] text-white/50' 
                                 : 'bg-transparent border border-dashed border-white/5 text-white/10'
                           }`}
                         >
-                          <span className="text-[9px] uppercase font-bold mb-1">{dayObj.dayName}</span>
+                          <span className="text-sm uppercase font-bold mb-1">{dayObj.dayName}</span>
                           {isTarget ? (
                             <div className={`w-1.5 h-1.5 rounded-full ${completed ? 'bg-[#E5B842]' : 'bg-white/15'}`}></div>
                           ) : (
-                            <span className="text-[8px] opacity-25 font-bold uppercase">—</span>
+                            <span className="text-sm opacity-25 font-bold uppercase">—</span>
                           )}
                         </div>
                       );
@@ -287,16 +288,16 @@ export default function HabitsPage() {
                 {/* Insight & Tip Card */}
                 {(habit.aiInsight || habit.aiTip) && (
                   <div className="lg:col-span-12 mt-4 p-4 bg-[#E5B842]/5 border border-[#E5B842]/20 rounded-2xl space-y-2 animate-fade-in">
-                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#E5B842] uppercase tracking-wider">
+                    <div className="flex items-center gap-1.5 text-sm font-bold text-[#E5B842] uppercase tracking-wider">
                       <Sparkles className="w-3.5 h-3.5" /> AI Momentum Analysis
                     </div>
                     {habit.aiInsight && (
-                      <p className="text-xs text-white/80 leading-relaxed font-normal">
+                      <p className="text-sm text-white/80 leading-relaxed font-normal">
                         <span className="font-bold text-white/90">Insight:</span> {habit.aiInsight}
                       </p>
                     )}
                     {habit.aiTip && (
-                      <p className="text-xs text-white/70 leading-relaxed font-normal">
+                      <p className="text-sm text-white/70 leading-relaxed font-normal">
                         <span className="font-bold text-[#E5B842]/95">Improvement Tip:</span> {habit.aiTip}
                       </p>
                     )}
@@ -311,13 +312,13 @@ export default function HabitsPage() {
 
       {/* Toast Notification */}
       {toast && (
-        <div className={`fixed bottom-6 right-6 z-50 px-5 py-3.5 rounded-2xl border backdrop-blur-md shadow-2xl flex items-center gap-3 animate-fade-in ${
+        <div className={`fixed bottom-20 lg:bottom-6 left-4 right-4 sm:left-auto sm:right-6 sm:w-auto z-50 px-4 sm:px-5 py-3 sm:py-3.5 rounded-2xl border backdrop-blur-md shadow-2xl flex items-center gap-3 animate-fade-in ${
           toast.type === 'error' 
             ? 'bg-status-red/10 border-status-red/30 text-status-red' 
             : 'bg-black/90 border-[#E5B842]/30 text-[#E5B842]'
         }`}>
           <Check className="w-4 h-4" />
-          <span className="text-xs font-bold tracking-wide uppercase">{toast.message}</span>
+          <span className="text-sm font-bold tracking-wide uppercase">{toast.message}</span>
         </div>
       )}
 

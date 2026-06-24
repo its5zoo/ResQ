@@ -1,6 +1,7 @@
 import { Brain, Zap, Target, LayoutTemplate } from 'lucide-react';
 import { useRef, useEffect } from 'react';
 import gsap from 'gsap';
+import TasksAnimation from './TasksAnimation';
 
 export default function CoreWorkflowSection() {
   const containerRef = useRef(null);
@@ -34,17 +35,17 @@ export default function CoreWorkflowSection() {
   }, []);
 
   return (
-    <section ref={containerRef} className="py-32 relative z-10 overflow-hidden bg-black border-y border-white/[0.02]">
+    <section ref={containerRef} className="py-16 lg:py-32 relative z-10 overflow-hidden bg-black border-y border-white/[0.02]">
       {/* Background Gradients */}
       <div className="absolute top-0 left-1/4 w-[800px] h-[800px] bg-[#E5B842]/5 rounded-full blur-[120px] pointer-events-none -translate-y-1/2"></div>
       
-      <div className="container mx-auto px-6 max-w-7xl relative">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
+      <div className="container mx-auto px-4 sm:px-6 max-w-7xl relative">
+        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
           
-          <div className="space-y-8">
+          <div className="space-y-6 lg:space-y-8">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#E5B842]/10 border border-[#E5B842]/20 workflow-text">
               <Zap className="w-4 h-4 text-[#E5B842]" />
-              <span className="text-xs font-bold uppercase tracking-widest text-[#E5B842]">Smart Task Management</span>
+              <span className="text-sm font-bold uppercase tracking-widest text-[#E5B842]">Smart Task Management</span>
             </div>
             
             <h2 className="text-4xl md:text-5xl font-display font-black text-white leading-[1.1] workflow-text">
@@ -62,8 +63,8 @@ export default function CoreWorkflowSection() {
                   <Brain className="w-5 h-5 text-white/70" />
                 </div>
                 <h4 className="text-sm font-bold text-white tracking-wide">AI Priority Ranking</h4>
-                <p className="text-xs text-white/40 leading-relaxed">
-                  Tasks are scored from 1-100 based on urgency and context. No more decision fatigue.
+                <p className="text-sm text-white/70 leading-relaxed">
+                  Tasks are scored from 1-10 based on urgency and context. No more decision fatigue.
                 </p>
               </div>
               <div className="space-y-3">
@@ -71,7 +72,7 @@ export default function CoreWorkflowSection() {
                   <LayoutTemplate className="w-5 h-5 text-white/70" />
                 </div>
                 <h4 className="text-sm font-bold text-white tracking-wide">Unified Stack</h4>
-                <p className="text-xs text-white/40 leading-relaxed">
+                <p className="text-sm text-white/70 leading-relaxed">
                   Calendar events, pending habits, and tasks all merge into one seamless command center.
                 </p>
               </div>
@@ -82,12 +83,8 @@ export default function CoreWorkflowSection() {
             {/* Glassmorphic border container */}
             <div className="absolute inset-0 bg-gradient-to-tr from-[#E5B842]/20 to-transparent rounded-3xl blur-2xl opacity-40"></div>
             <div className="relative rounded-3xl border border-white/10 bg-black/50 overflow-hidden shadow-2xl backdrop-blur-sm p-2">
-              <div className="rounded-2xl overflow-hidden border border-white/[0.05]">
-                <img 
-                  src="/screenshots/tasks_board.png" 
-                  alt="Task Management Dashboard" 
-                  className="w-full h-auto object-cover opacity-90 hover:opacity-100 transition-opacity duration-500"
-                />
+              <div className="rounded-2xl overflow-hidden border border-white/[0.05] relative min-h-[300px]">
+                <TasksAnimation />
               </div>
             </div>
             
@@ -97,8 +94,8 @@ export default function CoreWorkflowSection() {
                 <Target className="w-6 h-6 text-[#E5B842]" />
               </div>
               <div>
-                <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-0.5">Top Priority</p>
-                <p className="text-sm font-semibold text-white">Score: 98/100</p>
+                <p className="text-sm font-bold text-white/70 uppercase tracking-widest mb-0.5">Top Priority</p>
+                <p className="text-sm font-semibold text-white">Score: 10/10</p>
               </div>
             </div>
           </div>

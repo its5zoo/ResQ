@@ -115,9 +115,9 @@ export default function CustomDatePicker({ value, onChange, placeholder = "Selec
       {/* Trigger Input/Button */}
       <div 
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full bg-[#0B0B0B] border border-white/10 hover:border-white/20 focus:border-[#E5B842]/40 rounded-xl px-4 py-3 text-xs text-white placeholder-white/30 cursor-pointer flex items-center justify-between transition-all duration-300 select-none group"
+        className="w-full bg-[#0B0B0B] border border-white/10 hover:border-white/20 focus:border-[#E5B842]/40 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 cursor-pointer flex items-center justify-between transition-all duration-300 select-none group"
       >
-        <span className={value ? "text-white" : "text-white/30"}>
+        <span className={value ? "text-white" : "text-white/60"}>
           {formatDisplayDate(value)}
         </span>
         <Calendar className="w-4 h-4 text-white/45 group-hover:text-[#E5B842] transition-colors" />
@@ -125,7 +125,7 @@ export default function CustomDatePicker({ value, onChange, placeholder = "Selec
 
       {/* Dropdown Panel */}
       {isOpen && (
-        <div className="absolute right-0 md:left-0 top-full mt-2 w-[280px] bg-[#09090b]/98 border border-white/10 rounded-2xl p-4 shadow-2xl z-50 font-sans backdrop-blur-xl animate-fade-in-up">
+        <div className="absolute right-0 top-full mt-2 w-[280px] bg-[#09090b]/98 border border-white/10 rounded-2xl p-4 shadow-2xl z-50 font-sans backdrop-blur-xl animate-fade-in-up">
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <button 
@@ -136,7 +136,7 @@ export default function CustomDatePicker({ value, onChange, placeholder = "Selec
               <ChevronLeft className="w-4 h-4" />
             </button>
             
-            <span className="text-xs font-bold text-white tracking-wider font-display">
+            <span className="text-sm font-bold text-white tracking-wider font-display">
               {monthsList[month]} {year}
             </span>
 
@@ -152,7 +152,7 @@ export default function CustomDatePicker({ value, onChange, placeholder = "Selec
           {/* Weekday headers */}
           <div className="grid grid-cols-7 gap-1 text-center mb-2">
             {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((dayName) => (
-              <span key={dayName} className="text-[9px] text-white/30 font-bold uppercase tracking-wider">
+              <span key={dayName} className="text-sm text-white/60 font-bold uppercase tracking-wider">
                 {dayName}
               </span>
             ))}
@@ -179,7 +179,7 @@ export default function CustomDatePicker({ value, onChange, placeholder = "Selec
                   type="button"
                   onClick={(e) => cell.isCurrentMonth && handleDayClick(e, cell.day)}
                   disabled={!cell.isCurrentMonth}
-                  className={`aspect-square text-[10px] rounded-lg flex items-center justify-center font-semibold transition-all select-none cursor-pointer ${
+                  className={`aspect-square text-sm rounded-lg flex items-center justify-center font-semibold transition-all select-none cursor-pointer ${
                     !cell.isCurrentMonth
                       ? 'text-white/10 cursor-not-allowed'
                       : isSelected

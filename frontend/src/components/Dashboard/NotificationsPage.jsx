@@ -95,19 +95,19 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="space-y-8 animate-fade-in font-sans">
+    <div className="space-y-5 lg:space-y-8 animate-fade-in font-sans">
       
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-white/5 pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-5">
         <div>
-          <span className="text-xs font-tech font-bold tracking-[0.3em] text-[#E5B842] block mb-2">ALERT REGISTRY</span>
-          <h2 className="text-3xl font-display font-black tracking-tight text-white leading-none">
+          <span className="text-xs lg:text-sm font-tech font-bold tracking-[0.3em] text-[#E5B842] block mb-1.5 lg:mb-2">ALERT REGISTRY</span>
+          <h2 className="text-2xl lg:text-3xl font-display font-black tracking-tight text-white leading-none">
             Notifications & Actions
           </h2>
         </div>
         <button 
           onClick={markAllRead}
-          className="text-[10px] font-bold text-[#E5B842] hover:text-[#FFF2CC] uppercase tracking-widest cursor-pointer font-tech transition-colors duration-300"
+          className="text-sm font-bold text-[#E5B842] hover:text-[#FFF2CC] uppercase tracking-widest cursor-pointer font-tech transition-colors duration-300"
         >
           Mark all read
         </button>
@@ -162,7 +162,7 @@ export default function NotificationsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex items-center gap-2 min-w-0">
-                        <h4 className={`text-xs font-bold transition-all duration-300 leading-none truncate ${
+                        <h4 className={`text-sm font-bold transition-all duration-300 leading-none truncate ${
                           item.unread 
                             ? 'text-white' 
                             : 'text-white/45 group-hover:text-white/80'
@@ -173,10 +173,10 @@ export default function NotificationsPage() {
                           <span className="w-1.5 h-1.5 rounded-full bg-[#E5B842] shadow-[0_0_8px_rgba(229,184,66,0.8)] shrink-0 animate-pulse"></span>
                         )}
                       </div>
-                      <span className="text-[9px] font-tech text-white/35 shrink-0 uppercase tracking-wider">{item.time}</span>
+                      <span className="text-sm font-tech text-white/35 shrink-0 uppercase tracking-wider">{item.time}</span>
                     </div>
-                    <p className={`text-[11px] leading-relaxed font-light mt-2.5 max-w-2xl transition-all duration-300 ${
-                      item.unread ? 'text-white/60' : 'text-white/30'
+                    <p className={`text-sm leading-relaxed font-light mt-2.5 max-w-2xl transition-all duration-300 ${
+                      item.unread ? 'text-white/60' : 'text-white/60'
                     }`}>
                       {item.desc}
                     </p>
@@ -188,7 +188,7 @@ export default function NotificationsPage() {
             {notifications.length === 0 && (
               <div className="text-center py-20 bg-[#090909] border border-white/[0.04] rounded-3xl layered-shadow-lg">
                 <CheckCircle2 className="w-10 h-10 text-[#E5B842]/30 mx-auto mb-3" />
-                <p className="text-sm text-white/40">You have no new alerts.</p>
+                <p className="text-sm text-white/70">You have no new alerts.</p>
               </div>
             )}
           </>

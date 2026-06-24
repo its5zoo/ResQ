@@ -59,28 +59,28 @@ export default function ChronosLayersSection() {
   ];
 
   return (
-    <section id="chronos-layers" className="py-24 relative bg-[#050505] bg-noise overflow-hidden border-t border-white/[0.03]">
+    <section id="chronos-layers" className="py-16 lg:py-24 relative bg-[#050505] bg-noise overflow-hidden border-t border-white/[0.03]">
       {/* Background glow highlights */}
       <div className="absolute top-1/4 left-1/4 w-[350px] h-[350px] bg-white/[0.01] rounded-full blur-[100px] pointer-events-none"></div>
       <div className="absolute bottom-1/4 right-1/4 w-[350px] h-[350px] bg-[#E5B842]/[0.01] rounded-full blur-[100px] pointer-events-none"></div>
 
-      <div className="max-w-7xl mx-auto px-8 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-8 relative z-10">
         
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-20 font-sans">
-          <span className="text-xs font-tech font-bold tracking-[0.3em] uppercase text-white/50 block mb-5">
+        <div className="text-center max-w-3xl mx-auto mb-12 lg:mb-20 font-sans">
+          <span className="text-sm font-tech font-bold tracking-[0.3em] uppercase text-white/50 block mb-5">
             Chronos Layering
           </span>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-display font-black text-silver-gradient text-shine-sweep mb-6 leading-tight tracking-tight">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-display font-black text-silver-gradient text-shine-sweep mb-6 leading-tight tracking-tight">
             Understand your <span className="text-[#E5B842]">timeline</span> structure
           </h2>
-          <p className="text-sm sm:text-base text-white/50 leading-relaxed font-normal max-w-xl mx-auto tracking-normal">
+          <p className="text-sm text-white/50 leading-relaxed font-normal max-w-xl mx-auto tracking-normal">
             ResQ splits your calendar into three distinct cognitive layers, helping you visually budget deep work, collaborative sessions, and deadlines.
           </p>
         </div>
 
         {/* 3-Column Layers Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-8 xl:gap-10">
           {layers.map((layer) => (
             <div 
               key={layer.id} 
@@ -101,7 +101,7 @@ export default function ChronosLayersSection() {
                 {/* Simulated Widget Card */}
                 <div className="bg-[#0b0b0d] border border-white/[0.03] rounded-2xl p-4 font-sans select-none relative overflow-hidden transition-all duration-500 group-hover:border-white/10">
                   <div className="flex items-center justify-between border-b border-white/5 pb-2 mb-3">
-                    <span className="text-[8px] font-tech text-white/30 uppercase tracking-widest">Chronos Layer</span>
+                    <span className="text-sm font-tech text-white/60 uppercase tracking-widest">Chronos Layer</span>
                     <span className={`text-[7px] font-tech border px-2 py-0.5 rounded-full ${layer.badgeClass}`}>
                       {layer.badgeText}
                     </span>
@@ -109,11 +109,11 @@ export default function ChronosLayersSection() {
                   <div className="space-y-2">
                     <div className="flex gap-2.5 items-start pl-2 border-l border-white/5">
                       <div>
-                        <span className="text-[8px] text-white/30 font-semibold block">{layer.timeText}</span>
-                        <h4 className="text-[10px] sm:text-[11px] font-bold text-white/80 tracking-tight leading-tight">
+                        <span className="text-sm text-white/60 font-semibold block">{layer.timeText}</span>
+                        <h4 className="text-sm sm:text-sm font-bold text-white/80 tracking-tight leading-tight">
                           {layer.eventTitle}
                         </h4>
-                        <span className="text-[8px] text-white/40 block mt-1">
+                        <span className="text-sm text-white/70 block mt-1">
                           {layer.eventMeta}
                         </span>
                       </div>
@@ -128,7 +128,7 @@ export default function ChronosLayersSection() {
                   </p>
                   <ul className="space-y-2 pt-2">
                     {layer.bullets.map((bullet, bIdx) => (
-                      <li key={bIdx} className="flex items-start gap-2.5 text-xs text-white/45">
+                      <li key={bIdx} className="flex items-start gap-2.5 text-sm text-white/45">
                         <span className="mt-1 w-1.5 h-1.5 rounded-full bg-white/20 shrink-0"></span>
                         <span>{bullet}</span>
                       </li>

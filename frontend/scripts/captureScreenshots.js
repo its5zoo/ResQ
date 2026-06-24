@@ -33,8 +33,8 @@ async function run() {
   
   // Mock localStorage for auth if needed (assuming the app uses typical token auth)
   await page.evaluateOnNewDocument(() => {
-    localStorage.setItem('token', 'dummy-token');
-    localStorage.setItem('user', JSON.stringify({ name: 'MD Faizaan Raza Khan', email: 'faizaan@example.com' }));
+    localStorage.setItem('token', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImR1bW15IiwiZW1haWwiOiJkZXZlbG9wZXJAcmVzcS5haSIsImlhdCI6MTc4MjI5MTE3NiwiZXhwIjoxNzgyMjk0Nzc2fQ.KjTlBJgblVIls0hfMgrb9l1GTqJBovyAVkcSW8GtZpw');
+    localStorage.setItem('user', JSON.stringify({ name: 'MD Faizaan Raza Khan', email: 'developer@resq.ai' }));
     // Force dark theme
     localStorage.setItem('resq-theme', 'dark');
   });

@@ -267,6 +267,14 @@ export const ai = {
       return handleRequestError(error);
     }
   },
+  getGlobalPriority: async () => {
+    try {
+      const response = await api.get('/ai/global-priority');
+      return response.data;
+    } catch (error) {
+      return handleRequestError(error);
+    }
+  },
 };
 
 export const voice = {

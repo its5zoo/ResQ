@@ -55,14 +55,14 @@ export default function DashboardPreview() {
         
         {/* Header */}
         <div className="text-center max-w-3xl mx-auto mb-44">
-          <span className="text-[9px] font-tech font-bold tracking-[0.3em] uppercase text-white/40 block mb-5">
+          <span className="text-sm font-tech font-bold tracking-[0.3em] uppercase text-white/70 block mb-5">
             LIVE SIMULATOR
           </span>
           <h2 className="text-4xl sm:text-5xl md:text-6xl font-display font-black tracking-tight text-silver-gradient text-shine-sweep mb-6 leading-tight">
             Test the AI priority engine <br />
             right here.
           </h2>
-          <p className="text-xs sm:text-sm text-white/40 font-light leading-relaxed max-w-xl mx-auto tracking-wide font-sans">
+          <p className="text-sm sm:text-sm text-white/70 font-light leading-relaxed max-w-xl mx-auto tracking-wide font-sans">
             Click tasks to complete them, add new items, or delete tasks. Watch the system compute the deadline risk index and focus block durations instantly.
           </p>
         </div>
@@ -76,9 +76,9 @@ export default function DashboardPreview() {
               <div className="flex items-center justify-between border-b border-white/5 pb-5 mb-8">
                 <div className="flex items-center gap-2.5">
                   <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
-                  <h3 className="text-[9px] font-tech font-bold text-white tracking-widest uppercase">Active Task Stack</h3>
+                  <h3 className="text-sm font-tech font-bold text-white tracking-widest uppercase">Active Task Stack</h3>
                 </div>
-                <span className="text-[8px] font-tech bg-white/5 border border-white/10 text-white/50 px-3 py-1 rounded-full font-bold uppercase tracking-widest">
+                <span className="text-sm font-tech bg-white/5 border border-white/10 text-white/50 px-3 py-1 rounded-full font-bold uppercase tracking-widest">
                   AI Sorted
                 </span>
               </div>
@@ -90,11 +90,11 @@ export default function DashboardPreview() {
                   value={newTaskTitle}
                   onChange={(e) => setNewTaskTitle(e.target.value)}
                   placeholder="Create a critical task..."
-                  className="flex-1 bg-[#050505] border border-white/5 hover:border-white/10 focus:border-white/30 rounded-xl px-4 py-3.5 text-xs text-white placeholder-white/20 focus:outline-hidden transition-all font-sans"
+                  className="flex-1 bg-[#050505] border border-white/5 hover:border-white/10 focus:border-white/30 rounded-xl px-4 py-3.5 text-sm text-white placeholder-white/20 focus:outline-hidden transition-all font-sans"
                 />
                 <button 
                   type="submit"
-                  className="bg-transparent hover:bg-white text-white hover:text-black border border-white/30 hover:shadow-lg hover:shadow-white/10 text-[10px] font-tech font-bold uppercase tracking-widest px-6 py-3.5 rounded-xl transition-all duration-500 shrink-0 flex items-center gap-1.5 cursor-pointer active:scale-[0.98]"
+                  className="bg-transparent hover:bg-white text-white hover:text-black border border-white/30 hover:shadow-lg hover:shadow-white/10 text-sm font-tech font-bold uppercase tracking-widest px-6 py-3.5 rounded-xl transition-all duration-500 shrink-0 flex items-center gap-1.5 cursor-pointer active:scale-[0.98]"
                 >
                   <Plus className="w-3.5 h-3.5" /> Add
                 </button>
@@ -114,20 +114,20 @@ export default function DashboardPreview() {
                     <div className="flex items-center gap-4 min-w-0">
                       <button 
                         onClick={() => toggleTask(task.id)}
-                        className="text-white/30 hover:text-white transition-colors focus:outline-hidden cursor-pointer"
+                        className="text-white/60 hover:text-white transition-colors focus:outline-hidden cursor-pointer"
                       >
                         {task.completed 
                           ? <CheckCircle2 className="w-5 h-5 text-status-green" /> 
-                          : <Circle className="w-5 h-5 text-white/20" />
+                          : <Circle className="w-5 h-5 text-white/50" />
                         }
                       </button>
-                      <span className={`text-xs font-medium truncate font-sans ${task.completed ? 'line-through text-white/30' : 'text-white/80'}`}>
+                      <span className={`text-sm font-medium truncate font-sans ${task.completed ? 'line-through text-white/60' : 'text-white/80'}`}>
                         {task.title}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-4 shrink-0">
-                      <span className={`text-[8px] font-tech font-bold px-2 py-0.5 rounded-full ${
+                      <span className={`text-sm font-tech font-bold px-2 py-0.5 rounded-full ${
                         task.urgency >= 9 
                           ? 'bg-status-red/10 border border-status-red/20 text-status-red' 
                           : 'bg-white/5 border border-white/10 text-white/60'
@@ -135,13 +135,9 @@ export default function DashboardPreview() {
                         Priority {task.urgency}
                       </span>
 
-                      <span className="text-[10px] font-tech text-white/40 flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> {task.duration}m
-                      </span>
-
                       <button 
                         onClick={() => deleteTask(task.id)}
-                        className="text-white/20 hover:text-status-red transition-colors cursor-pointer"
+                        className="text-white/50 hover:text-status-red transition-colors cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -151,7 +147,7 @@ export default function DashboardPreview() {
               </div>
             </div>
 
-            <div className="border-t border-white/5 pt-6 mt-8 flex items-center justify-between text-[9px] font-tech text-white/25">
+            <div className="border-t border-white/5 pt-6 mt-8 flex items-center justify-between text-sm font-tech text-white/25">
               <span>Stack Audit Log: RQ-102</span>
               <span>Updated live via local React hooks</span>
             </div>
@@ -166,18 +162,18 @@ export default function DashboardPreview() {
                 <div className="flex items-center justify-between mb-5">
                   <div className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
-                    <span className="text-[9px] font-tech font-bold text-white/60 tracking-widest uppercase">AI Recommendation</span>
+                    <span className="text-sm font-tech font-bold text-white/60 tracking-widest uppercase">AI Recommendation</span>
                   </div>
-                  <Cpu className="w-4 h-4 text-white/40" />
+                  <Cpu className="w-4 h-4 text-white/70" />
                 </div>
 
                 <div className="min-h-[140px] flex flex-col justify-center">
                   {incompleteTasks.length === 0 ? (
-                    <p className="text-[11px] text-status-green font-light leading-relaxed tracking-wide font-sans">
+                    <p className="text-sm text-status-green font-light leading-relaxed tracking-wide font-sans">
                       "Outstanding effort. Your queue is empty and the priority engine registers zero deadline risk. Take this opportunity to recharge."
                     </p>
                   ) : (
-                    <p className="text-[11px] text-white/70 font-light leading-relaxed tracking-wide font-sans">
+                    <p className="text-sm text-white/70 font-light leading-relaxed tracking-wide font-sans">
                       "I detect <span className="font-bold text-white">{incompleteTasks.length} pending tasks</span>. You should focus on <span className="font-bold text-white">'{incompleteTasks.sort((a,b)=>b.urgency - a.urgency)[0].title}'</span> immediately due to its high urgency score. I have reserved a {incompleteTasks[0].duration} min block in your calendar."
                     </p>
                   )}
@@ -187,7 +183,7 @@ export default function DashboardPreview() {
               <div className="border-t border-white/5 pt-5 mt-8">
                 <button 
                   onClick={() => navigate('/dashboard')}
-                  className="w-full py-3.5 rounded-xl text-[9px] font-tech font-bold tracking-widest uppercase border border-white/20 hover:bg-white hover:text-black hover:border-white text-white transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-3.5 rounded-xl text-sm font-tech font-bold tracking-widest uppercase border border-white/20 hover:bg-white hover:text-black hover:border-white text-white transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Calendar className="w-3.5 h-3.5" /> Book Focus Block
                 </button>
@@ -196,25 +192,25 @@ export default function DashboardPreview() {
 
             {/* Live Stats Card */}
             <div className="bg-[#090909] border border-white/[0.05] rounded-3xl p-8 layered-shadow-lg">
-              <h4 className="text-[9px] font-tech font-bold tracking-widest uppercase text-white/30 mb-5">System Telemetry</h4>
+              <h4 className="text-sm font-tech font-bold tracking-widest uppercase text-white/60 mb-5">System Telemetry</h4>
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 bg-[#050505] border border-white/5 rounded-2xl">
-                  <span className="text-[8px] font-tech text-white/30 block mb-1">Risk Level</span>
-                  <span className={`text-[11px] font-tech font-bold ${
+                  <span className="text-sm font-tech text-white/60 block mb-1">Risk Level</span>
+                  <span className={`text-sm font-tech font-bold ${
                     deadlineRisk === 'CRITICAL' ? 'text-status-red' : deadlineRisk === 'MODERATE' ? 'text-white/60' : 'text-status-green'
                   }`}>
                     {deadlineRisk}
                   </span>
                 </div>
                 <div className="p-4 bg-[#050505] border border-white/5 rounded-2xl">
-                  <span className="text-[8px] font-tech text-white/30 block mb-1">Focus Burden</span>
-                  <span className="text-[11px] font-tech font-bold text-white">
+                  <span className="text-sm font-tech text-white/60 block mb-1">Focus Burden</span>
+                  <span className="text-sm font-tech font-bold text-white">
                     {totalFocusTime} Min
                   </span>
                 </div>
                 <div className="p-4 bg-[#050505] border border-white/5 rounded-2xl col-span-2 flex items-center justify-between">
-                  <span className="text-[8px] font-tech text-white/30">Completion Rate</span>
-                  <span className="text-xs font-tech font-bold text-status-green">
+                  <span className="text-sm font-tech text-white/60">Completion Rate</span>
+                  <span className="text-sm font-tech font-bold text-status-green">
                     {tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0}%
                   </span>
                 </div>

@@ -84,7 +84,7 @@ function StateLabel({ orbState }) {
   }
 
   return (
-    <span className={`absolute right-16 top-1/2 -translate-y-1/2 bg-[#09090b]/90 backdrop-blur-md border border-white/10 px-3 py-1 rounded-lg text-[10px] font-tech font-bold uppercase tracking-wider text-white whitespace-nowrap shadow-lg transition-all duration-300 pointer-events-none ${
+    <span className={`absolute right-16 top-1/2 -translate-y-1/2 bg-[#09090b]/90 backdrop-blur-md border border-white/10 px-3 py-1 rounded-lg text-sm font-tech font-bold uppercase tracking-wider text-white whitespace-nowrap shadow-lg transition-all duration-300 pointer-events-none ${
       orbState !== 'idle' ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0'
     }`}>
       {labelText}
@@ -810,7 +810,7 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
             <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto">
               <MicOff className="w-6 h-6 text-red-500" />
             </div>
-            <h3 className="text-white text-base font-tech font-bold tracking-wide">Microphone Access Denied</h3>
+            <h3 className="text-white text-sm font-tech font-bold tracking-wide">Microphone Access Denied</h3>
             <p className="text-white/80 text-sm leading-relaxed pb-2 font-sans font-medium">
               If you don't turn on the mic, you won't be able to talk to the AI using voice or do related tasks.
             </p>
@@ -820,7 +820,7 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
                   localStorage.setItem('resq:mic-denied-seen', 'true');
                   setPermissionDenied(false);
                 }}
-                className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 text-white font-semibold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer"
+                className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 text-white font-semibold text-sm uppercase tracking-wider rounded-xl transition-all cursor-pointer"
               >
                 I Understand
               </button>
@@ -832,7 +832,7 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
                   localStorage.setItem('resq:mic-denied-seen', 'true');
                   setPermissionDenied(false);
                 }}
-                className="flex-1 py-2.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 font-semibold text-xs uppercase tracking-wider rounded-xl transition-all border border-red-500/30 cursor-pointer flex items-center justify-center"
+                className="flex-1 py-2.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 font-semibold text-sm uppercase tracking-wider rounded-xl transition-all border border-red-500/30 cursor-pointer flex items-center justify-center"
               >
                 How to Enable
               </a>
@@ -848,8 +848,8 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
             <div className="w-12 h-12 rounded-full bg-[var(--orb-gold)]/10 border border-[var(--orb-gold)]/20 flex items-center justify-center mx-auto">
               <Mic className="w-6 h-6 text-[var(--orb-gold)]" />
             </div>
-            <h3 className="text-white text-base font-tech font-bold uppercase tracking-wide">Microphone Permission Needed</h3>
-            <p className="text-white/60 text-xs leading-relaxed">
+            <h3 className="text-white text-sm font-tech font-bold uppercase tracking-wide">Microphone Permission Needed</h3>
+            <p className="text-white/60 text-sm leading-relaxed">
               ResQ needs microphone access to listen for 'Hey ResQ'. Allow it to enable hands-free control.
             </p>
             <div className="flex gap-2 pt-2">
@@ -858,13 +858,13 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
                   localStorage.setItem('resq:mic-prompt-seen', 'true');
                   setShowPermissionModal(false);
                 }}
-                className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer"
+                className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-xl text-sm font-semibold uppercase tracking-wider transition-all cursor-pointer"
               >
                 Not Now
               </button>
               <button
                 onClick={handleGrantPermission}
-                className="flex-1 py-2.5 bg-[var(--orb-gold)] hover:bg-[#FFF2CC] text-black rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
+                className="flex-1 py-2.5 bg-[var(--orb-gold)] hover:bg-[#FFF2CC] text-black rounded-xl text-sm font-bold uppercase tracking-wider transition-all cursor-pointer"
               >
                 Allow Mic
               </button>
@@ -879,7 +879,7 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
           {/* Close Button */}
           <button 
             onClick={closeAssistant} 
-            className="absolute top-8 right-8 p-3 rounded-full bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-all cursor-pointer border border-white/10"
+            className="absolute top-8 right-8 p-3 rounded-full bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all cursor-pointer border border-white/10"
           >
             <X className="w-5 h-5" />
           </button>
@@ -889,7 +889,7 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
             <WaveVisualizer micState={micState} />
             
             <div className={`w-28 h-28 rounded-[2.5rem] bg-[#0c0c0e]/80 backdrop-blur-xl flex items-center justify-center z-10 relative transition-all duration-500 ${micState === 'listening' ? 'shadow-[0_0_80px_rgba(0,229,255,0.2)] scale-105 border border-[#00E5FF]/40' : 'border border-white/10 shadow-2xl'}`}>
-               <Mic className={`w-10 h-10 ${micState === 'listening' ? 'text-[#00E5FF]' : 'text-white/40'} transition-colors duration-300 relative z-10`} />
+               <Mic className={`w-10 h-10 ${micState === 'listening' ? 'text-[#00E5FF]' : 'text-white/70'} transition-colors duration-300 relative z-10`} />
             </div>
           </div>
 
@@ -897,7 +897,7 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
             {micState === 'speaking' ? "I'm speaking" : micState === 'processing' ? "I'm thinking..." : "I'm listening"}
           </h2>
           
-          <p className="text-base text-white/40 mb-12 max-w-2xl text-center min-h-[24px] px-6 font-medium">
+          <p className="text-sm text-white/70 mb-12 max-w-2xl text-center min-h-[24px] px-6 font-medium">
             {transcript || "Speak now..."}
           </p>
 
@@ -915,9 +915,9 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
 
                {/* Action taken confirmation */}
                {actionMeta && (
-                 <div className="flex items-center gap-2 mt-6 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-xs font-semibold w-max animate-fade-in">
+                 <div className="flex items-center gap-2 mt-6 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm font-semibold w-max animate-fade-in">
                    <actionMeta.icon className={`w-4 h-4 ${actionMeta.color}`} />
-                   <span className="text-white/40">Action completed:</span>
+                   <span className="text-white/70">Action completed:</span>
                    <span className="text-white font-tech uppercase tracking-wider">{actionMeta.label}</span>
                  </div>
                )}
@@ -943,7 +943,7 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
           <div className="bg-[#0c0c0e] border border-white/10 rounded-3xl p-8 max-w-sm w-full text-center space-y-6 shadow-2xl animate-fade-in-up relative">
             <button
               onClick={() => setShowUpgradeModal(false)}
-              className="absolute top-4 right-4 p-1.5 hover:bg-white/5 rounded-lg text-white/40 hover:text-white transition-colors cursor-pointer"
+              className="absolute top-4 right-4 p-1.5 hover:bg-white/5 rounded-lg text-white/70 hover:text-white transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -952,14 +952,14 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
             </div>
             <div className="space-y-2">
               <h3 className="text-white text-lg font-display font-black uppercase tracking-wide">Upgrade to Premium</h3>
-              <p className="text-white/60 text-xs leading-relaxed font-sans">
+              <p className="text-white/60 text-sm leading-relaxed font-sans">
                 You've used all 30 of your monthly voice commands. Upgrade to Premium for unlimited voice commands, smart conflict resolutions, and autopilot scheduling.
               </p>
             </div>
             <button
               onClick={handleUpgradeToPremium}
               disabled={upgradeLoading}
-              className="w-full py-3 bg-[var(--orb-gold)] hover:bg-[#FFF2CC] text-black font-tech font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-3 bg-[var(--orb-gold)] hover:bg-[#FFF2CC] text-black font-tech font-bold text-sm uppercase tracking-wider rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {upgradeLoading ? (
                 <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin"></span>

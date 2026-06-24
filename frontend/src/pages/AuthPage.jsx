@@ -99,7 +99,7 @@ export default function AuthPage() {
             <span className="text-silver-gradient text-shine-sweep">Res</span>
             <span className="text-gold-sweep text-glow-gold">Q</span>
           </span>
-          <span className="text-[10px] font-tech font-bold uppercase tracking-[0.2em] text-[#E5B842]">
+          <span className="text-sm font-tech font-bold uppercase tracking-[0.2em] text-[#E5B842]">
             Conversational Productivity Shell
           </span>
         </div>
@@ -109,14 +109,14 @@ export default function AuthPage() {
           <h3 className="text-xl font-bold tracking-tight text-white/90">
             {isRegister ? 'Create Account' : 'Welcome Back'}
           </h3>
-          <p className="text-xs text-white/40 mt-1">
+          <p className="text-sm text-white/70 mt-1">
             {isRegister ? 'Register your productivity node to begin' : 'Sign in to access your cognitive shield'}
           </p>
         </div>
 
         {/* Error notification banner */}
         {error && (
-          <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-400 flex items-start gap-2 mb-6 animate-shake">
+          <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-sm text-red-400 flex items-start gap-2 mb-6 animate-shake">
             <span className="text-sm">⚠️</span>
             <span className="leading-normal">{error}</span>
           </div>
@@ -127,7 +127,7 @@ export default function AuthPage() {
           
           {isRegister && (
             <div className="space-y-1.5">
-              <label className="text-[10px] font-tech font-bold uppercase tracking-wider text-white/40 block">Full Name</label>
+              <label className="text-sm font-tech font-bold uppercase tracking-wider text-white/70 block">Full Name</label>
               <div className="relative">
                 <input 
                   type="text"
@@ -137,13 +137,13 @@ export default function AuthPage() {
                   onChange={e => setName(e.target.value)}
                   className="w-full bg-black/60 border border-white/10 hover:border-white/20 focus:border-[#E5B842]/40 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-white/20 outline-none transition-all"
                 />
-                <User className="w-4 h-4 text-white/20 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <User className="w-4 h-4 text-white/50 absolute left-3.5 top-1/2 -translate-y-1/2" />
               </div>
             </div>
           )}
 
           <div className="space-y-1.5">
-            <label className="text-[10px] font-tech font-bold uppercase tracking-wider text-white/40 block">Email Address</label>
+            <label className="text-sm font-tech font-bold uppercase tracking-wider text-white/70 block">Email Address</label>
             <div className="relative">
               <input 
                 type="email"
@@ -153,12 +153,12 @@ export default function AuthPage() {
                 onChange={e => setEmail(e.target.value)}
                 className="w-full bg-black/60 border border-white/10 hover:border-white/20 focus:border-[#E5B842]/40 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-white/20 outline-none transition-all"
               />
-              <Mail className="w-4 h-4 text-white/20 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Mail className="w-4 h-4 text-white/50 absolute left-3.5 top-1/2 -translate-y-1/2" />
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[10px] font-tech font-bold uppercase tracking-wider text-white/40 block">Password</label>
+            <label className="text-sm font-tech font-bold uppercase tracking-wider text-white/70 block">Password</label>
             <div className="relative">
               <input 
                 type={showPassword ? 'text' : 'password'}
@@ -168,11 +168,11 @@ export default function AuthPage() {
                 onChange={e => setPassword(e.target.value)}
                 className="w-full bg-black/60 border border-white/10 hover:border-white/20 focus:border-[#E5B842]/40 rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder-white/20 outline-none transition-all"
               />
-              <Key className="w-4 h-4 text-white/20 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Key className="w-4 h-4 text-white/50 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <button 
                 type="button" 
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors cursor-pointer"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white transition-colors cursor-pointer"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -183,7 +183,7 @@ export default function AuthPage() {
           <button 
             type="submit"
             disabled={loading}
-            className="w-full mt-6 py-3.5 rounded-xl text-xs font-bold tracking-wider uppercase bg-transparent text-white border border-[#E5B842] hover:bg-[#E5B842] hover:text-black shadow-lg shadow-[#E5B842]/5 hover:shadow-[#E5B842]/20 transition-all duration-500 hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 cursor-pointer font-tech disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full mt-6 py-3.5 rounded-xl text-sm font-bold tracking-wider uppercase bg-transparent text-white border border-[#E5B842] hover:bg-[#E5B842] hover:text-black shadow-lg shadow-[#E5B842]/5 hover:shadow-[#E5B842]/20 transition-all duration-500 hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 cursor-pointer font-tech disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
               <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
@@ -198,7 +198,7 @@ export default function AuthPage() {
           {/* Or Divider */}
           <div className="flex items-center my-4">
             <div className="flex-grow border-t border-white/10"></div>
-            <span className="px-3 text-[10px] font-tech text-white/30 uppercase tracking-wider">or</span>
+            <span className="px-3 text-sm font-tech text-white/60 uppercase tracking-wider">or</span>
             <div className="flex-grow border-t border-white/10"></div>
           </div>
 
@@ -207,7 +207,7 @@ export default function AuthPage() {
             type="button"
             onClick={handleGoogleLogin}
             disabled={loading}
-            className="w-full py-3.5 rounded-xl text-xs font-bold tracking-wider uppercase bg-[#0B0B0B] hover:bg-[#151515] text-white border border-white/10 hover:border-white/20 transition-all duration-300 flex items-center justify-center gap-2.5 cursor-pointer font-tech disabled:opacity-50"
+            className="w-full py-3.5 rounded-xl text-sm font-bold tracking-wider uppercase bg-[#0B0B0B] hover:bg-[#151515] text-white border border-white/10 hover:border-white/20 transition-all duration-300 flex items-center justify-center gap-2.5 cursor-pointer font-tech disabled:opacity-50"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -221,14 +221,14 @@ export default function AuthPage() {
 
         {/* Toggle Form Footer */}
         <div className="mt-8 border-t border-white/5 pt-5 text-center">
-          <p className="text-xs text-white/40">
+          <p className="text-sm text-white/70">
             {isRegister ? 'Already registered?' : 'New to ResQ?'}
             <button 
               onClick={() => {
                 setIsRegister(!isRegister);
                 setError('');
               }}
-              className="text-[#E5B842] hover:text-[#FFF2CC] font-bold uppercase tracking-wider text-[10px] ml-1.5 focus:outline-none cursor-pointer"
+              className="text-[#E5B842] hover:text-[#FFF2CC] font-bold uppercase tracking-wider text-sm ml-1.5 focus:outline-none cursor-pointer"
             >
               {isRegister ? 'Sign In' : 'Create Account'}
             </button>

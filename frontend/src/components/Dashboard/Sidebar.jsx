@@ -33,18 +33,19 @@ export default function Sidebar({ currentTab, setCurrentTab }) {
   ];
 
   return (
-    <aside className={`bg-black border-r border-white/5 flex flex-col justify-between h-screen sticky top-0 shrink-0 select-none transition-all duration-300 ${isSidebarOpen ? 'w-64' : 'w-20'}`}>
+    // Hidden on mobile/tablet — shown only on lg+ (1024px+)
+    <aside className={`hidden lg:flex bg-black border-r border-white/5 flex-col justify-between h-screen sticky top-0 shrink-0 select-none transition-all duration-300 ${isSidebarOpen ? 'w-64 xl:w-64 2xl:w-72' : 'w-20'}`}>
       
       {/* Top Section */}
       <div>
-         {/* Brand */}
-        <div className={`p-6 border-b border-white/5 flex items-center ${isSidebarOpen ? 'justify-between' : 'justify-center flex-col gap-4'}`}>
+        {/* Brand */}
+        <div className={`p-5 xl:p-6 border-b border-white/5 flex items-center ${isSidebarOpen ? 'justify-between' : 'justify-center flex-col gap-4'}`}>
           <div 
             onClick={() => navigate('/')}
             className="cursor-pointer group flex items-center justify-center"
           >
             {isSidebarOpen ? (
-              <span className="font-display font-black text-4xl tracking-tighter flex items-center">
+              <span className="font-display font-black text-3xl xl:text-4xl tracking-tighter flex items-center">
                 <span className="text-silver-gradient text-shine-sweep">Res</span>
                 <span className="text-gold-sweep text-glow-gold">Q</span>
               </span>
@@ -56,7 +57,8 @@ export default function Sidebar({ currentTab, setCurrentTab }) {
           </div>
           <button 
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="text-white/40 hover:text-white transition-colors cursor-pointer shrink-0"
+            className="text-white/70 hover:text-white transition-colors cursor-pointer shrink-0"
+            style={{ minHeight: 'auto' }}
             title={isSidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
           >
             {isSidebarOpen ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
@@ -64,7 +66,7 @@ export default function Sidebar({ currentTab, setCurrentTab }) {
         </div>
 
         {/* Menu Nav */}
-        <nav className="p-4 space-y-1">
+        <nav className="p-3 xl:p-4 space-y-1">
           {menuItems.map((item) => {
             const isActive = currentTab === item.id;
             return (
@@ -72,13 +74,14 @@ export default function Sidebar({ currentTab, setCurrentTab }) {
                 key={item.id}
                 onClick={() => setCurrentTab(item.id)}
                 title={!isSidebarOpen ? item.name : undefined}
-                className={`w-full flex items-center gap-3 py-2.5 rounded-lg text-sm font-semibold uppercase tracking-wider transition-all focus:outline-hidden cursor-pointer ${
+                style={{ minHeight: 'auto' }}
+                className={`w-full flex items-center gap-3 py-2.5 rounded-xl text-sm font-semibold uppercase tracking-wider transition-all focus:outline-hidden cursor-pointer ${
                   isActive 
-                    ? 'bg-white/[0.07] text-white' 
+                    ? 'bg-white/[0.07] text-white shadow-sm' 
                     : 'text-white/60 hover:text-white hover:bg-white/[0.02]'
                 } ${isSidebarOpen ? 'px-3' : 'justify-center px-0'}`}
               >
-                <div className="shrink-0">{item.icon}</div>
+                <div className={`shrink-0 ${isActive ? 'text-[#E5B842]' : ''}`}>{item.icon}</div>
                 {isSidebarOpen && <span className="truncate">{item.name}</span>}
               </button>
             );
@@ -87,11 +90,11 @@ export default function Sidebar({ currentTab, setCurrentTab }) {
       </div>
 
       {/* Bottom Section */}
-      <div className="p-4 border-t border-white/5 space-y-4">
+      <div className="p-3 xl:p-4 border-t border-white/5 space-y-3">
 
         {/* User Profile Info */}
         <div className={`flex items-center ${isSidebarOpen ? 'justify-between' : 'justify-center flex-col gap-3'}`}>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             {user?.picture ? (
               <img src={user.picture} alt="Profile" className="w-8 h-8 rounded-full object-cover shrink-0" referrerPolicy="no-referrer" />
             ) : (
@@ -100,15 +103,16 @@ export default function Sidebar({ currentTab, setCurrentTab }) {
               </div>
             )}
             {isSidebarOpen && (
-              <div className="truncate">
+              <div className="truncate min-w-0">
                 <h5 className="text-sm font-bold text-white leading-none truncate">{user?.name || 'User'}</h5>
-                <span className="text-xs text-white/40 leading-none font-sans truncate block">Developer Account</span>
+                <span className="text-xs text-white/50 leading-none font-sans truncate block mt-0.5">Developer Account</span>
               </div>
             )}
           </div>
           <button 
             onClick={() => setIsLogoutModalOpen(true)}
-            className="text-white/40 hover:text-status-red transition-colors focus:outline-hidden cursor-pointer shrink-0"
+            className="text-white/70 hover:text-status-red transition-colors focus:outline-hidden cursor-pointer shrink-0"
+            style={{ minHeight: 'auto' }}
             title="Log Out"
           >
             <LogOut className="w-4 h-4" />
@@ -119,13 +123,14 @@ export default function Sidebar({ currentTab, setCurrentTab }) {
         <button
           onClick={() => setCurrentTab('settings')}
           title={!isSidebarOpen ? "Settings" : undefined}
-          className={`w-full flex items-center gap-3 py-2.5 rounded-lg text-sm font-semibold uppercase tracking-wider transition-all focus:outline-hidden cursor-pointer ${
+          style={{ minHeight: 'auto' }}
+          className={`w-full flex items-center gap-3 py-2.5 rounded-xl text-sm font-semibold uppercase tracking-wider transition-all focus:outline-hidden cursor-pointer ${
             currentTab === 'settings' 
               ? 'bg-white/[0.07] text-white' 
               : 'text-white/60 hover:text-white hover:bg-white/[0.02]'
           } ${isSidebarOpen ? 'px-3' : 'justify-center px-0'}`}
         >
-          <div className="shrink-0"><Settings className="w-4 h-4" /></div>
+          <div className={`shrink-0 ${currentTab === 'settings' ? 'text-[#E5B842]' : ''}`}><Settings className="w-4 h-4" /></div>
           {isSidebarOpen && <span>Settings</span>}
         </button>
       </div>
@@ -141,4 +146,3 @@ export default function Sidebar({ currentTab, setCurrentTab }) {
     </aside>
   );
 }
-

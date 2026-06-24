@@ -18,7 +18,11 @@
     
     --platinum-primary: #EAEAEA;
     --platinum-glow: #FFFFFF;
+
+    /* Mobile bottom nav height — used for content padding */
+    --mobile-nav-h: 64px;
   }
+
 
   body {
     background-color: var(--bg-primary);
@@ -861,9 +865,279 @@ html.light .voice-alert-box {
 }
 
 
+/* ==========================================================================
+   RESPONSIVE DESIGN SYSTEM — Global Utilities
+   ========================================================================== */
 
+/* Prevent horizontal scrolling on all screen sizes */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
 
+/* Mobile bottom nav height token */
+:root {
+  --mobile-nav-h: 64px;
+  --mobile-topbar-h: 56px;
+}
 
+/* Mobile safe area bottom padding (iOS notch support) */
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
+}
 
+/* Mobile content padding to account for top + bottom bars */
+.mobile-content-offset {
+  padding-top: var(--mobile-topbar-h);
+  padding-bottom: calc(var(--mobile-nav-h) + 8px);
+}
+
+/* font-tech utility (referenced across components) */
+.font-tech {
+  font-family: 'JetBrains Mono', 'Space Mono', 'Courier New', monospace;
+  letter-spacing: 0.02em;
+}
+
+/* Drawer/overlay transitions */
+.drawer-overlay {
+  transition: opacity 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.drawer-panel {
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Scale-up animation for modals on mobile */
+@keyframes scaleUp {
+  from { opacity: 0; transform: scale(0.95) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.animate-scale-up {
+  animation: scaleUp 0.25s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Slide up from bottom (mobile sheet pattern) */
+@keyframes slideUpSheet {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.animate-slide-up-sheet {
+  animation: slideUpSheet 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Slide in from left (drawer) */
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Slide in from right */
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Bottom nav active indicator */
+.mobile-nav-active-dot {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #E5B842;
+  box-shadow: 0 0 6px rgba(229, 184, 66, 0.8);
+}
+
+/* Touch action improvement for interactive elements */
+button, [role="button"] {
+  touch-action: manipulation;
+}
+
+/* Hide scrollbar on mobile nav elements */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Responsive container helper */
+.container-responsive {
+  width: 100%;
+  max-width: 1800px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .container-responsive {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container-responsive {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+/* Improved touch targets for mobile */
+@media (max-width: 767px) {
+  button, [role="button"], a {
+    min-height: 44px;
+  }
+
+  /* Hide scrollbars globally on mobile */
+  ::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Mobile bottom nav glass effect */
+.mobile-nav-glass {
+  background: rgba(5, 5, 5, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Mobile top bar */
+.mobile-topbar-glass {
+  background: rgba(5, 5, 5, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Ultra-wide max container */
+@media (min-width: 2560px) {
+  .container-responsive {
+    max-width: 2200px;
+  }
+}
+
+/* Matrix Theme */
+html.matrix body {
+  background-color: #000000;
+  background-image: none;
+}
+
+html.matrix .text-[#E5B842],
+html.matrix .text-gold-sweep {
+  color: #00FF41 !important;
+  -webkit-text-fill-color: #00FF41 !important;
+  text-shadow: 0 0 10px rgba(0, 255, 65, 0.5) !important;
+}
+
+html.matrix .bg-[#E5B842] {
+  background-color: #00FF41 !important;
+}
+
+html.matrix .border-[#E5B842],
+html.matrix .border-[#E5B842]\/20,
+html.matrix .border-[#E5B842]\/30,
+html.matrix .border-[#E5B842]\/40 {
+  border-color: rgba(0, 255, 65, 0.3) !important;
+}
+
+/* Responsive padding helpers */
+.section-px {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .section-px {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .section-px {
+    padding-left: 3rem;
+    padding-right: 3rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .section-px {
+    padding-left: 5rem;
+    padding-right: 5rem;
+  }
+}
+
+/* Dashboard main content adjustment for mobile nav */
+@media (max-width: 1023px) {
+  .dashboard-main {
+    padding-bottom: calc(var(--mobile-nav-h) + 16px) !important;
+  }
+}
+
+/* Mobile nav drawer — slide in from right */
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Mobile modal sheet — slide up from bottom */
+@keyframes slideUpSheet {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-slide-up-sheet {
+  animation: slideUpSheet 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Scale up animation (used for modals on desktop) */
+@keyframes scaleUp {
+  from { opacity: 0; transform: scale(0.95) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.animate-scale-up {
+  animation: scaleUp 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Slide-in (used for toasts from bottom) */
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-in {
+  animation: slideIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Hide scrollbar but keep scroll functionality */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
 
 
