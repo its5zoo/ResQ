@@ -3,7 +3,7 @@ import Task from '../models/Task.js';
 import { generateAutoSchedule } from '../services/geminiService.js';
 import { io } from '../socket/socketHandler.js';
 import User from '../models/User.js';
-import { syncGoogleCalendar } from '../services/googleCalendarService.js';
+import { syncGoogleCalendar, updateEventInGoogleCalendar, deleteEventFromGoogleCalendar } from '../services/googleCalendarService.js';
 import { getFreeSlotsForDay } from '../services/voiceIntentService.js';
 
 // Helper to parse day/time into Date object
@@ -39,6 +39,11 @@ const parseDayTimeToDate = (dayName, timeStr) => {
   }
   
   date.setHours(hours, minutes, 0, 0);
+  
+  if (date < new Date()) {
+    date.setDate(date.getDate() + 1);
+  }
+  
   return date;
 };
 
@@ -97,6 +102,17 @@ export const createEvent = async (req, res) => {
     });
 
     const createdEvent = await event.save();
+    
+    // Push new event to Google Calendar if linked
+    const user = await User.findById(req.user._id);
+    if (user && user.googleAccessToken) {
+      try {
+        await syncGoogleCalendar(user);
+      } catch (err) {
+        console.error('[Google Sync] Failed to sync new event:', err.message);
+      }
+    }
+
     res.status(201).json(createdEvent);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -127,6 +143,13 @@ export const updateEvent = async (req, res) => {
       event.notificationsEnabled = req.body.notificationsEnabled !== undefined ? req.body.notificationsEnabled : event.notificationsEnabled;
 
       const updatedEvent = await event.save();
+
+      // Push update to Google Calendar
+      const user = await User.findById(req.user._id);
+      if (user && user.googleAccessToken && updatedEvent.googleEventId) {
+        await updateEventInGoogleCalendar(user, updatedEvent);
+      }
+
       res.json(updatedEvent);
     } else {
       res.status(404).json({ message: 'Calendar event not found or unauthorized' });
@@ -141,7 +164,15 @@ export const deleteEvent = async (req, res) => {
     const event = await CalendarEvent.findById(req.params.id);
 
     if (event && event.userId.toString() === req.user._id.toString()) {
+      const googleEventId = event.googleEventId;
       await event.deleteOne();
+
+      // Delete from Google Calendar
+      const user = await User.findById(req.user._id);
+      if (user && user.googleAccessToken && googleEventId) {
+        await deleteEventFromGoogleCalendar(user, googleEventId);
+      }
+
       res.json({ message: 'Calendar event removed' });
     } else {
       res.status(404).json({ message: 'Calendar event not found or unauthorized' });

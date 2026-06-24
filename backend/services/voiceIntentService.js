@@ -485,6 +485,11 @@ const getLocalFallbackResult = (transcript, context) => {
       }
       targetDate.setHours(hours, minutes, 0, 0);
       
+      // If the scheduled time is already in the past, shift to tomorrow
+      if (targetDate < new Date() && !dayTomorrow) {
+        targetDate.setDate(targetDate.getDate() + 1);
+      }
+      
       const endTime = new Date(targetDate.getTime() + 45 * 60 * 1000); // 45 min default duration
       
       return {
@@ -737,6 +742,7 @@ HUMAN-LIKE PERSONALITY AND INTERACTION RULES:
 4. **Interactive Modifications**: If the user wants to adjust something, analyze the context, find a free slot, and suggest it intelligently: "I see your meeting is at 2 PM, and you're free at 4 PM. Should I move it to 4 PM?"
 5. **Strict Context Adherence & Anti-Hallucination**: When extracting details, do NOT invent or hallucinate specifics that the user did not provide. However, you MUST use your intelligence to extract **Concise Titles** for tasks, goals, and events. Strip away conversational filler words (e.g., "add a task of", "to my list", "for the full week"). For example: if they say "add a task of walking", the title must be exactly "Walking". If they say "add gym to my goals for the full week", the title must be exactly "Gym".
 6. **Rescheduling vs Scheduling**: If the user asks to "move", "switch", "reschedule", or "change" the time of an EXISTING event (e.g., "move my study session to 3 PM", "switch the meeting to 4 PM"), YOU MUST use the 'reschedule_event' intent. Extract the 'title' of the existing event (e.g. "Study Session", "Meeting") and the 'newStartTime'. DO NOT use 'schedule_event' because that creates a duplicate new event!
+7. **Strict Timing Intelligence**: When extracting times, PAY CLOSE ATTENTION to "AM" and "PM" markers. If a user says "by 2 AM" or "at 2 AM", you MUST parse it strictly as 02:00 (2:00 AM). DO NOT schedule it for 2 PM (14:00) unless they explicitly say PM or "afternoon". Also, DO NOT interpret "by 2 AM" as a deadline day-shift unless mathematically necessary. Stick exactly to the AM/PM given.
 
 Your job is to parse the user's voice command, determine their exact intent, extract structured data, ask clarifying questions if critical info is missing, and return a precise JSON action object.
 

@@ -177,3 +177,50 @@ export const syncGoogleCalendar = async (user) => {
 
   return { success: true, googleEventCount: googleEvents.length, pushedEventCount: localEventsToPush.length };
 };
+
+/**
+ * Update an existing event in Google Calendar
+ */
+export const updateEventInGoogleCalendar = async (user, localEvent) => {
+  if (!user.googleAccessToken || !localEvent.googleEventId) return;
+  try {
+    const calendar = await getCalendarClient(user);
+    const gEventBody = {
+      summary: localEvent.title,
+      description: localEvent.notes || 'Created in ResQ App',
+      start: {
+        dateTime: localEvent.startTime.toISOString(),
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+      },
+      end: {
+        dateTime: localEvent.endTime.toISOString(),
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+      }
+    };
+    await calendar.events.update({
+      calendarId: 'primary',
+      eventId: localEvent.googleEventId,
+      requestBody: gEventBody
+    });
+    console.log(`[Google Sync] Updated event "${localEvent.title}" on Google Calendar`);
+  } catch (err) {
+    console.error(`[Google Sync] Failed to update event on Google Calendar:`, err.message);
+  }
+};
+
+/**
+ * Delete an event from Google Calendar
+ */
+export const deleteEventFromGoogleCalendar = async (user, googleEventId) => {
+  if (!user.googleAccessToken || !googleEventId) return;
+  try {
+    const calendar = await getCalendarClient(user);
+    await calendar.events.delete({
+      calendarId: 'primary',
+      eventId: googleEventId
+    });
+    console.log(`[Google Sync] Deleted event from Google Calendar`);
+  } catch (err) {
+    console.error(`[Google Sync] Failed to delete event from Google Calendar:`, err.message);
+  }
+};

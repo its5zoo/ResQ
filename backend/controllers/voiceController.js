@@ -5,6 +5,7 @@ import Goal from '../models/Goal.js';
 import User from '../models/User.js';
 import { resolveClarification, clearPendingCommands } from '../services/voiceIntentService.js';
 import { reprioritizeTasksForUser } from './taskController.js';
+import { syncGoogleCalendar, updateEventInGoogleCalendar, deleteEventFromGoogleCalendar } from '../services/googleCalendarService.js';
 import { io } from '../socket/socketHandler.js';
 
 export const executeVoiceCommand = async (userId, transcript) => {
@@ -110,32 +111,53 @@ export const executeVoiceCommand = async (userId, transcript) => {
       createdEvents.push(savedEvent);
       calendarModified = true;
       resultObj.createdEventId = savedEvent._id;
+      
+      const user = await User.findById(userId);
+      if (user && user.googleAccessToken) {
+        syncGoogleCalendar(user).catch(err => console.error('[Google Sync] Error syncing voice scheduled event:', err));
+      }
     }
     else if (intent === 'reschedule_event') {
       const eventId = payload.eventId;
       const start = payload.newStartTime ? new Date(payload.newStartTime) : null;
       const end = payload.newEndTime ? new Date(payload.newEndTime) : null;
       
+      let updatedEvent = null;
       if (eventId && start) {
         const update = { startTime: start };
         if (end) update.endTime = end;
-        await CalendarEvent.findOneAndUpdate({ _id: eventId, userId }, update);
-        calendarModified = true;
+        updatedEvent = await CalendarEvent.findOneAndUpdate({ _id: eventId, userId }, update, { new: true });
+        if (updatedEvent) calendarModified = true;
       } else if (payload.title && start) {
         const update = { startTime: start };
         if (end) update.endTime = end;
-        await CalendarEvent.findOneAndUpdate({ title: new RegExp(payload.title, 'i'), userId }, update);
-        calendarModified = true;
+        updatedEvent = await CalendarEvent.findOneAndUpdate({ title: new RegExp(payload.title, 'i'), userId }, update, { new: true });
+        if (updatedEvent) calendarModified = true;
+      }
+
+      if (updatedEvent && updatedEvent.googleEventId) {
+        const user = await User.findById(userId);
+        if (user && user.googleAccessToken) {
+          updateEventInGoogleCalendar(user, updatedEvent).catch(err => console.error('[Google Sync] Voice update error:', err));
+        }
       }
     }
     else if (intent === 'cancel_event') {
       const eventId = payload.eventId;
+      let deletedEvent = null;
       if (eventId) {
-        await CalendarEvent.findOneAndDelete({ _id: eventId, userId });
-        calendarModified = true;
+        deletedEvent = await CalendarEvent.findOneAndDelete({ _id: eventId, userId });
+        if (deletedEvent) calendarModified = true;
       } else if (payload.title) {
-        await CalendarEvent.findOneAndDelete({ title: new RegExp(payload.title, 'i'), userId });
-        calendarModified = true;
+        deletedEvent = await CalendarEvent.findOneAndDelete({ title: new RegExp(payload.title, 'i'), userId });
+        if (deletedEvent) calendarModified = true;
+      }
+      
+      if (deletedEvent && deletedEvent.googleEventId) {
+        const user = await User.findById(userId);
+        if (user && user.googleAccessToken) {
+          deleteEventFromGoogleCalendar(user, deletedEvent.googleEventId).catch(err => console.error('[Google Sync] Voice delete error:', err));
+        }
       }
     }
     else if (intent === 'create_habit') {
