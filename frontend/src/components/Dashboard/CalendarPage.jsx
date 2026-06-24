@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
-  Calendar, 
   ChevronLeft, 
   ChevronRight, 
   Plus, 
@@ -20,7 +19,6 @@ export default function CalendarPage({ tasks }) {
   const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
   const [calendarEvents, setCalendarEvents] = useState([]);
   const [localTasks, setLocalTasks] = useState(tasks || []);
-  const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
   
   // Voice AI highlighting states
@@ -111,25 +109,27 @@ export default function CalendarPage({ tasks }) {
 
   const fetchEvents = async () => {
     try {
-      setLoading(true);
       const data = await apiCalendar.getAll();
       setCalendarEvents(data || []);
     } catch (err) {
       console.error('Error fetching calendar events:', err);
-    } finally {
-      setLoading(false);
     }
   };
 
   useEffect(() => {
     if (tasks) {
-      setLocalTasks(tasks);
+      const timer = setTimeout(() => {
+        setLocalTasks(tasks);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [tasks]);
 
   useEffect(() => {
-    fetchEvents();
-    fetchTasks();
+    const init = async () => {
+      await Promise.all([fetchEvents(), fetchTasks()]);
+    };
+    init();
 
     const handleRefetch = () => {
       fetchEvents();
@@ -155,7 +155,7 @@ export default function CalendarPage({ tasks }) {
   }, []);
 
   // Listen to socket 'calendar:new-events' to refresh the calendar
-  useSocket('calendar:new-events', (newEvents) => {
+  useSocket('calendar:new-events', () => {
     console.log('[Socket] calendar:new-events received');
     fetchEvents();
     showToast('AI Focus blocks updated in real-time!');
@@ -331,7 +331,7 @@ export default function CalendarPage({ tasks }) {
       setCalendarEvents(prev => prev.filter(evt => evt._id !== modalData._id));
       showToast(`Removed slot: "${modalData.title}"`);
       setIsModalOpen(false);
-    } catch (err) {
+    } catch {
       showToast('Error removing event', 'error');
     }
   };
@@ -572,7 +572,7 @@ export default function CalendarPage({ tasks }) {
                                   await apiTasks.update(task._id, { completed: true });
                                   showToast(`Task completed: "${task.title}"`);
                                   fetchTasks();
-                                } catch (err) {
+                                } catch {
                                   showToast("Failed to complete task", "error");
                                 }
                               }}
@@ -680,7 +680,7 @@ export default function CalendarPage({ tasks }) {
                                     await apiTasks.update(task._id, { completed: true });
                                     showToast(`Task completed: "${task.title}"`);
                                     fetchTasks();
-                                  } catch (err) {
+                                  } catch {
                                     showToast("Failed to complete task", "error");
                                   }
                                 }}

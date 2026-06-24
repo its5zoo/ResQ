@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Flame, Plus, Check, Award, AlertCircle, Sparkles, Trash2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Check, Sparkles, Trash2 } from 'lucide-react';
 import { habits as apiHabits } from '../../services/api.js';
 
 export default function HabitsPage() {
@@ -30,7 +30,10 @@ export default function HabitsPage() {
   };
 
   useEffect(() => {
-    fetchHabits();
+    const load = async () => {
+      await fetchHabits();
+    };
+    load();
   }, []);
 
   const toggleDaySelection = (day) => {
@@ -54,7 +57,7 @@ export default function HabitsPage() {
       setTitle('');
       setSelectedDays(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
       showToast(`Added habit: "${created.name}"`);
-    } catch (err) {
+    } catch {
       showToast('Error creating habit', 'error');
     }
   };
@@ -71,7 +74,7 @@ export default function HabitsPage() {
         setHabits(refetched || []);
       }, 3000);
 
-    } catch (err) {
+    } catch {
       showToast('Error completing habit', 'error');
     }
   };
@@ -81,7 +84,7 @@ export default function HabitsPage() {
       await apiHabits.delete(id);
       setHabits(prev => prev.filter(h => h._id !== id));
       showToast('Habit removed');
-    } catch (err) {
+    } catch {
       showToast('Error removing habit', 'error');
     }
   };

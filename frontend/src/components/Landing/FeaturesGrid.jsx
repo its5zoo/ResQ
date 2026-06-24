@@ -1,15 +1,12 @@
-import React from 'react';
 import { 
   BrainCircuit, 
   Calendar, 
   Hourglass, 
-  Brain,
   BellRing, 
   Flame, 
   Sparkles,
   CheckCircle2,
   Circle,
-  Clock,
   Zap
 } from 'lucide-react';
 import taskPrioritizationPreview from '../../assets/task_prioritization_preview.png';

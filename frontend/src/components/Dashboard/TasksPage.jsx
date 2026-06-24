@@ -1,17 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   Plus, 
   Trash2, 
   Clock, 
   SlidersHorizontal, 
-  AlertCircle, 
   CheckCircle2, 
   Circle, 
   Sparkles, 
   X,
-  PlusCircle,
-  FileText,
-  Calendar
+  PlusCircle
 } from 'lucide-react';
 import { tasks as apiTasks } from '../../services/api.js';
 
@@ -33,13 +30,12 @@ export default function TasksPage({
   const [urgency, setUrgency] = useState(5);
   const [dueDate, setDueDate] = useState('Today');
   const [duration, setDuration] = useState(30);
-  const [category, setCategory] = useState('Work');
 
   // Slide-over states
   const [selectedTask, setSelectedTask] = useState(null);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
 
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     try {
       setLoading(true);
       const data = await apiTasks.getAll();
@@ -49,10 +45,12 @@ export default function TasksPage({
     } finally {
       setLoading(false);
     }
-  };
+  }, [setTasks]);
 
   useEffect(() => {
-    fetchTasks();
+    setTimeout(() => {
+      fetchTasks();
+    }, 0);
 
     const handleRefetch = () => {
       fetchTasks();
@@ -96,7 +94,7 @@ export default function TasksPage({
       window.removeEventListener('resq:task-completed-animation', handleCompletedAnimation);
       window.removeEventListener('resq:highlight-deadlines', handleHighlightDeadlines);
     };
-  }, []);
+  }, [fetchTasks]);
 
   // Filtering Logic
   const filteredTasks = (tasks || []).filter((t) => {
@@ -138,7 +136,7 @@ export default function TasksPage({
         urgency: parseInt(urgency),
         dueDate: resolvedDueDate,
         estimatedMinutes: parseInt(duration),
-        category,
+        category: 'Work',
         subtasks: [
           { title: 'Formulate core structure', completed: false }
         ]

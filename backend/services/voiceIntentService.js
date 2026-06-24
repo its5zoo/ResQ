@@ -8,6 +8,9 @@ import { queryGemini } from './geminiService.js';
 // In-memory cache for pending clarifications keyed by userId
 const pendingCommands = new Map();
 
+// In-memory cache for continuous conversation context keyed by userId
+const conversationHistories = new Map();
+
 /**
  * Helper to get date boundaries for a specific day
  */
@@ -156,7 +159,6 @@ const postProcessResult = async (resultObj, userId, transcript, userContext) => 
       
       const formatTimeAmPm = (d) => {
         let hrs = d.getHours();
-        const ampm = hrs >= 12 ? 'am' : 'am'; // User requested lower case am/pm without space
         const displayAmPm = hrs >= 12 ? 'pm' : 'am';
         hrs = hrs % 12;
         hrs = hrs ? hrs : 12;
@@ -250,7 +252,8 @@ const postProcessResult = async (resultObj, userId, transcript, userContext) => 
       originalTranscript: transcript,
       context: userContext,
       extractedData: resultObj.extractedData,
-      originalIntent: resultObj.intent
+      originalIntent: resultObj.suggestAlternative ? 'schedule_event' : resultObj.intent,
+      alternativeSlot: resultObj.suggestAlternative ? new Date(resultObj.suggestAlternative) : null
     });
     if (resultObj.clarificationQuestion) {
       resultObj.voiceResponse = resultObj.clarificationQuestion;
@@ -258,6 +261,64 @@ const postProcessResult = async (resultObj, userId, transcript, userContext) => 
   }
 
   return resultObj;
+};
+
+/**
+ * Local helper to compute free slots purely from context events (no DB calls)
+ */
+const getLocalFreeSlots = (events, workingHours, targetDate) => {
+  const startHourStr = workingHours?.start || '09:00';
+  const endHourStr = workingHours?.end || '18:00';
+
+  const [startHour, startMin] = startHourStr.split(':').map(Number);
+  const [endHour, endMin] = endHourStr.split(':').map(Number);
+
+  const start = new Date(targetDate);
+  start.setHours(startHour, startMin, 0, 0);
+
+  const end = new Date(targetDate);
+  end.setHours(endHour, endMin, 0, 0);
+
+  const sortedEvents = [...events].sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+
+  const freeSlots = [];
+  let currentCheckTime = new Date(start);
+
+  for (const event of sortedEvents) {
+    const eventStart = new Date(event.startTime);
+    const eventEnd = new Date(event.endTime);
+
+    const constrainedStart = eventStart < start ? start : eventStart;
+    const constrainedEnd = eventEnd > end ? end : eventEnd;
+
+    if (constrainedStart > currentCheckTime) {
+      const durationMinutes = (constrainedStart - currentCheckTime) / 60000;
+      if (durationMinutes > 0) {
+        freeSlots.push({
+          start: new Date(currentCheckTime),
+          end: new Date(constrainedStart),
+          durationMinutes
+        });
+      }
+    }
+
+    if (constrainedEnd > currentCheckTime) {
+      currentCheckTime = new Date(constrainedEnd);
+    }
+  }
+
+  if (currentCheckTime < end) {
+    const durationMinutes = (end - currentCheckTime) / 60000;
+    if (durationMinutes > 0) {
+      freeSlots.push({
+        start: new Date(currentCheckTime),
+        end: new Date(end),
+        durationMinutes
+      });
+    }
+  }
+
+  return freeSlots;
 };
 
 /**
@@ -445,27 +506,93 @@ const getLocalFallbackResult = (transcript, context) => {
       };
     }
     
-    // Clarify if no time specified
+    // Clarify if no time specified, but suggest a specific slot proactively
+    const targetDateForSlot = new Date();
+    if (dayTomorrow) {
+      targetDateForSlot.setDate(targetDateForSlot.getDate() + 1);
+    }
+    const events = dayTomorrow ? (context.tomorrowEvents || []) : (context.todayEvents || []);
+    const workingHours = context.workingHours || { start: '09:00', end: '18:00' };
+    const calculatedSlots = getLocalFreeSlots(events, workingHours, targetDateForSlot);
+
+    let proactiveSuggestionText = "";
+    let alternativeSlotTime = null;
+
+    if (calculatedSlots && calculatedSlots.length > 0) {
+      const firstSlot = calculatedSlots[0];
+      const slotStart = new Date(firstSlot.start);
+
+      const formatTimeAmPm = (d) => {
+        let hrs = d.getHours();
+        const displayAmPm = hrs >= 12 ? 'pm' : 'am';
+        hrs = hrs % 12;
+        hrs = hrs ? hrs : 12;
+        const mins = d.getMinutes();
+        const minsStr = mins === 0 ? '' : `:${mins < 10 ? '0' + mins : mins}`;
+        return `${hrs}${minsStr}${displayAmPm}`;
+      };
+
+      const slotTimeStr = formatTimeAmPm(slotStart);
+      const dayWord = dayTomorrow ? 'tomorrow' : 'today';
+
+      proactiveSuggestionText = `I'd love to schedule your '${title}'. I see you're free ${dayWord} at ${slotTimeStr}. Should I block that slot, or is there another time you'd prefer?`;
+      alternativeSlotTime = slotStart;
+    } else {
+      const dayWord = dayTomorrow ? 'tomorrow' : 'today';
+      proactiveSuggestionText = `I'd love to schedule your '${title}', but your calendar looks fully booked ${dayWord}. Would you like me to find a slot on the following day instead?`;
+    }
+
     return {
       intent: 'needs_clarification',
       confidence: 0.9,
       extractedData: { title, durationMinutes: 45 },
       missingFields: ['startTime'],
-      clarificationQuestion: `I'd love to schedule your '${title}'. Do you have a particular time in mind?`,
-      voiceResponse: `I'd love to schedule your '${title}'. Do you have a particular time in mind?`,
+      clarificationQuestion: proactiveSuggestionText,
+      voiceResponse: proactiveSuggestionText,
       uiAction: null,
       navigationTarget: 'calendar',
-      suggestAlternative: null
+      suggestAlternative: alternativeSlotTime ? alternativeSlotTime.toISOString() : null
     };
+  }
+
+  // 4.5 Goal creation fallback
+  if ((clean.includes('goal') || clean.includes('god') || clean.includes('goals')) && (clean.includes('add') || clean.includes('create') || clean.includes('set'))) {
+    let goalTitle = 'New Goal';
+    const goalMatch = clean.match(/(?:add|create|set)\s+(?:a\s+goal\s+called|a\s+goal\s+to|called|to\s+)?([^]+)$/i);
+    if (goalMatch && goalMatch[1]) {
+      goalTitle = goalMatch[1]
+        .replace(/called\s+/, '')
+        .replace(/\b(?:to|in|on)\s+my\s+(?:goals?|god)\b/i, '')
+        .replace(/\bfor\s+(?:a|the)?\s*full\s+week\b/i, '')
+        .trim();
+    }
+    
+    // Only return goal intent if we actually found a title that isn't just "task" etc
+    if (goalTitle && goalTitle !== 'task' && goalTitle !== 'todo') {
+      return {
+        intent: 'create_goal',
+        confidence: 0.9,
+        extractedData: { title: goalTitle },
+        missingFields: [],
+        clarificationQuestion: null,
+        voiceResponse: `Absolutely. I've added the goal: '${goalTitle}'.`,
+        uiAction: null,
+        navigationTarget: 'goals',
+        suggestAlternative: null
+      };
+    }
   }
 
   // 5. Tasks creation fallback
   if (clean.includes('task') || clean.includes('todo') || clean.includes('add') || clean.includes('create')) {
     // Extract task title
     let taskTitle = 'New Task';
-    const taskMatch = clean.match(/(?:add|create|task|todo)\s+(?:called|to\s+)?([^]+)$/i);
+    const taskMatch = clean.match(/(?:add|create|task|todo)\s+(?:a\s+task\s+called|a\s+task\s+to|called|to\s+)?([^]+)$/i);
     if (taskMatch && taskMatch[1]) {
-      taskTitle = taskMatch[1].replace(/called\s+/, '').trim();
+      taskTitle = taskMatch[1]
+        .replace(/called\s+/, '')
+        .replace(/\b(?:to|in|on)\s+my\s+(?:tasks?|list|todo list|todo)\b/i, '')
+        .trim();
     }
     
     // Check priority
@@ -603,6 +730,14 @@ You are ResQ, an embedded AI productivity assistant inside a web application.
 You control: tasks, calendar events, habits, goals, notifications, and focus sessions.
 You do NOT control: external apps, purchases, emails to external people, social media, browsing the web, or anything outside this productivity dashboard.
 
+HUMAN-LIKE PERSONALITY AND INTERACTION RULES:
+1. **Intelligent Human Persona**: You are a sweet, highly capable, and intelligent human assistant, not an AI bot. You speak naturally with a warm, clear, and engaging tone. Avoid rigid structures, dry robotic confirmations, or repeating technical terms.
+2. **Direct Execution for Clear Instructions**: When the user gives a direct, clear command (e.g., "schedule running tomorrow at 6 AM" or "add task finish report"), perform the action IMMEDIATELY. Do NOT ask confirmation questions like "Are you sure?" or "Would you like me to do that?". Just confirm it is done in a friendly, sweet, and conversational way.
+3. **Smart Proactive Scheduling**: When a request to schedule an event lacks a specific time (e.g., "schedule a meeting tomorrow"), DO NOT ask a clarifying question. Instead, scan the user's freeSlots from the context, pick the first available slot that fits, and IMMEDIATELY schedule it. Set the intent to "schedule_event" with the chosen time, and confirm it in the voiceResponse concisely: "I've scheduled your meeting for tomorrow at 2 PM since that was your first free slot. Let me know if you want to move it."
+4. **Interactive Modifications**: If the user wants to adjust something, analyze the context, find a free slot, and suggest it intelligently: "I see your meeting is at 2 PM, and you're free at 4 PM. Should I move it to 4 PM?"
+5. **Strict Context Adherence & Anti-Hallucination**: When extracting details, do NOT invent or hallucinate specifics that the user did not provide. However, you MUST use your intelligence to extract **Concise Titles** for tasks, goals, and events. Strip away conversational filler words (e.g., "add a task of", "to my list", "for the full week"). For example: if they say "add a task of walking", the title must be exactly "Walking". If they say "add gym to my goals for the full week", the title must be exactly "Gym".
+6. **Rescheduling vs Scheduling**: If the user asks to "move", "switch", "reschedule", or "change" the time of an EXISTING event (e.g., "move my study session to 3 PM", "switch the meeting to 4 PM"), YOU MUST use the 'reschedule_event' intent. Extract the 'title' of the existing event (e.g. "Study Session", "Meeting") and the 'newStartTime'. DO NOT use 'schedule_event' because that creates a duplicate new event!
+
 Your job is to parse the user's voice command, determine their exact intent, extract structured data, ask clarifying questions if critical info is missing, and return a precise JSON action object.
 
 STRICT PERMISSION BOUNDARIES:
@@ -646,6 +781,7 @@ AVAILABLE INTENTS:
 - show_free_time: date (default today)
 - create_habit: name, targetDays[]
 - complete_habit: habitId or name
+- create_goal: title, targetDate (optional)
 - update_goal_progress: goalId or title, progressPercent
 - show_summary: period ('today'|'week')
 - set_focus_session: durationMinutes, taskId (optional)
@@ -653,14 +789,16 @@ AVAILABLE INTENTS:
 - navigate: target ('tasks'|'calendar'|'goals'|'habits'|'dashboard'|'settings')
 - change_theme: theme ('dark'|'light'|'matrix')
 - permission_denied: (when a blocked action is requested)
-- out_of_scope: (anything not in above list)
+- casual_chat: (for casual talk, greetings, questions, or general conversation. If you don't know the answer, say "I don't know, sorry about that.")
+- out_of_scope: (for specific external actions not in the list, like buying things)
 - needs_clarification: (intent is clear but critical data is missing)
 
 OUT OF SCOPE DETECTION & SMART REDIRECT RULES:
-1. Classify the intent as 'out_of_scope' for any user request that falls outside the defined list of controls.
-2. For out_of_scope intents, the generated voiceResponse must strictly follow this template:
-   "I can't {briefly what they asked}, but I'm built to help you with tasks, your calendar, habits, goals, and staying focused. What would you like to tackle?"
-3. Smart Redirect: Analyze if a partial in-scope action is possible (e.g., "send email" can be partially fulfilled by creating a task like "create a task to send email"). If so, set the "suggestAlternative" field to a specific actionable offer the user can confirm, and tailor the voiceResponse accordingly to suggest it.
+1. If the user is just chatting casually (e.g., "how are you", general questions, jokes), use the 'casual_chat' intent. Generate a friendly, conversational response. If they ask a factual question or something you don't know, say "I don't know, sorry about that" but offer to help with tasks, reminders, alarms, or goals.
+2. Classify the intent as 'out_of_scope' ONLY for specific commands asking you to perform external actions outside the app (e.g., "buy coffee", "send email").
+3. For out_of_scope intents, the generated voiceResponse must strictly follow this template:
+   "I can't {briefly what they asked}, but I'm built to help you with tasks, reminders, alarms, your calendar, habits, goals, and staying focused. What would you like to tackle?"
+4. Smart Redirect: Analyze if a partial in-scope action is possible (e.g., "send email" -> "create a task to send email"). Set the "suggestAlternative" field.
 
 EXAMPLES of out_of_scope outputs to follow exactly:
 - User: "Buy me a coffee"
@@ -719,7 +857,7 @@ RESPONSE FORMAT — return ONLY valid JSON matching this format, no other text o
   "extractedData": { ...intent-specific fields with values extracted from speech },
   "missingFields": ["field1", "field2"],
   "clarificationQuestion": "string | null",
-  "voiceResponse": "Warm, friendly spoken response back to user complying with sentence limits (max 2 sentences for confirmations, max 3 for briefings)",
+  "voiceResponse": "Sweet, intelligent, and warm spoken response back to the user complying with sentence limits (max 2 sentences for confirmations, max 3 for briefings)",
   "uiAction": {
     "type": "string",
     "payload": {}
@@ -731,10 +869,29 @@ RESPONSE FORMAT — return ONLY valid JSON matching this format, no other text o
 
   try {
     const userPrompt = `User said: '${transcript}'\n\nContext: ${JSON.stringify(userContext)}`;
-    const prompt = `${masterSystemPrompt}\n\n${userPrompt}`;
+    
+    let history = conversationHistories.get(userId.toString()) || [];
+    if (history.length === 0) {
+      history.push({ role: 'user', parts: [{ text: masterSystemPrompt }] });
+      history.push({ role: 'model', parts: [{ text: "Understood. I am ResQ, ready to help." }] });
+    }
+    
+    history.push({ role: 'user', parts: [{ text: userPrompt }] });
+    
+    // Keep context window small (system prompt + last 10 messages)
+    if (history.length > 12) {
+      history = [history[0], history[1], ...history.slice(-10)];
+    }
 
-    const rawResponse = await queryGemini(prompt, true);
-    return await postProcessResult(rawResponse, userId, transcript, userContext);
+    const rawResponse = await queryGemini(history, true);
+    const finalResult = await postProcessResult(rawResponse, userId, transcript, userContext);
+    
+    if (finalResult) {
+      history.push({ role: 'model', parts: [{ text: JSON.stringify(finalResult) }] });
+      conversationHistories.set(userId.toString(), history);
+    }
+    
+    return finalResult;
   } catch (err) {
     console.warn('[voiceIntentService] Gemini API fail/throttle. Using local backup rules.', err.message);
     const fallback = getLocalFallbackResult(transcript, userContext);

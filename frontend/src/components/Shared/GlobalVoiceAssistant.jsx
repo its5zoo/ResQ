@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Mic, MicOff, X, Sparkles, AlertTriangle, CalendarDays, RefreshCw,
-  Play, Pause, Flame, Volume2, VolumeX, Coffee, CloudRain, Wind, CheckSquare, Trash2,
+  Flame, CheckSquare, Trash2,
   Lock
 } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { voice, tasks as apiTasks, calendar as apiCalendar, ai, settings, auth } from '../../services/api.js';
+import { useNavigate } from 'react-router-dom';
+import { voice, settings, auth } from '../../services/api.js';
 import { socket } from '../../services/socket.js';
 import { wakeWordEngine } from '../../services/WakeWordEngine.js';
 import voicePersonality, { INSTANT_RESPONSES } from '../../services/VoicePersonality.js';
@@ -61,7 +61,10 @@ function WaveVisualizer({ bars = 19, micState }) {
             }`}
             style={{
               height: `${baseHeight}px`,
-              animation: micState !== 'idle' ? `voiceWave ${animDuration} infinite ease-in-out` : 'none',
+              animationName: micState !== 'idle' ? 'voiceWave' : 'none',
+              animationDuration: animDuration,
+              animationIterationCount: 'infinite',
+              animationTimingFunction: 'ease-in-out',
               animationDelay: `${idx * 0.04}s`,
             }}
           />
@@ -73,7 +76,7 @@ function WaveVisualizer({ bars = 19, micState }) {
 
 // Sub-component for the hover/state tooltip label
 function StateLabel({ orbState }) {
-  let labelText = '';
+  let labelText;
   switch (orbState) {
     case 'idle':
       labelText = 'Hey ResQ';
@@ -112,15 +115,12 @@ function StateLabel({ orbState }) {
 export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurrentTab }) {
   const routerNavigate = useNavigate();
   const navigate = propNavigate || routerNavigate;
-  const location = useLocation();
-  const [isListening, setIsListening] = useState(false);
   const [isWoken, setIsWoken] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [aiResponse, setAiResponse] = useState('How can I help you today? Try saying "Hey ResQ" or click one of the quick scenarios.');
-  const [speechSupported, setSpeechSupported] = useState(true);
+  const [speechSupported] = useState(!!(window.SpeechRecognition || window.webkitSpeechRecognition));
   const [micState, setMicState] = useState('idle'); // 'idle' | 'listening' | 'processing' | 'speaking'
   const [choices, setChoices] = useState([]);
-  const [pendingVoiceAction, setPendingVoiceAction] = useState(null);
   const [lastResult, setLastResult] = useState(null);
 
   // Proactive Alerts State
@@ -224,14 +224,8 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
     }
   };
 
-  const recognitionRef = useRef(null);
-  const synthRef = useRef(null);
-  const silenceTimeoutRef = useRef(null);
-  const isBlockedRef = useRef(false);
-
   const isWokenRef = useRef(isWoken);
   const focusActiveRef = useRef(focusActive);
-  const pendingVoiceActionRef = useRef(pendingVoiceAction);
   const focusTaskRef = useRef(focusTask);
 
   const pendingDeadlineTaskIdRef = useRef(pendingDeadlineTaskId);
@@ -241,7 +235,6 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
 
   useEffect(() => { isWokenRef.current = isWoken; }, [isWoken]);
   useEffect(() => { focusActiveRef.current = focusActive; }, [focusActive]);
-  useEffect(() => { pendingVoiceActionRef.current = pendingVoiceAction; }, [pendingVoiceAction]);
   useEffect(() => { focusTaskRef.current = focusTask; }, [focusTask]);
 
   useEffect(() => { pendingDeadlineTaskIdRef.current = pendingDeadlineTaskId; }, [pendingDeadlineTaskId]);
@@ -395,12 +388,6 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
 
   // Initialize and listen to custom wakeWordEngine events
   useEffect(() => {
-    // Check SpeechRecognition compatibility
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      setSpeechSupported(false);
-    }
-
     const handleAwakened = () => {
       setIsWoken(true);
       setMicState('listening');
@@ -517,6 +504,7 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
       window.removeEventListener('resq:display-free-time', handleDisplayFreeTime);
       window.removeEventListener('resq:show-summary', handleShowSummary);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Socket listener for voice:response and proactive alerts
@@ -565,7 +553,7 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
     };
   }, []);
 
-  const handleVoiceResult = async (result) => {
+  async function handleVoiceResult(result) {
     if (!result) return;
 
     // Check if blocked by limit
@@ -592,7 +580,7 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
       try {
         const usage = await voice.getUsage();
         setUsageStats(usage);
-      } catch (e) {}
+      } catch { /* ignore */ }
     }
 
     setLastResult(result);
@@ -600,7 +588,7 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
     
     // Delegate all speech and visual actions to VoiceActionExecutor
     await executorRef.current.execute(result);
-  };
+  }
 
   const sendTranscriptToBackend = async (text) => {
     if (!text) return;
@@ -650,19 +638,10 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
 
   // Voice synthesis feedback helper delegating to voicePersonality
   const speakBack = (text, priority = false) => {
-    // Stop recognition to prevent self-listening
-    wakeWordEngine.stopBackgroundListener();
-    wakeWordEngine.stopCommandListener();
-    setIsListening(false);
     setMicState('speaking');
 
     const resumeListening = () => {
       setMicState(isWokenRef.current ? 'listening' : 'idle');
-      if (isWokenRef.current) {
-        wakeWordEngine.startCommandListener();
-      } else {
-        wakeWordEngine.startBackgroundListener();
-      }
     };
 
     voicePersonality.speak(text, {
@@ -740,9 +719,9 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
     navigate('/dashboard?tab=dashboard');
   };
 
-  const stopFocusSession = () => {
+  function stopFocusSession() {
     setFocusActive(false);
-  };
+  }
 
   // Alt+V shortcut to wake/close assistant
   useEffect(() => {
@@ -1098,7 +1077,7 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
         </div>
 
         {/* Status badge: green=on, gray=off, red=error */}
-        <div className={`orb-status-badge status-${!speechSupported ? 'error' : (isWoken || isListening) ? 'on' : 'off'}`} />
+        <div className={`orb-status-badge status-${!speechSupported ? 'error' : isWoken ? 'on' : 'off'}`} />
       </div>
 
       {/* Fullscreen Focus HUD Overlay */}

@@ -175,6 +175,18 @@ export const executeVoiceCommand = async (userId, transcript) => {
         }
       }
     }
+    else if (intent === 'create_goal') {
+      const targetDate = payload.targetDate ? new Date(payload.targetDate) : new Date(Date.now() + 30 * 86400000); // 30 days from now
+      const newGoal = new Goal({
+        userId,
+        title: payload.title || 'New Goal',
+        targetDate,
+        progress: 0,
+        keyResults: []
+      });
+      await newGoal.save();
+      goalsModified = true;
+    }
     else if (intent === 'update_goal_progress') {
       const goalId = payload.goalId;
       const progress = parseFloat(payload.progressPercent);
@@ -309,4 +321,51 @@ export const getVoiceUsage = async (req, res) => {
   }
 };
 
+export const synthesizeSpeech = async (req, res) => {
+  const { text } = req.body;
+  if (!text) {
+    return res.status(400).json({ message: 'Text is required for synthesis' });
+  }
 
+  try {
+    // We use Sarah (EXAVITQu4vr4xnSDxMaL), a calm and sweet free-tier compatible voice
+    const voiceId = 'EXAVITQu4vr4xnSDxMaL'; 
+    const apiKey = process.env.ELEVENLABS_API_KEY;
+    
+    if (!apiKey) {
+      return res.status(500).json({ message: 'ELEVENLABS_API_KEY is not configured' });
+    }
+
+    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'xi-api-key': apiKey
+      },
+      body: JSON.stringify({
+        text,
+        model_id: 'eleven_turbo_v2' 
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error('[ElevenLabs] API Error:', response.status, errText);
+      return res.status(response.status).json({ message: 'ElevenLabs API Error', error: errText });
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    
+    res.set({
+      'Content-Type': 'audio/mpeg',
+      'Content-Length': buffer.length
+    });
+    
+    res.end(buffer);
+
+  } catch (error) {
+    console.error('Error synthesizing speech:', error);
+    res.status(500).json({ message: error.message });
+  }
+};

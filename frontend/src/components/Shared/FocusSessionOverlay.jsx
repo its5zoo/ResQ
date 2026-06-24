@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
-  Play, Pause, X, Coffee, Volume2, VolumeX, Flame, Sparkles, CheckSquare, Wind
+  Play, Pause, X, Coffee, Wind
 } from 'lucide-react';
 import voicePersonality from '../../services/VoicePersonality.js';
 import { wakeWordEngine } from '../../services/WakeWordEngine.js';
@@ -45,16 +45,17 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
       stopBrownNoise();
       
       if (recognitionRef.current) {
-        try { recognitionRef.current.abort(); } catch (e) {}
+        try { recognitionRef.current.abort(); } catch { /* ignore */ }
       }
 
       // Restore global wake word listener
       wakeWordEngine.startBackgroundListener();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 2. Local speech command listener (always listening, no wake word)
-  const startLocalSpeechListener = () => {
+  function startLocalSpeechListener() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) return;
 
@@ -119,29 +120,29 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
 
     recog.onend = () => {
       if (activeRef.current) {
-        try { recog.start(); } catch (err) {}
+        try { recog.start(); } catch { /* ignore */ }
       }
     };
 
     recognitionRef.current = recog;
-    try { recog.start(); } catch (err) {}
-  };
+    try { recog.start(); } catch { /* ignore */ }
+  }
 
   // Speaks feedback and pauses SpeechRecognition to prevent looping
-  const speakBack = (text) => {
+  function speakBack(text) {
     if (recognitionRef.current) {
-      try { recognitionRef.current.abort(); } catch (e) {}
+      try { recognitionRef.current.abort(); } catch { /* ignore */ }
     }
 
     voicePersonality.speak(text, {
       priority: true,
       onEnd: () => {
         if (activeRef.current && recognitionRef.current) {
-          try { recognitionRef.current.start(); } catch (err) {}
+          try { recognitionRef.current.start(); } catch { /* ignore */ }
         }
       }
     });
-  };
+  }
 
   // 3. Count Down Timer Loop
   useEffect(() => {
@@ -169,10 +170,11 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
       clearInterval(interval);
     }
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPaused, remainingSeconds]);
 
   // 4. Pomodoro Phase transition
-  const handlePhaseTransition = () => {
+  function handlePhaseTransition() {
     if (phaseRef.current === 'focus') {
       // Transition to break
       playCompletionSound();
@@ -190,7 +192,7 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
       setRemainingSeconds(duration * 60);
       setTotalSeconds(duration * 60);
     }
-  };
+  }
 
   const handleSkipBreak = () => {
     playAscendingChime();
@@ -206,7 +208,7 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
   };
 
   // 5. Procedural Web Audio Synthesis
-  const playAscendingChime = () => {
+  function playAscendingChime() {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     if (!AudioContext) return;
     const ctx = new AudioContext();
@@ -224,9 +226,9 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
       osc.start(ctx.currentTime + idx * 0.12);
       osc.stop(ctx.currentTime + idx * 0.12 + 0.45);
     });
-  };
+  }
 
-  const playGentleBell = () => {
+  function playGentleBell() {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     if (!AudioContext) return;
     const ctx = new AudioContext();
@@ -251,7 +253,7 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
     osc2.start();
     osc1.stop(ctx.currentTime + 1.8);
     osc2.stop(ctx.currentTime + 1.8);
-  };
+  }
 
   const playCompletionSound = () => {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -323,16 +325,16 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
     }
   };
 
-  const stopBrownNoise = () => {
+  function stopBrownNoise() {
     if (brownNoiseSourceRef.current) {
-      try { brownNoiseSourceRef.current.stop(); } catch (e) {}
+      try { brownNoiseSourceRef.current.stop(); } catch { /* ignore */ }
       brownNoiseSourceRef.current = null;
     }
     if (audioCtxRef.current) {
-      try { audioCtxRef.current.close(); } catch (e) {}
+      try { audioCtxRef.current.close(); } catch { /* ignore */ }
       audioCtxRef.current = null;
     }
-  };
+  }
 
   // Format MM:SS
   const formatTime = (totalSecs) => {

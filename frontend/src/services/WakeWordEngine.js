@@ -26,10 +26,16 @@ class WakeWordEngine {
     this.awaitingClarification = false;
     this.clarificationTimeoutTimer = null;
     this.commandSilenceTimer = null;
+    this.idleConversationTimer = null;
+    this.isAiSpeaking = false;
 
-    // Wake words for fuzzy matching
-    this.wakeWords = ["hey resq", "hey rescue", "hey res q", "hey resk", "hey risq", "a resq", "hey risk", "hey wreck", "hey wresq", "hey raceq", "hey race q", "hey raise key", "hey raise cue", "hey req", "hey rec", "hey rex", "hey reqs", "hey rack", "hair rescue", "hair res", "hair sq", "hair s q", "he rescue", "he resq", "hair is cute", "haris", "harris", "hair is", "is cute", "hey is cute", "he is cute", "here is cute", "harry is", "harry s", "harish", "air rescue", "per rescue", "paras per rescue", "air escape", "air escap", "hair stu", "hair st", "rescue", "resq"];
+    this.handleVoiceStart = () => { this.isAiSpeaking = true; };
+    this.handleVoiceEnd = () => { this.isAiSpeaking = false; this.resetIdleTimer(); };
+    window.addEventListener('resq:voice-start', this.handleVoiceStart);
+    window.addEventListener('resq:voice-end', this.handleVoiceEnd);
 
+    // Wake words for fuzzy matching (excluding dangerous substrings like 'he rescue' or 'a resq')
+    this.wakeWords = ["hey resq", "hey rescue", "hey res q", "hey resk", "hey risq", "hey risk", "hey wresq", "hey raceq", "hey race q", "hey req", "hey rec", "hey rex", "hey rack", "hair rescue", "air rescue", "okay resq", "ok resq", "hey risk you", "ok rescue", "hey ask you", "hey rest cue"];
 
     // Bind event handlers
     this.handleVisibilityChange = this.handleVisibilityChange.bind(this);
@@ -84,7 +90,7 @@ class WakeWordEngine {
       this.recognition.onerror = null;
       try {
         this.recognition.abort();
-      } catch (e) {}
+      } catch { /* ignore */ }
       this.recognition = null;
     }
 
@@ -93,7 +99,7 @@ class WakeWordEngine {
       this.commandRecognition.onerror = null;
       try {
         this.commandRecognition.abort();
-      } catch (e) {}
+      } catch { /* ignore */ }
       this.commandRecognition = null;
     }
 
@@ -101,12 +107,15 @@ class WakeWordEngine {
     if (window.speechSynthesis) {
       try {
         window.speechSynthesis.cancel();
-      } catch (e) {}
+      } catch { /* ignore */ }
     }
 
     this.isListening = false;
     this.isWoken = false;
     this.awaitingClarification = false;
+
+    window.removeEventListener('resq:voice-start', this.handleVoiceStart);
+    window.removeEventListener('resq:voice-end', this.handleVoiceEnd);
   }
 
   pauseForLimitReached() {
@@ -260,7 +269,7 @@ class WakeWordEngine {
       recognition.continuous = true;
       recognition.interimResults = true;
       recognition.lang = 'en-US';
-      recognition.maxAlternatives = 5; // Enable up to 5 alternative transcriptions
+      recognition.maxAlternatives = 5; // Enable up to 5 alternative transcriptions for better accuracy
 
       recognition.onstart = () => {
         console.log('[WakeWordEngine] Always-listening background word listener active...');
@@ -342,7 +351,7 @@ class WakeWordEngine {
       this.recognition.onerror = null; // Clean up error handler to prevent abort restarts
       try {
         this.recognition.abort(); // Use abort for immediate stop
-      } catch (e) {}
+      } catch { /* ignore */ }
       this.recognition = null;
     }
   }
@@ -366,6 +375,24 @@ class WakeWordEngine {
 
     // Start capturing user command
     this.startCommandListening();
+    this.resetIdleTimer();
+  }
+
+  resetIdleTimer() {
+    if (this.idleConversationTimer) clearTimeout(this.idleConversationTimer);
+    this.idleConversationTimer = setTimeout(() => {
+      if (this.isWoken && !this.isAiSpeaking) {
+        console.log('[WakeWordEngine] 15 seconds idle timeout reached. Going to sleep.');
+        
+        if (this.awaitingClarification) {
+           this.exitClarificationMode();
+        }
+
+        window.dispatchEvent(new CustomEvent('resq:close'));
+        this.speak("Going to sleep.");
+        this.resetToIdle();
+      }
+    }, 15000);
   }
 
   playWakeChime() {
@@ -406,7 +433,6 @@ class WakeWordEngine {
       return;
     }
 
-    if (this.commandTimeoutTimer) clearTimeout(this.commandTimeoutTimer);
     if (this.commandSilenceTimer) clearTimeout(this.commandSilenceTimer);
     this.latestTranscript = '';
 
@@ -418,56 +444,74 @@ class WakeWordEngine {
       }
 
       const recognition = new SpeechRecognition();
-      recognition.continuous = false;
+      recognition.continuous = true;
       recognition.interimResults = true;
       recognition.lang = 'en-US';
 
       recognition.onstart = () => {
-        console.log('[WakeWordEngine] Command listener active...');
+        console.log('[WakeWordEngine] Command listener active in conversational mode...');
       };
 
       recognition.onresult = (event) => {
-        let interimTranscript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          interimTranscript += event.results[i][0].transcript;
+        // Barge-in Detection
+        if (this.isAiSpeaking) {
+          const result = event.results[event.resultIndex];
+          if (result && result[0] && result[0].transcript.trim().length > 2) {
+             console.log('[WakeWordEngine] Barge-in detected:', result[0].transcript);
+             if (window.speechSynthesis) window.speechSynthesis.cancel();
+             this.isAiSpeaking = false;
+          }
         }
-        this.latestTranscript = interimTranscript;
-        console.log('[WakeWordEngine] Command interim:', interimTranscript);
-        window.dispatchEvent(new CustomEvent('resq:interim-transcript', { detail: { transcript: interimTranscript } }));
+
+        this.resetIdleTimer();
+
+        let interimTranscript = '';
+        let finalTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          } else {
+            interimTranscript += event.results[i][0].transcript;
+          }
+        }
+        
+        const latest = finalTranscript || interimTranscript;
+        this.latestTranscript = latest;
+        
+        if (interimTranscript) {
+          window.dispatchEvent(new CustomEvent('resq:interim-transcript', { detail: { transcript: interimTranscript } }));
+        }
 
         if (this.commandSilenceTimer) clearTimeout(this.commandSilenceTimer);
 
-        // Quick finalization after 800ms of silence when a final segment is detected
-        const lastResult = event.results[event.results.length - 1];
-        if (lastResult && lastResult.isFinal) {
+        if (latest.trim()) {
           this.commandSilenceTimer = setTimeout(() => {
-            console.log('[WakeWordEngine] 800ms speech silence detected, stopping command recognition.');
-            if (this.commandRecognition) {
-              try {
-                this.commandRecognition.stop();
-              } catch (e) {}
+            console.log('[WakeWordEngine] 4s speech silence detected, sending turn to backend.');
+            if (this.latestTranscript.trim()) {
+              this.finalizeConversationTurn(this.latestTranscript);
+              this.latestTranscript = '';
             }
-          }, 800);
+          }, 4000);
         }
       };
 
       recognition.onerror = (event) => {
         console.warn('[WakeWordEngine] Command listener error:', event.error);
+        if (event.error === 'aborted' || event.error === 'no-speech') {
+           // We're in continuous mode, don't crash, just let the idle timer handle closing
+        }
       };
 
       recognition.onend = () => {
-        this.finalizeCommand();
-      };
-
-      // 8 seconds absolute command timeout
-      this.commandTimeoutTimer = setTimeout(() => {
-        console.log('[WakeWordEngine] 8 seconds command timeout reached');
-        if (this.commandRecognition) {
-          try {
-            this.commandRecognition.stop();
-          } catch (e) {}
+        // If we are still woken, restart the recognition to keep the loop open
+        if (this.isWoken) {
+           setTimeout(() => {
+             if (this.isWoken && this.commandRecognition) {
+                try { this.commandRecognition.start(); } catch { /* ignore */ }
+             }
+           }, 200);
         }
-      }, 8000);
+      };
 
       this.commandRecognition = recognition;
       recognition.start();
@@ -480,39 +524,38 @@ class WakeWordEngine {
   stopCommandListening() {
     if (this.commandTimeoutTimer) clearTimeout(this.commandTimeoutTimer);
     if (this.commandSilenceTimer) clearTimeout(this.commandSilenceTimer);
+    if (this.idleConversationTimer) clearTimeout(this.idleConversationTimer);
     if (this.commandRecognition) {
       this.commandRecognition.onend = null;
       try {
-        this.commandRecognition.stop();
-      } catch (e) {}
+        this.commandRecognition.abort();
+      } catch { /* ignore */ }
       this.commandRecognition = null;
     }
   }
 
-  finalizeCommand() {
-    this.stopCommandListening();
-    
-    const transcript = this.latestTranscript.trim();
-    
-    if (this.awaitingClarification) {
-      this.awaitingClarification = false;
-      if (this.clarificationTimeoutTimer) {
-        clearTimeout(this.clarificationTimeoutTimer);
-        this.clarificationTimeoutTimer = null;
+  finalizeConversationTurn(transcript) {
+    const text = transcript.trim();
+    if (text) {
+      // Local sleep interception
+      const isSleepCommand = /^(bye|goodbye|sleep|go to sleep|stop listening)$/i.test(text.replace(/[^\w\s]/g, '').trim());
+      if (isSleepCommand) {
+        console.log('[WakeWordEngine] Sleep command detected. Going to sleep.');
+        if (this.awaitingClarification) this.exitClarificationMode();
+        window.dispatchEvent(new CustomEvent('resq:close'));
+        this.speak("Goodbye.");
+        this.resetToIdle();
+        return;
       }
-    }
 
-    this.isWoken = false;
-
-    if (transcript) {
-      console.log('[WakeWordEngine] Finalized command:', transcript);
-      window.dispatchEvent(new CustomEvent('resq:command', { detail: { transcript } }));
-      this.startBackgroundListening();
-    } else {
-      console.log('[WakeWordEngine] No speech detected in 8 seconds');
-      window.dispatchEvent(new CustomEvent('resq:close'));
-      this.speak("I'm here whenever you need me.");
+      console.log('[WakeWordEngine] Sending conversation turn:', text);
+      window.dispatchEvent(new CustomEvent('resq:command', { detail: { transcript: text } }));
+      this.resetIdleTimer();
     }
+  }
+
+  finalizeCommand() {
+    // Legacy single-turn fallback
   }
 
   speak(text) {
@@ -520,38 +563,19 @@ class WakeWordEngine {
     voicePersonality.speak(text);
   }
 
-  enterClarificationMode(onTimeout) {
-    if (this.clarificationTimeoutTimer) {
-      clearTimeout(this.clarificationTimeoutTimer);
-    }
-    
+  enterClarificationMode() {
     this.awaitingClarification = true;
-    this.isWoken = true;
     
-    // Dispatch awakened event to visual console
-    window.dispatchEvent(new CustomEvent('resq:awakened'));
-
-    this.stopBackgroundListening();
-    this.startCommandListening();
-
-    // 15-second clarification window
-    this.clarificationTimeoutTimer = setTimeout(() => {
-      if (this.awaitingClarification) {
-        console.log('[WakeWordEngine] Clarification window timed out');
-        this.exitClarificationMode();
-        if (typeof onTimeout === 'function') {
-          onTimeout();
-        }
-      }
-    }, 15000);
+    // In continuous conversational mode, the idleTimer handles timeouts natively.
+    if (!this.isWoken) {
+      this.triggerWakeSequence();
+    } else {
+      this.resetIdleTimer();
+    }
   }
 
   exitClarificationMode() {
     this.awaitingClarification = false;
-    if (this.clarificationTimeoutTimer) {
-      clearTimeout(this.clarificationTimeoutTimer);
-      this.clarificationTimeoutTimer = null;
-    }
     this.resetToIdle();
   }
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Mic, MicOff, Sparkles, Send, Volume2 } from 'lucide-react';
 import { voice as apiVoice } from '../../services/api.js';
 
@@ -72,7 +72,9 @@ export default function VoiceAIPage() {
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
-      } catch (e) {}
+      } catch {
+        // stopped
+      }
     }
 
     const rec = new SpeechRecognition();
@@ -107,7 +109,9 @@ export default function VoiceAIPage() {
       if (recognitionRef.current) {
         try {
           recognitionRef.current.stop();
-        } catch (e) {}
+        } catch {
+          // stopped
+        }
       }
       setIsListening(false);
     } else {

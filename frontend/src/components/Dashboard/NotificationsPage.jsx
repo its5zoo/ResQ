@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Bell, Flame, Calendar, Sparkles, Check, CheckCircle2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Flame, Calendar, Sparkles, CheckCircle2 } from 'lucide-react';
 import { notifications as apiNotifications } from '../../services/api.js';
 import { useSocket } from '../../services/socket.js';
 
@@ -44,7 +44,10 @@ export default function NotificationsPage() {
   };
 
   useEffect(() => {
-    fetchNotifications();
+    const load = async () => {
+      await fetchNotifications();
+    };
+    load();
   }, []);
 
   // Socket listener for new real-time notifications

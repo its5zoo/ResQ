@@ -1,138 +1,79 @@
 class VoicePersonality {
   constructor() {
-    this.synth = typeof window !== 'undefined' ? window.speechSynthesis : null;
-    this.selectedVoice = null;
-    this.voices = [];
-    
-    if (this.synth) {
-      this.voices = this.synth.getVoices();
-      this.selectedVoice = this.selectVoice();
-      
-      const updateVoices = () => {
-        this.voices = this.synth.getVoices();
-        this.selectedVoice = this.selectVoice();
-      };
-
-      if (this.synth.addEventListener) {
-        this.synth.addEventListener('voiceschanged', updateVoices);
-      } else {
-        this.synth.onvoiceschanged = updateVoices;
-      }
-    }
-  }
-
-  selectVoice() {
-    if (!this.synth) return null;
-    const voices = this.synth.getVoices();
-    if (!voices || voices.length === 0) return null;
-
-    // 1. Prioritize Microsoft Edge Online (Natural) Voices - extremely realistic human voice
-    const edgeNaturalVoice = voices.find(v => 
-      v.name.includes('Online (Natural)') && v.lang.startsWith('en')
-    ) || voices.find(v => 
-      v.name.includes('Microsoft') && v.name.includes('Natural') && v.lang.startsWith('en')
-    ) || voices.find(v => 
-      v.name.toLowerCase().includes('edge') && v.lang.startsWith('en')
-    );
-    if (edgeNaturalVoice) return edgeNaturalVoice;
-
-
-    // 2. Google Cloud High-Quality Voices in Chrome
-    const googleUSVoice = voices.find(v => v.name === 'Google US English');
-    if (googleUSVoice) return googleUSVoice;
-
-    const googleUKVoice = voices.find(v => v.name === 'Google UK English Female');
-    if (googleUKVoice) return googleUKVoice;
-
-    // 3. Apple/MacOS High-Quality Voice
-    const samanthaVoice = voices.find(v => v.name === 'Samantha');
-    if (samanthaVoice) return samanthaVoice;
-
-    // 4. Windows Local SAPI Clear Offline Voices
-    const hazelVoice = voices.find(v => v.name.includes('Microsoft Hazel'));
-    if (hazelVoice) return hazelVoice;
-
-    const ziraVoice = voices.find(v => v.name.includes('Microsoft Zira'));
-    if (ziraVoice) return ziraVoice;
-
-    // 5. Fallback English Female / English / Default
-    return voices.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('female'))
-        || voices.find(v => v.lang.startsWith('en'))
-        || voices[0]
-        || null;
+    this.currentAudio = null;
   }
 
   speak(text, options = {}) {
     return new Promise((resolve) => {
-      if (!this.synth) {
-        resolve();
-        return;
-      }
-
-      // Cancel any ongoing speech first (interrupt current speech immediately if priority is true or by default)
-      this.synth.cancel();
+      // Cancel any ongoing speech first
+      this.cancel();
 
       // 120ms delay before speaking (feels more natural, not instant)
-      setTimeout(() => {
-        const utterance = new SpeechSynthesisUtterance(text);
-        
-        // Select voice
-        let voice = this.selectedVoice || this.selectVoice();
-        if (!voice) {
-          // Chrome bug fallback - try one more time
-          voice = this.selectVoice();
-        }
-        
-        if (voice) {
-          utterance.voice = voice;
-        }
+      setTimeout(async () => {
+        try {
+          const token = localStorage.getItem('token');
+          // In production, use relative URL or env var. For this dev environment, use localhost:5000.
+          const response = await fetch('http://localhost:5000/api/voice/tts', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ text })
+          });
 
-        // Voice parameters (Keep premium cloud voices untuned to let them play at natural speed/pitch, tune legacy local robotic voices)
-        const isPremiumVoice = voice && (voice.name.includes('Google') || voice.name.includes('Online (Natural)'));
-        utterance.rate = this.rate !== undefined ? this.rate : (isPremiumVoice ? 1.0 : 0.95);
-        utterance.pitch = this.pitch !== undefined ? this.pitch : (isPremiumVoice ? 1.0 : 1.02);
-        utterance.volume = 0.95;
-
-        // Handle Chrome bug: re-select voice if utterance.voice is null on speak
-        if (!utterance.voice) {
-          const reSelected = this.selectVoice();
-          if (reSelected) {
-            utterance.voice = reSelected;
+          if (!response.ok) {
+            console.error('[VoicePersonality] TTS API failed', response.status);
+            window.dispatchEvent(new CustomEvent('resq:voice-end'));
+            resolve();
+            return;
           }
-        }
 
-        let speakTimeout = null;
+          const arrayBuffer = await response.arrayBuffer();
+          const blob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
+          const url = URL.createObjectURL(blob);
 
-        const handleEnd = () => {
-          if (speakTimeout) {
-            clearTimeout(speakTimeout);
-            speakTimeout = null;
-          }
-          if (options.onEnd) {
-            try {
-              options.onEnd();
-            } catch (e) {
-              console.error('[VoicePersonality] Error in onEnd callback:', e);
+          this.currentAudio = new Audio(url);
+          this.currentAudio.volume = 0.95;
+
+          this.currentAudio.onplay = () => {
+            window.dispatchEvent(new CustomEvent('resq:voice-start'));
+          };
+
+          this.currentAudio.onended = () => {
+            window.dispatchEvent(new CustomEvent('resq:voice-end'));
+            if (options.onEnd) {
+              try { options.onEnd(); } catch(e) {}
             }
-          }
+            URL.revokeObjectURL(url);
+            this.currentAudio = null;
+            resolve();
+          };
+
+          this.currentAudio.onerror = (e) => {
+            console.warn('[VoicePersonality] Audio playback error:', e);
+            window.dispatchEvent(new CustomEvent('resq:voice-end'));
+            URL.revokeObjectURL(url);
+            this.currentAudio = null;
+            resolve();
+          };
+
+          await this.currentAudio.play();
+        } catch (error) {
+          console.error('[VoicePersonality] Error playing ElevenLabs TTS:', error);
           resolve();
-        };
-
-        utterance.onend = handleEnd;
-        utterance.onerror = (e) => {
-          console.warn('[VoicePersonality] Speech synthesis error:', e);
-          handleEnd();
-        };
-
-        // Fallback safety timeout in case the browser SpeechSynthesis gets stuck
-        speakTimeout = setTimeout(() => {
-          console.warn('[VoicePersonality] Speech synthesis got stuck or timed out. Forcing end event recovery.');
-          handleEnd();
-        }, Math.max(6000, text.length * 100)); // minimum 6 seconds, or 100ms per character
-
-        this.synth.speak(utterance);
+        }
       }, 120);
     });
+  }
+
+  cancel() {
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+      this.currentAudio.currentTime = 0;
+      this.currentAudio = null;
+      window.dispatchEvent(new CustomEvent('resq:voice-end'));
+    }
   }
 
   interpolate(template, data = {}) {

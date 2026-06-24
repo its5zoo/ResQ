@@ -37,10 +37,17 @@ export const queryGemini = async (prompt, isJson = false) => {
   try {
     const model = getResQModel();
 
+    let contentsPayload;
+    if (Array.isArray(prompt)) {
+      contentsPayload = prompt;
+    } else {
+      contentsPayload = [{ role: 'user', parts: [{ text: prompt }] }];
+    }
+
     const result = await model.generateContent(isJson ? {
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      contents: contentsPayload,
       generationConfig: { responseMimeType: "application/json" }
-    } : prompt);
+    } : { contents: contentsPayload });
     
     // Log token usage in development
     if (process.env.NODE_ENV !== 'production' && result.response.usageMetadata) {
@@ -62,13 +69,22 @@ export const queryGemini = async (prompt, isJson = false) => {
       const model = getResQModel();
 
       const retryPrompt = isJson
-        ? `${prompt}\n\nReturn ONLY valid JSON. Absolutely no conversational text, explanations, or code-block formatting wrappers.`
+        ? (Array.isArray(prompt) 
+            ? [...prompt, { role: 'user', parts: [{ text: 'Return ONLY valid JSON. Absolutely no conversational text, explanations, or code-block formatting wrappers.' }] }]
+            : `${prompt}\n\nReturn ONLY valid JSON. Absolutely no conversational text, explanations, or code-block formatting wrappers.`)
         : prompt;
 
+      let retryContentsPayload;
+      if (Array.isArray(retryPrompt)) {
+        retryContentsPayload = retryPrompt;
+      } else {
+        retryContentsPayload = [{ role: 'user', parts: [{ text: retryPrompt }] }];
+      }
+
       const result = await model.generateContent(isJson ? {
-        contents: [{ role: 'user', parts: [{ text: retryPrompt }] }],
+        contents: retryContentsPayload,
         generationConfig: { responseMimeType: "application/json" }
-      } : retryPrompt);
+      } : { contents: retryContentsPayload });
       const text = result.response.text().trim();
       
       if (isJson) {

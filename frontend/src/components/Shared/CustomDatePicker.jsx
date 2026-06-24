@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function CustomDatePicker({ value, onChange, placeholder = "Select target date" }) {
@@ -9,14 +9,16 @@ export default function CustomDatePicker({ value, onChange, placeholder = "Selec
   const selectedDate = value ? new Date(value + 'T00:00:00') : new Date();
   
   // We keep track of the month/year currently viewed in the picker
-  const [currentViewDate, setCurrentViewDate] = useState(selectedDate);
-  
-  // Update view date when the prop value changes
-  useEffect(() => {
-    if (value) {
-      setCurrentViewDate(new Date(value + 'T00:00:00'));
-    }
-  }, [value]);
+  // Derive from prop to avoid setState-in-effect cascading render warnings
+  const derivedViewDate = value ? new Date(value + 'T00:00:00') : selectedDate;
+  const [currentViewDate, setCurrentViewDate] = useState(derivedViewDate);
+
+  // Keep view in sync with external value changes
+  const [prevValue, setPrevValue] = useState(value);
+  if (prevValue !== value && value) {
+    setPrevValue(value);
+    setCurrentViewDate(new Date(value + 'T00:00:00'));
+  }
 
   // Click outside to close
   useEffect(() => {

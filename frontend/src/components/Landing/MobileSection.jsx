@@ -1,4 +1,3 @@
-import React from 'react';
 import { Smartphone, Bell, Flame, Award, Navigation, Fingerprint } from 'lucide-react';
 
 export default function MobileSection() {

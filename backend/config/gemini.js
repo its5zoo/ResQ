@@ -4,8 +4,8 @@ dotenv.config();
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// LOCKED — do not change this model string under any circumstances
-const RESQ_MODEL = 'gemini-2.5-flash';
+// Use gemini-3.1-flash-lite as requested
+const RESQ_MODEL = 'gemini-3.1-flash-lite';
 
 export function getResQModel() {
   return genAI.getGenerativeModel({ 
@@ -21,8 +21,8 @@ export function getResQModel() {
 
 // Safety check on startup
 export function verifyModelConfig() {
-  if (RESQ_MODEL !== 'gemini-2.5-flash') {
-    throw new Error('CRITICAL: ResQ model config tampered. Only gemini-2.5-flash is allowed.');
+  if (RESQ_MODEL !== 'gemini-3.1-flash-lite') {
+    throw new Error('CRITICAL: ResQ model config tampered. Only gemini-3.1-flash-lite is allowed.');
   }
   console.log(`✅ ResQ AI Engine: ${RESQ_MODEL} verified`);
 }

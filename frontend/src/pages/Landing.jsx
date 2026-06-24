@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import Navbar from '../components/Landing/Navbar';
 import Hero from '../components/Landing/Hero';
 import FeatureStrip from '../components/Landing/FeatureStrip';

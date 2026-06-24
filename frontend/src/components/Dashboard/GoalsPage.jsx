@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Target, Plus, Sparkles, CheckSquare, Calendar, Trash2 } from 'lucide-react';
 import { goals as apiGoals } from '../../services/api.js';
 import CustomDatePicker from '../Shared/CustomDatePicker.jsx';
@@ -10,7 +10,7 @@ export default function GoalsPage() {
 
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('Personal');
-  const [targetDate, setTargetDate] = useState(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10));
+  const [targetDate, setTargetDate] = useState(() => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10));
   const [autoPlan, setAutoPlan] = useState(true);
   const [userPreferences, setUserPreferences] = useState('');
 
@@ -34,7 +34,10 @@ export default function GoalsPage() {
   };
 
   useEffect(() => {
-    fetchGoals();
+    const load = async () => {
+      await fetchGoals();
+    };
+    load();
   }, []);
 
   const handleAddGoal = async (e) => {
@@ -65,7 +68,7 @@ export default function GoalsPage() {
         showToast(`Goal created successfully!`);
       }
 
-    } catch (err) {
+    } catch {
       showToast('Error creating goal', 'error');
     }
   };
@@ -90,7 +93,7 @@ export default function GoalsPage() {
       });
       setGoals(prev => prev.map(g => g._id === goalId ? updated : g));
       showToast('Milestone status updated!');
-    } catch (err) {
+    } catch {
       showToast('Error updating milestone', 'error');
     }
   };
@@ -100,7 +103,7 @@ export default function GoalsPage() {
       await apiGoals.delete(id);
       setGoals(prev => prev.filter(g => g._id !== id));
       showToast('Goal removed');
-    } catch (err) {
+    } catch {
       showToast('Error removing goal', 'error');
     }
   };

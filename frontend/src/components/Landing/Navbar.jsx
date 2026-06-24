@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Shield, Sun, Moon } from 'lucide-react';
+import { Sun, Moon } from 'lucide-react';
 import { useAuthContext } from '../../context/AuthContext.jsx';
 import LogoutModal from '../Shared/LogoutModal.jsx';
 

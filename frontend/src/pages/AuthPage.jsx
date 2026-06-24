@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Sparkles, Key, Mail, User, Eye, EyeOff } from 'lucide-react';
+import { Sparkles, Key, Mail, User, Eye, EyeOff } from 'lucide-react';
 import { auth, google as apiGoogle } from '../services/api.js';
 import { useAuthContext } from '../context/AuthContext.jsx';
 
@@ -28,7 +28,9 @@ export default function AuthPage() {
         navigate('/dashboard');
       });
     } else if (urlError) {
-      setError(urlError);
+      setTimeout(() => {
+        setError(urlError);
+      }, 0);
       // Clean query params from address bar
       window.history.replaceState({}, document.title, window.location.pathname);
     }

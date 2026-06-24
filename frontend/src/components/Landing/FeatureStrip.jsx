@@ -1,4 +1,3 @@
-import React from 'react';
 import { ShieldCheck, CalendarRange, Mic, Target } from 'lucide-react';
 
 export default function FeatureStrip() {

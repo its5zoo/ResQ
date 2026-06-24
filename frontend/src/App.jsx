@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
 import AuthPage from './pages/AuthPage';
@@ -9,7 +9,6 @@ import { useAuthContext } from './context/AuthContext';
 
 function AppContent() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { user, isAuthenticated, loading } = useAuthContext();
   const [currentTab, setCurrentTab] = useState('dashboard');
 

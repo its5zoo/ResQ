@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Sparkles, 
   Cpu, 
-  Clock, 
   Flame, 
   AlertTriangle, 
   CheckCircle2, 
@@ -10,8 +9,7 @@ import {
   Calendar,
   ChevronRight,
   TrendingUp,
-  Inbox,
-  MoreVertical
+  Inbox
 } from 'lucide-react';
 import { ai, tasks as apiTasks, habits as apiHabits, calendar as apiCalendar } from '../../services/api.js';
 import { useSocket } from '../../services/socket.js';
@@ -45,11 +43,14 @@ export default function DashboardHome({ setCurrentTab }) {
   };
 
   useEffect(() => {
-    fetchDashboardData();
+    const load = async () => {
+      await fetchDashboardData();
+    };
+    load();
   }, []);
 
   // Listen to 'ai:priority-update' to re-render tasks
-  useSocket('ai:priority-update', (newIncompleteTasks) => {
+  useSocket('ai:priority-update', () => {
     console.log('[Socket] ai:priority-update received');
     apiTasks.getAll().then(data => {
       setLocalTasks(data || []);
@@ -88,10 +89,7 @@ export default function DashboardHome({ setCurrentTab }) {
   const pendingTasks = localTasks.filter(t => !t.completed);
   const completedTasks = localTasks.filter(t => t.completed);
   const completedRate = localTasks.length > 0 ? Math.round((completedTasks.length / localTasks.length) * 100) : 0;
-  
-  const topTask = pendingTasks.length > 0 
-    ? [...pendingTasks].sort((a, b) => (a.aiPriorityRank || 99) - (b.aiPriorityRank || 99))[0] 
-    : null;
+
 
   const hasCritical = pendingTasks.some(t => t.urgency >= 9);
   const riskText = hasCritical ? 'URGENT HAZARD' : pendingTasks.length > 0 ? 'MODERATE' : 'OPTIMIZED';

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Settings, 
   Bell, 
@@ -50,24 +50,6 @@ export default function SettingsPage() {
     end: '18:00'
   });
 
-  // AI Guardian Settings
-  const [proactivity, setProactivity] = useState(3); // 1 to 5 scale
-  const proactivityLabels = [
-    'Gentle (Alerts only)',
-    'Balanced (Alerts + Nudges)',
-    'Optimal (Autonomic scheduling)',
-    'Aggressive (Double-booking resolution)',
-    'Relentless (Full calendar control)'
-  ];
-
-  // Connected Calendars
-  const [selectedCalendars, setSelectedCalendars] = useState(['primary', 'work']);
-  const handleCalToggle = (id) => {
-    setSelectedCalendars(prev =>
-      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
-    );
-  };
-
   // Notification states
   const [allowWebPush, setAllowWebPush] = useState(true);
   const [allowPhonePush, setAllowPhonePush] = useState(true); // "need notification in phone or not"
@@ -79,14 +61,11 @@ export default function SettingsPage() {
     const saved = localStorage.getItem('resq-theme');
     return saved || 'dark';
   });
-  const [accentColor, setAccentColor] = useState('gold');
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [language, setLanguage] = useState('en');
   const [soundVolume, setSoundVolume] = useState(80);
 
   // Voice AI
-  const [voiceFeedback, setVoiceFeedback] = useState(true);
-  const [micSensitivity, setMicSensitivity] = useState('high');
   const [aiVoiceEnabled, setAiVoiceEnabled] = useState(true);
   const [voiceSpeed, setVoiceSpeed] = useState(0.92);
   const [voicePitch, setVoicePitch] = useState(1.08);
@@ -94,22 +73,70 @@ export default function SettingsPage() {
   const [proactiveAlerts, setProactiveAlerts] = useState(true);
   const [voiceUsage, setVoiceUsage] = useState({ used: 0, limit: 30, remaining: 30, lastResetDate: new Date() });
 
-  // Security
-  const [twoFactor, setTwoFactor] = useState(false);
+  // Available voices for selection
+  const [voices, setVoices] = useState([]);
+  const [selectedVoiceName, setSelectedVoiceName] = useState(() => {
+    return localStorage.getItem('resq-selected-voice-name') || '';
+  });
+
+  useEffect(() => {
+    const updateVoices = () => {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        const list = window.speechSynthesis.getVoices();
+        // Filter for English voices
+        const englishVoices = list.filter(v => v.lang.startsWith('en'));
+        setVoices(englishVoices);
+        
+        const currentSelected = localStorage.getItem('resq-selected-voice-name');
+        if (!currentSelected) {
+          const autoVoice = voicePersonality.selectedVoice || voicePersonality.selectVoice();
+          if (autoVoice) {
+            setSelectedVoiceName(autoVoice.name);
+          }
+        }
+      }
+    };
+
+    updateVoices();
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      if (window.speechSynthesis.addEventListener) {
+        window.speechSynthesis.addEventListener('voiceschanged', updateVoices);
+      } else {
+        window.speechSynthesis.onvoiceschanged = updateVoices;
+      }
+    }
+    return () => {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        if (window.speechSynthesis.removeEventListener) {
+          window.speechSynthesis.removeEventListener('voiceschanged', updateVoices);
+        } else {
+          window.speechSynthesis.onvoiceschanged = null;
+        }
+      }
+    };
+  }, []);
+
+  const handleVoiceChange = (e) => {
+    const name = e.target.value;
+    setSelectedVoiceName(name);
+    localStorage.setItem('resq-selected-voice-name', name);
+    if (voicePersonality.synth) {
+      const vList = voicePersonality.synth.getVoices();
+      const match = vList.find(v => v.name === name);
+      if (match) {
+        voicePersonality.selectedVoice = match;
+        // Test speak immediately
+        voicePersonality.speak("Voice updated. How does this sound?");
+      }
+    }
+  };
 
   // Storage
   const [autoPurgeLogs, setAutoPurgeLogs] = useState(true);
 
-  // Parental controls
-  const [screenLimit, setScreenLimit] = useState(4);
-  const [hardFocusLock, setHardFocusLock] = useState(false);
-
   // Trusted Contact
   const [trustedEmail, setTrustedEmail] = useState('emergency-delegate@resq.io');
   const [notifyTrusted, setNotifyTrusted] = useState(true);
-
-  // Keyboard shortcut state
-  const [voiceShortcut, setVoiceShortcut] = useState('Alt + V');
 
   // Font size scale
   const [fontSize, setFontSize] = useState(() => {
@@ -177,15 +204,20 @@ export default function SettingsPage() {
   // Check URL query parameters for Google sync status
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('sync') === 'success') {
-      showToast('Google Calendar linked and synchronized successfully!');
-      window.history.replaceState({}, document.title, window.location.pathname + (activeSubTab !== 'general' ? `?tab=${activeSubTab}` : ''));
-    } else if (params.get('sync') === 'email_mismatch') {
-      showToast('Google account email must match your ResQ registration email.', 'error');
-      window.history.replaceState({}, document.title, window.location.pathname + (activeSubTab !== 'general' ? `?tab=${activeSubTab}` : ''));
-    } else if (params.get('sync') === 'error') {
-      showToast('Failed to link Google Calendar. Please try again.', 'error');
-      window.history.replaceState({}, document.title, window.location.pathname + (activeSubTab !== 'general' ? `?tab=${activeSubTab}` : ''));
+    const sync = params.get('sync');
+    if (sync) {
+      setTimeout(() => {
+        if (sync === 'success') {
+          showToast('Google Calendar linked and synchronized successfully!');
+        } else if (sync === 'email_mismatch') {
+          showToast('Google account email must match your ResQ registration email.', 'error');
+        } else if (sync === 'error') {
+          showToast('Failed to link Google Calendar. Please try again.', 'error');
+        }
+        params.delete('sync');
+        const newSearch = params.toString();
+        window.history.replaceState({}, document.title, window.location.pathname + (newSearch ? `?${newSearch}` : ''));
+      }, 0);
     }
   }, []);
 
@@ -437,16 +469,6 @@ export default function SettingsPage() {
     if (window.confirm("Are you sure you want to reset all workspace data? This cannot be undone.")) {
       showToast("Workspace data cleared.", "error");
     }
-  };
-
-  const handleGenerateApiKey = () => {
-    const key = `resq_live_${Math.random().toString(36).substring(2, 15)}`;
-    navigator.clipboard.writeText(key);
-    showToast("API Key copied to clipboard!");
-  };
-
-  const handleExportData = () => {
-    showToast("Backup metadata package exported!");
   };
 
   // Settings Sidebar tabs definition
@@ -876,6 +898,28 @@ export default function SettingsPage() {
                   <span className="px-3 py-1 bg-black/60 border border-white/10 rounded-lg text-[10px] font-tech font-bold text-[#E5B842]">
                     "Hey ResQ" (fixed)
                   </span>
+                </div>
+
+                {/* Voice Selection Dropdown */}
+                <div className="space-y-2">
+                  <label className="text-white/50 text-xs block">Assistant Voice</label>
+                  <select
+                    value={selectedVoiceName}
+                    onChange={handleVoiceChange}
+                    className="w-full bg-[#0B0B0B] border border-white/10 hover:border-white/20 focus:border-[#E5B842]/40 rounded-xl px-3 py-2.5 text-xs text-white outline-none transition-colors cursor-pointer"
+                  >
+                    {voices.map(v => (
+                      <option key={v.name} value={v.name}>
+                        {v.name} ({v.lang})
+                      </option>
+                    ))}
+                    {voices.length === 0 && (
+                      <option value="">Default System Voice</option>
+                    )}
+                  </select>
+                  <p className="text-[9px] text-white/30 leading-normal font-sans">
+                    Tip: For the clearest, sweetest natural neural voices, we highly recommend running ResQ in <strong>Microsoft Edge</strong>.
+                  </p>
                 </div>
 
                 {/* Voice Speed Slider */}

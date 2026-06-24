@@ -1,5 +1,5 @@
 import express from 'express';
-import { processVoiceCommand, clearVoiceCache, getVoiceUsage } from '../controllers/voiceController.js';
+import { processVoiceCommand, clearVoiceCache, getVoiceUsage, synthesizeSpeech } from '../controllers/voiceController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { voiceGate } from '../middleware/voiceGate.js';
 import { getResQModel } from '../config/gemini.js';
@@ -25,5 +25,6 @@ router.get('/gemini-test', async (req, res) => {
 router.post('/command', protect, voiceGate, processVoiceCommand);
 router.post('/clear-cache', protect, clearVoiceCache);
 router.get('/usage', protect, getVoiceUsage);
+router.post('/tts', protect, synthesizeSpeech);
 
 export default router;

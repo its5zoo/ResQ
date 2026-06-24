@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Mic, MicOff, Volume2, Sparkles } from 'lucide-react';
 
 export default function VoiceSection() {

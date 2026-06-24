@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ShieldCheck, Cpu, Calendar, Clock, CheckCircle2, Circle, AlertTriangle, Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Cpu, Calendar, Clock, CheckCircle2, Circle, Plus, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function DashboardPreview() {

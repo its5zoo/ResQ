@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
   LayoutDashboard, 
   CheckSquare, 
@@ -8,8 +8,7 @@ import {
   Mic, 
   Settings, 
   Bell, 
-  LogOut, 
-  Shield 
+  LogOut 
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../../context/AuthContext.jsx';

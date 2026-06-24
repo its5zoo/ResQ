@@ -1,7 +1,6 @@
 import voicePersonality from './VoicePersonality.js';
 import { wakeWordEngine } from './WakeWordEngine.js';
-import { tasks as apiTasks, calendar as apiCalendar, ai as apiAi, voice as apiVoice, settings as apiSettings } from './api.js';
-import { socket } from './socket.js';
+import { tasks as apiTasks, calendar as apiCalendar, ai as apiAi, settings as apiSettings } from './api.js';
 
 export class VoiceActionExecutor {
   constructor(navigationCallback, speakCallback) {
@@ -22,7 +21,7 @@ export class VoiceActionExecutor {
   async execute(intentObject) {
     if (!intentObject) return;
 
-    const { intent, confidence, extractedData, missingFields, clarificationQuestion, voiceResponse, uiAction, navigationTarget, suggestAlternative } = intentObject;
+    const { intent, extractedData, clarificationQuestion, voiceResponse, uiAction, navigationTarget } = intentObject;
 
     // 1. Speak the voice response IMMEDIATELY (don't wait for actions)
     const responseText = voiceResponse || intentObject.response || clarificationQuestion;
@@ -183,6 +182,22 @@ export class VoiceActionExecutor {
           }
         } catch (e) {
           console.error('[VoiceActionExecutor] show_summary failed:', e);
+        }
+        break;
+      }
+
+      case 'create_goal': {
+        try {
+          // Refetch goals list
+          window.dispatchEvent(new CustomEvent('resq:refetch-goals'));
+          
+          if (typeof this.navigationCallback === 'function') {
+            this.navigationCallback('goals');
+          } else {
+            window.dispatchEvent(new CustomEvent('resq:navigate', { detail: { target: 'goals' } }));
+          }
+        } catch (e) {
+          console.error('[VoiceActionExecutor] create_goal UI update failed:', e);
         }
         break;
       }
