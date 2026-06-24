@@ -101,29 +101,42 @@ export const queryGemini = async (prompt, isJson = false) => {
 /**
  * 1. Generates a concise daily summary briefing (3 sentences, plain text, no markdown).
  */
-export const generateDailySummary = async (user, tasks = [], calendarEvents = [], habits = []) => {
+export const generateDailySummary = async (user, tasks = [], calendarEvents = [], habits = [], goals = []) => {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey || apiKey.includes('your_google_gemini_api_key') || apiKey.includes('your_gemini_api_key_here')) {
       return getMockDailySummary(user, tasks, habits);
     }
 
-    const taskList = tasks.map(t => `- ${t.title} (urgency: ${t.urgency}/10, completed: ${t.completed})`).join('\n');
+    const taskList = tasks.map(t => `- ${t.title} (urgency: ${t.urgency}/10, completed: ${t.completed}, due: ${t.dueDate || 'none'})`).join('\n');
     const eventList = calendarEvents.map(e => `- ${e.title} at ${e.timeSlot} on ${e.day} (${e.duration}m)`).join('\n');
-    const habitList = habits.map(h => `- ${h.title} (streak: ${h.streak}d, done: ${h.completedToday})`).join('\n');
+    const habitList = habits.map(h => `- ${h.name} (streak: ${h.streak}d, done today: ${h.completions?.some(c => new Date(c.date).setHours(0,0,0,0) === new Date().setHours(0,0,0,0) && c.completed)})`).join('\n');
+    const goalList = goals.map(g => `- ${g.title} (progress: ${g.progress}%)`).join('\n');
 
     const prompt = `
-You are ResQ, an AI productivity assistant. The user's name is ${user.name || 'User'}.
-Today's tasks:
-${taskList || 'None'}
+You are ResQ, a smart, proactive AI productivity advisor. The user's name is ${user.name || 'User'}.
+
+DATA FOR TODAY:
+Tasks:
+${taskList || 'None pending'}
 
 Calendar Events:
-${eventList || 'None'}
+${eventList || 'None scheduled'}
 
-Habit Streaks:
-${habitList || 'None'}
+Habits:
+${habitList || 'None set'}
 
-Generate a very brief, punchy daily briefing (maximum 2 short sentences, under 30 words total). Include one quick actionable tip. Return plain text, no markdown bolding or styling.
+Long-term Goals:
+${goalList || 'None set'}
+
+INSTRUCTIONS:
+Analyze the data above and write a very brief, punchy daily briefing (maximum 2-3 short sentences).
+CRITICAL RULE: If you see ANY tasks, events, habits, or goals related to "meeting", "exam", or "recharge" (like phone/bill recharge), you MUST explicitly call them out as top priority today across all modules.
+1. Look closely at the data. If a deadline (dueDate) or event is near, start by alerting them upfront!
+2. If there's an incomplete urgent task or missing daily habit today, remind them.
+3. Do NOT talk about Goals if they have pressing tasks or deadlines today. Focus on the immediate priority.
+4. HOWEVER, if there are NO pending tasks or deadlines today, but they do have Goals set, casually ask "How are your goals going?" or mention a specific goal to show you are paying attention.
+5. Return plain text only. No markdown formatting, no bullet points, no bolding.
 `;
 
     return await queryGemini(prompt, false);
@@ -145,6 +158,7 @@ export const generateTaskPriority = async (tasks = []) => {
 
     const prompt = `
 Analyze these tasks and re-rank them by urgency+importance matrix.
+CRITICAL RULE: Tasks containing keywords like "meeting", "exam", or "recharge" are highly critical to the user. Always rank them at the very top (highest priority).
 Tasks (JSON format):
 ${JSON.stringify(tasks, null, 2)}
 
@@ -247,6 +261,7 @@ export const generateGoalBreakdown = async (goal, userPreferences = '') => {
 
     const prompt = `
 Break down this goal into 4-6 weekly milestones with estimated effort.
+Use very simple, everyday language that anyone can easily understand. Do not use technical jargon, complicated diet/fitness terms, or confusing acronyms. Keep it extremely easy to read.
 Goal: ${goal.title}
 Target Date: ${goal.targetDate || 'Flexible'}
 Current Progress: ${goal.progress || 0}%
@@ -264,6 +279,39 @@ Effort values must be exactly: "low" | "medium" | "high".
   } catch (err) {
     console.error('Error generating goal breakdown:', err);
     return getMockGoalBreakdown(goal);
+  }
+};
+
+/**
+ * 5.5. Cleans up manual milestones into simple professional English.
+ */
+export const cleanManualMilestones = async (manualMilestones, goalTitle) => {
+  try {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || apiKey.includes('your_google_gemini_api_key') || apiKey.includes('your_gemini_api_key_here')) {
+      return manualMilestones.map(m => ({ week: m.week, milestone: m.text, effort: m.effort }));
+    }
+
+    const prompt = `
+I have a goal titled "${goalTitle}".
+The user provided the following raw milestone inputs for each week:
+${JSON.stringify(manualMilestones, null, 2)}
+
+Clean up the "text" field of each milestone to be in clear, simple, and professional English.
+Make it easy to understand. Keep the "week" and "effort" exactly the same.
+CRITICAL: If the "text" field for any week is empty or blank, DO NOT leave it blank! Smartly generate a logical milestone for that week based on the overall goal title and the previous weeks' progress (e.g., generate a "Revision", "Practice", or "Review" week).
+Return ONLY JSON. No explanations.
+
+JSON Output Format:
+[
+  { "week": 1, "milestone": "Cleaned up or smartly generated milestone details here", "effort": "medium" }
+]
+`;
+
+    return await queryGemini(prompt, true);
+  } catch (err) {
+    console.error('Error cleaning manual milestones:', err);
+    return manualMilestones.map(m => ({ week: m.week, milestone: m.text, effort: m.effort }));
   }
 };
 
@@ -507,4 +555,31 @@ const getMockNotification = (type, data) => {
     return `Goal "${data.title || 'Goal'}" is pacing behind. Let's schedule a focus session.`;
   }
   return "ResQ Focus alert: Safeguard your calendar for deep work block.";
+};
+
+/**
+ * 2.5 Infers task urgency automatically if left blank.
+ */
+export const inferTaskUrgency = async (title, dueDate) => {
+  try {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || apiKey.includes('your_google_gemini_api_key')) {
+      return 5;
+    }
+
+    const prompt = `
+Analyze the task: "${title}" due on ${dueDate}.
+Estimate the urgency level on a scale from 1 to 10, where 1 is extremely low urgency and 10 is critically urgent.
+CRITICAL RULE: If the task involves a "meeting", "exam", or "recharge" (e.g. phone/mobile recharge, electricity bill), it is extremely important to the user. You MUST assign it an urgency of 9 or 10.
+Consider typical real-world priorities for other tasks (e.g. "submit taxes today" = 10, "buy milk tomorrow" = 5, "watch movie" = 2).
+Return ONLY a valid integer between 1 and 10. No text, no markdown.
+`;
+    const responseText = await queryGemini(prompt, false);
+    const inferred = parseInt(responseText.replace(/\D/g, ''));
+    if (inferred >= 1 && inferred <= 10) return inferred;
+    return 5;
+  } catch (error) {
+    console.error('Failed to infer task urgency:', error);
+    return 5;
+  }
 };

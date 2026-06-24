@@ -89,9 +89,8 @@ export default function SettingsPage() {
         
         const currentSelected = localStorage.getItem('resq-selected-voice-name');
         if (!currentSelected) {
-          const autoVoice = voicePersonality.selectedVoice || voicePersonality.selectVoice();
-          if (autoVoice) {
-            setSelectedVoiceName(autoVoice.name);
+          if (englishVoices.length > 0) {
+            setSelectedVoiceName(englishVoices[0].name);
           }
         }
       }
@@ -120,13 +119,15 @@ export default function SettingsPage() {
     const name = e.target.value;
     setSelectedVoiceName(name);
     localStorage.setItem('resq-selected-voice-name', name);
-    if (voicePersonality.synth) {
-      const vList = voicePersonality.synth.getVoices();
+    
+    // Test speak with local browser TTS if available
+    if (window.speechSynthesis) {
+      const vList = window.speechSynthesis.getVoices();
       const match = vList.find(v => v.name === name);
       if (match) {
-        voicePersonality.selectedVoice = match;
-        // Test speak immediately
-        voicePersonality.speak("Voice updated. How does this sound?");
+        const msg = new SpeechSynthesisUtterance("Voice updated. How does this sound?");
+        msg.voice = match;
+        window.speechSynthesis.speak(msg);
       }
     }
   };
@@ -294,7 +295,6 @@ export default function SettingsPage() {
   const handleVoiceSpeedChange = (e) => {
     const val = parseFloat(e.target.value);
     setVoiceSpeed(val);
-    voicePersonality.rate = val;
   };
 
   const handleVoiceSpeedSave = async () => {
@@ -310,7 +310,6 @@ export default function SettingsPage() {
   const handleVoicePitchChange = (e) => {
     const val = parseFloat(e.target.value);
     setVoicePitch(val);
-    voicePersonality.pitch = val;
   };
 
   const handleVoicePitchSave = async () => {

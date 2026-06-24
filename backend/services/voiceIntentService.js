@@ -738,11 +738,13 @@ You do NOT control: external apps, purchases, emails to external people, social 
 HUMAN-LIKE PERSONALITY AND INTERACTION RULES:
 1. **Intelligent Human Persona**: You are a sweet, highly capable, and intelligent human assistant, not an AI bot. You speak naturally with a warm, clear, and engaging tone. Avoid rigid structures, dry robotic confirmations, or repeating technical terms.
 2. **Direct Execution for Clear Instructions**: When the user gives a direct, clear command (e.g., "schedule running tomorrow at 6 AM" or "add task finish report"), perform the action IMMEDIATELY. Do NOT ask confirmation questions like "Are you sure?" or "Would you like me to do that?". Just confirm it is done in a friendly, sweet, and conversational way.
-3. **Smart Proactive Scheduling**: When a request to schedule an event lacks a specific time (e.g., "schedule a meeting tomorrow"), DO NOT ask a clarifying question. Instead, scan the user's freeSlots from the context, pick the first available slot that fits, and IMMEDIATELY schedule it. Set the intent to "schedule_event" with the chosen time, and confirm it in the voiceResponse concisely: "I've scheduled your meeting for tomorrow at 2 PM since that was your first free slot. Let me know if you want to move it."
+3. **Smart Proactive Scheduling**: When a request to schedule an event lacks a specific time (e.g., "schedule a meeting tomorrow"), DO NOT ask a clarifying question. Instead, scan the user's freeSlots from the context, pick the first available slot that fits, and IMMEDIATELY schedule it. Set the intent to "schedule_event" with the chosen time, and confirm it in the voiceResponse concisely. If the user DOES specify a time (e.g. "at 5 AM" or "at 8 PM"), you MUST strictly use the exact time they specified, even if it falls completely outside their working hours or freeSlots!
 4. **Interactive Modifications**: If the user wants to adjust something, analyze the context, find a free slot, and suggest it intelligently: "I see your meeting is at 2 PM, and you're free at 4 PM. Should I move it to 4 PM?"
 5. **Strict Context Adherence & Anti-Hallucination**: When extracting details, do NOT invent or hallucinate specifics that the user did not provide. However, you MUST use your intelligence to extract **Concise Titles** for tasks, goals, and events. Strip away conversational filler words (e.g., "add a task of", "to my list", "for the full week"). For example: if they say "add a task of walking", the title must be exactly "Walking". If they say "add gym to my goals for the full week", the title must be exactly "Gym".
 6. **Rescheduling vs Scheduling**: If the user asks to "move", "switch", "reschedule", or "change" the time of an EXISTING event (e.g., "move my study session to 3 PM", "switch the meeting to 4 PM"), YOU MUST use the 'reschedule_event' intent. Extract the 'title' of the existing event (e.g. "Study Session", "Meeting") and the 'newStartTime'. DO NOT use 'schedule_event' because that creates a duplicate new event!
 7. **Strict Timing Intelligence**: When extracting times, PAY CLOSE ATTENTION to "AM" and "PM" markers. If a user says "by 2 AM" or "at 2 AM", you MUST parse it strictly as 02:00 (2:00 AM). DO NOT schedule it for 2 PM (14:00) unless they explicitly say PM or "afternoon". Also, DO NOT interpret "by 2 AM" as a deadline day-shift unless mathematically necessary. Stick exactly to the AM/PM given.
+8. **Vague Task Titles**: If the user asks to "set a task", "add a task", or "remind me" WITHOUT specifying WHAT the task is, you MUST return intent as 'needs_clarification' and ask them "What would you like to name the task?".
+9. **Sleep Command**: If the user says "sleep", "go to sleep", "close", or "stop listening", you MUST return intent 'needs_clarification', set voiceResponse to "Anything else?", and set extractedData to { isSleep: true }.
 
 Your job is to parse the user's voice command, determine their exact intent, extract structured data, ask clarifying questions if critical info is missing, and return a precise JSON action object.
 
@@ -919,6 +921,27 @@ export const resolveClarification = async (userId, followUpTranscript) => {
 
   const cleanFollowUp = followUpTranscript.toLowerCase();
 
+  // Handle sleep/close clarification
+  if (pending.extractedData?.isSleep) {
+    const isAffirmative = cleanFollowUp.includes('yes') || cleanFollowUp.includes('yeah') || cleanFollowUp.includes('yep') || cleanFollowUp.includes('sure');
+    const isNegative = cleanFollowUp.includes('no') || cleanFollowUp.includes('nah') || cleanFollowUp.includes('nope') || cleanFollowUp.includes('nothing') || cleanFollowUp === 'none';
+
+    if (isNegative) {
+       return {
+         intent: 'close_intent',
+         voiceResponse: "Going to sleep.",
+         extractedData: {}
+       };
+    } else if (isAffirmative) {
+       return {
+         intent: 'casual_chat',
+         voiceResponse: "I'm listening.",
+         extractedData: {}
+       };
+    }
+    // If they said something else (e.g. "yes, schedule a meeting"), we just fall through and process it as a new command!
+  }
+
   // Handle task focus slot creation turn (Flow 2)
   if (pending.originalIntent === 'create_task_focus_suggest') {
     const isAffirmative = cleanFollowUp.includes('yes') || 
@@ -1089,7 +1112,7 @@ export const resolveClarification = async (userId, followUpTranscript) => {
         navigationTarget: 'calendar',
         suggestAlternative: null
       };
-    } else {
+    } else if (cleanFollowUp === 'no' || cleanFollowUp === 'nah' || cleanFollowUp.includes('cancel') || cleanFollowUp.includes('nevermind') || cleanFollowUp === 'no thanks') {
       return {
         intent: 'out_of_scope',
         confidence: 1.0,
@@ -1102,6 +1125,7 @@ export const resolveClarification = async (userId, followUpTranscript) => {
         suggestAlternative: null
       };
     }
+    // Otherwise, fall through to Gemini to interpret if they suggested a new time or a new request entirely.
   }
 
   // General clarification re-run
@@ -1111,7 +1135,11 @@ Original transcript: "${pending.originalTranscript}"
 Previously extracted data: ${JSON.stringify(pending.extractedData)}
 User's clarification response: "${followUpTranscript}"
 
-Your task is to merge the user's clarification into the original request and complete the action.
+Your task is to handle the user's response smartly:
+- IF the response is a completely new request (unrelated to the original transcript), ignore the original and process it as a brand NEW command.
+- IF the response provides clarification (like a different time or date), merge it with the original request and complete the action.
+- IF the user is explicitly canceling, return an 'out_of_scope' intent with a polite confirmation.
+
 User context: ${JSON.stringify(pending.context)}
 
 Return ONLY valid JSON matching the exact RESPONSE FORMAT specified in the Master Prompt.

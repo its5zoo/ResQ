@@ -10,7 +10,13 @@ import { useAuthContext } from './context/AuthContext';
 function AppContent() {
   const navigate = useNavigate();
   const { user, isAuthenticated, loading } = useAuthContext();
-  const [currentTab, setCurrentTab] = useState('dashboard');
+  const [currentTab, setCurrentTab] = useState(() => {
+    return localStorage.getItem('resq-current-tab') || 'dashboard';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('resq-current-tab', currentTab);
+  }, [currentTab]);
 
   useEffect(() => {
     if (isAuthenticated && user) {

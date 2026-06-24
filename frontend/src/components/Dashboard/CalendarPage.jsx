@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -10,15 +11,19 @@ import {
   X, 
   AlertCircle, 
   RefreshCw, 
-  Layers 
+  Layers,
+  User,
+  AlertTriangle,
+  Bot
 } from 'lucide-react';
-import { calendar as apiCalendar, tasks as apiTasks } from '../../services/api.js';
+import { calendar as apiCalendar, tasks as apiTasks, habits as apiHabits } from '../../services/api.js';
 import { useSocket } from '../../services/socket.js';
 
 export default function CalendarPage({ tasks }) {
   const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
   const [calendarEvents, setCalendarEvents] = useState([]);
   const [localTasks, setLocalTasks] = useState(tasks || []);
+  const [localHabits, setLocalHabits] = useState([]);
   const [toast, setToast] = useState(null);
   
   // Voice AI highlighting states
@@ -26,9 +31,10 @@ export default function CalendarPage({ tasks }) {
 
   const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const hours = [
+    '12:00 AM', '01:00 AM', '02:00 AM', '03:00 AM', '04:00 AM', '05:00 AM',
     '06:00 AM', '07:00 AM', '08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', 
     '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM', '06:00 PM', '07:00 PM',
-    '08:00 PM', '09:00 PM'
+    '08:00 PM', '09:00 PM', '10:00 PM', '11:00 PM'
   ];
 
   // Layer filters
@@ -52,7 +58,7 @@ export default function CalendarPage({ tasks }) {
   const [modalData, setModalData] = useState({
     _id: null,
     title: '',
-    type: 'ai_block',
+    type: 'user_block',
     startTime: new Date(),
     duration: 45,
     notes: '',
@@ -72,6 +78,15 @@ export default function CalendarPage({ tasks }) {
       setLocalTasks(data || []);
     } catch (err) {
       console.error('Error fetching tasks for calendar:', err);
+    }
+  };
+
+  const fetchHabits = async () => {
+    try {
+      const data = await apiHabits.getAll();
+      setLocalHabits(data || []);
+    } catch (err) {
+      console.error('Error fetching habits for calendar:', err);
     }
   };
 
@@ -127,7 +142,7 @@ export default function CalendarPage({ tasks }) {
 
   useEffect(() => {
     const init = async () => {
-      await Promise.all([fetchEvents(), fetchTasks()]);
+      await Promise.all([fetchEvents(), fetchTasks(), fetchHabits()]);
     };
     init();
 
@@ -450,9 +465,11 @@ export default function CalendarPage({ tasks }) {
       {/* Header */}
       <div className="sticky -top-6 bg-[#080808] z-30 flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-white/5 pb-6 pt-6 -mt-6">
         <div>
-          <span className="text-xs font-tech font-bold tracking-[0.3em] text-[#E5B842] block mb-2">CHRONOS LAYERS</span>
-          <h2 className="text-3xl font-display font-black tracking-tight text-white leading-none">
-            Google Calendar Integrations
+          <span className="text-[10px] font-tech font-bold tracking-[0.3em] text-[#E5B842] block mb-2 uppercase flex items-center gap-2">
+            <Sparkles className="w-3.5 h-3.5" /> AI Time Management
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-display font-black tracking-tight text-white leading-none">
+            Chronos Auto-Pilot
           </h2>
         </div>
 
@@ -475,12 +492,7 @@ export default function CalendarPage({ tasks }) {
             </button>
           </div>
           
-          <button 
-            onClick={handleTriggerAutoSchedule}
-            className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-[#E5B842] text-black hover:brightness-110 text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center gap-1 cursor-pointer active:scale-[0.98] shadow-[0_0_15px_rgba(34,211,238,0.2)]"
-          >
-            <Sparkles className="w-3.5 h-3.5" /> Auto-Schedule AI
-          </button>
+
 
           <button 
             onClick={handleOpenCreateModal}
@@ -498,225 +510,137 @@ export default function CalendarPage({ tasks }) {
         <div className="lg:col-span-9 bg-[#090909] border border-white/[0.04] rounded-3xl p-6 layered-shadow-lg overflow-x-auto">
           <div className="min-w-[650px] overflow-y-auto pr-1 flex flex-col">
             
-            {/* Grid Table Container */}
-            <div className="border border-white/[0.06] rounded-2xl overflow-hidden bg-black/10 flex flex-col">
-              
-              {/* Days Column Headers */}
-              <div className="grid grid-cols-[80px_repeat(7,_1fr)] border-b border-white/[0.06] bg-[#0d0d0e]/60 sticky top-0 z-20">
-                <div className="text-[10px] font-tech font-bold uppercase tracking-wider text-white/30 text-center py-4 flex items-center justify-center border-r border-white/[0.06] select-none bg-[#090909]">
-                  Time
-                </div>
-                {weekDates.map((d) => {
-                  const isToday = new Date(d.fullDate).toDateString() === new Date().toDateString();
-                  return (
-                    <div 
-                      key={d.dayOfWeek} 
-                      className={`text-center py-2.5 px-1 flex flex-col items-center justify-center border-r border-white/[0.06] last:border-r-0 transition-all duration-300 bg-[#090909] ${
-                        isToday 
-                          ? 'bg-[#E5B842]/5' 
-                          : ''
-                      }`}
-                    >
-                      <span className={`text-[9px] font-tech font-bold uppercase tracking-wider ${isToday ? 'text-[#E5B842]' : 'text-white/40'}`}>
-                        {d.dayOfWeek}
-                      </span>
-                      <span className={`text-xs font-black mt-1 w-6 h-6 flex items-center justify-center rounded-full transition-all duration-300 ${
-                        isToday 
-                          ? 'bg-[#E5B842] text-black shadow-[0_0_10px_rgba(229,184,66,0.4)]' 
-                          : 'text-white/80'
-                      }`}>
-                        {d.dateNum}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+            {/* Main Grid: Days Columns */}
+            <div className="grid grid-cols-[repeat(7,_1fr)] divide-x divide-white/[0.06] bg-[#090909] border border-white/[0.06] rounded-2xl overflow-hidden shadow-inner">
+              {weekDates.map((dayObj, idx) => {
+                const isToday = new Date(dayObj.fullDate).toDateString() === new Date().toDateString();
+                
+                // 2. Scheduled Items (Events only)
+                const scheduledEvents = (filteredEvents || []).filter(e => isSameDay(e.startTime, dayObj.fullDate));
+                
+                // 3. Habits for this day
+                const dayHabits = (localHabits || []).filter(h => h.targetDays && h.targetDays.includes(dayObj.dayOfWeek));
+                
+                // Sort combined scheduled items chronologically
+                const combinedScheduled = [
+                  ...scheduledEvents.map(e => ({ ...e, sortTime: new Date(e.startTime).getTime() }))
+                ].sort((a, b) => a.sortTime - b.sortTime);
 
-              {/* All-Day Tasks / Milestones Row */}
-              <div className="grid grid-cols-[80px_repeat(7,_1fr)] border-b border-white/[0.06] bg-[#0d0d0e]/25 min-h-[40px] items-stretch">
-                <div className="text-[9px] font-tech font-bold uppercase tracking-wider text-white/30 text-center py-2 flex items-center justify-center border-r border-white/[0.06] select-none bg-[#090909]">
-                  Tasks
-                </div>
-                {weekDates.map((dayObj, idx) => {
-                  const dayTasks = (localTasks || []).filter(t => 
-                    !t.completed && 
-                    isSameDay(t.dueDate, dayObj.fullDate) && 
-                    isTaskDateOnly(t)
-                  );
-                  const isToday = new Date(dayObj.fullDate).toDateString() === new Date().toDateString();
-                  
-                  return (
-                    <div 
-                      key={`${dayObj.dayOfWeek}-${idx}`}
-                      className={`p-1.5 border-r border-white/[0.06] last:border-r-0 flex flex-col gap-1 justify-center min-h-[40px] ${
-                        isToday ? 'bg-[#E5B842]/[0.01]' : 'bg-transparent'
-                      }`}
-                    >
-                      {dayTasks.length === 0 ? (
-                        <div className="text-[8px] text-white/10 uppercase tracking-widest font-tech font-bold text-center select-none py-1">
-                          --
-                        </div>
-                      ) : (
-                        dayTasks.map((task, tIdx) => (
-                          <div
-                            key={task._id || task.id || `task-${tIdx}`}
-                            title={`${task.title} (No Time)`}
-                            className="group/allday border border-emerald-500/25 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-400 text-[9px] font-bold px-2 py-1 rounded-md flex items-center gap-1.5 justify-between shadow-[0_0_8px_rgba(16,185,129,0.03)] hover:scale-[1.01] transition-all duration-300 select-none min-w-0"
-                          >
-                            <span className="truncate flex-1 tracking-wide uppercase">{task.title}</span>
-                            <button
-                              type="button"
-                              onClick={async (ev) => {
-                                ev.stopPropagation();
-                                try {
-                                  await apiTasks.update(task._id, { completed: true });
-                                  showToast(`Task completed: "${task.title}"`);
-                                  fetchTasks();
-                                } catch {
-                                  showToast("Failed to complete task", "error");
-                                }
-                              }}
-                              className="w-3 h-3 rounded-full border border-emerald-500/40 flex items-center justify-center hover:bg-emerald-500/20 shrink-0 cursor-pointer"
-                            >
-                              <Check className="w-1.5 h-1.5 text-emerald-400" />
-                            </button>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Time Grid Rows */}
-              <div className="divide-y divide-white/[0.04]">
-                {hours.map((hour) => (
-                  <div key={hour} className="grid grid-cols-[80px_repeat(7,_1fr)] items-stretch min-h-[64px]">
-                    <div className="text-[10px] font-tech font-bold text-white/40 flex items-center justify-center border-r border-white/[0.06] bg-[#0d0d0e]/30 select-none">
-                      {hour}
-                    </div>
+                return (
+                  <div key={dayObj.dayOfWeek} className={`flex flex-col min-h-[600px] transition-all duration-300 relative group/col ${isToday ? 'bg-[#E5B842]/[0.02]' : 'hover:bg-white/[0.01]'}`}>
                     
-                    {weekDates.map((dayObj, idx) => {
-                      const match = findEventForCell(filteredEvents, dayObj.fullDate, hour);
-                      const matchTasks = findTasksForCell(localTasks, dayObj.fullDate, hour);
-                      const isAiBlock = match && (match.type === 'ai_block' || match.aiGenerated);
-                      const isToday = new Date(dayObj.fullDate).toDateString() === new Date().toDateString();
-                      
-                      return (
-                        <div 
-                          key={`${dayObj.dayOfWeek}-${idx}`} 
-                          className={`p-1 border-r border-white/[0.04] last:border-r-0 transition-all duration-200 relative group flex flex-col gap-1 items-stretch justify-center min-h-[64px] ${
-                            isToday ? 'bg-[#E5B842]/[0.01]' : 'bg-transparent'
-                          } hover:bg-white/[0.02]`}
-                        >
-                          {/* Calendar Event */}
-                          {match && (
-                            <div 
-                              onClick={() => handleCellClick(dayObj.fullDate, hour)}
-                              className={`w-full rounded-lg border transition-all duration-300 flex flex-col justify-center p-2 relative overflow-hidden select-none hover:shadow-lg hover:scale-[1.01] cursor-pointer ${
-                                isAiBlock
-                                  ? 'bg-[#E5B842]/10 border-[#E5B842]/25 hover:border-[#E5B842]/45 text-[#E5B842] shadow-[0_0_12px_rgba(229,184,66,0.06)]'
-                                  : match.type === 'deadline'
-                                    ? 'bg-status-red/10 border-status-red/20 hover:border-status-red/40 text-status-red shadow-[0_4px_12px_rgba(255,95,95,0.06)]'
-                                    : 'bg-status-blue/10 border-status-blue/20 hover:border-status-blue/40 text-status-blue shadow-[0_4px_12px_rgba(74,158,255,0.06)]'
-                              } ${match._id === highlightedEventId ? 'animate-event-pulse' : ''}`}
-                            >
-                              {/* Left stripe indicator */}
-                              <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${
-                                isAiBlock 
-                                  ? 'bg-gradient-to-b from-[#E5B842] to-[#FFF2CC]' 
-                                  : match.type === 'deadline' 
-                                    ? 'bg-status-red' 
-                                    : 'bg-status-blue'
-                              }`}></div>
-                              
-                              <div className="pl-2 min-w-0 flex flex-col justify-center h-full">
-                                <h5 className="text-[10px] font-bold uppercase truncate leading-tight tracking-wider">{match.title}</h5>
-                                <span className="text-[8px] opacity-60 font-semibold uppercase mt-0.5 block tracking-wider">
-                                  {isAiBlock ? '🤖 AI Scheduled' : match.type.replace('_', ' ')}
-                                </span>
-                              </div>
+                    {/* Day Header */}
+                    <div className="p-4 border-b border-white/[0.06] flex flex-col items-center justify-center sticky top-0 bg-[#090909]/95 backdrop-blur-md z-10 transition-colors">
+                      <span className={`text-[10px] font-tech font-bold uppercase tracking-wider ${isToday ? 'text-[#E5B842]' : 'text-white/40'}`}>
+                        {dayObj.dayOfWeek}
+                      </span>
+                      <span className={`text-sm font-black mt-1 w-8 h-8 flex items-center justify-center rounded-full transition-all duration-300 ${
+                        isToday 
+                          ? 'bg-[#E5B842] text-black shadow-[0_0_15px_rgba(229,184,66,0.4)]' 
+                          : 'text-white/80 group-hover/col:text-white'
+                      }`}>
+                        {dayObj.dateNum}
+                      </span>
+                    </div>
 
-                              {/* Hover Tooltip (Improved design) */}
-                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 hidden group-hover:flex flex-col w-52 p-3 bg-[#0c0c0d] border border-white/10 rounded-2xl shadow-[0_12px_32px_rgba(0,0,0,0.95)] backdrop-blur-md text-left z-50 pointer-events-none transition-all">
-                                <span className={`text-[8px] font-tech font-bold uppercase tracking-[0.2em] mb-1 ${
-                                  isAiBlock 
-                                    ? 'text-[#E5B842]' 
-                                    : match.type === 'deadline' 
-                                      ? 'text-status-red' 
-                                      : 'text-status-blue'
-                                }`}>
-                                  {isAiBlock ? '🤖 AI Scheduled' : match.type === 'deadline' ? '⚠️ Deadline' : '👤 Sync Layer'}
-                                </span>
-                                <h6 className="text-[10px] font-bold text-white leading-snug mb-1.5 break-words">
-                                  {match.title}
-                                </h6>
-                                <div className="flex items-center gap-1.5 text-[8px] text-white/50 font-semibold mb-1">
-                                  <Clock className="w-2.5 h-2.5" />
-                                  <span>{new Date(match.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(match.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                </div>
-                                {match.notes && (
-                                  <p className="text-[8px] text-white/40 leading-relaxed font-normal border-t border-white/5 pt-1 mt-1 break-words">
-                                    {match.notes}
-                                  </p>
-                                )}
-                                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#0c0c0d] z-50"></div>
-                              </div>
-                            </div>
-                          )}
+                    {/* Column Body */}
+                    <div className="flex-1 p-2.5 flex flex-col gap-4">
 
-                          {/* Task Deadlines */}
-                          {matchTasks.map((task, tIdx) => (
-                            <div 
-                              key={task._id || task.id || `celltask-${tIdx}`}
-                              className="w-full rounded-lg border border-emerald-500/25 bg-emerald-500/10 hover:border-emerald-500/45 text-emerald-400 p-2 shadow-[0_0_12px_rgba(16,185,129,0.06)] hover:scale-[1.01] transition-all duration-300 relative overflow-hidden flex items-center gap-2 group/task select-none"
-                            >
-                              <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-emerald-500"></div>
-                              <button
-                                type="button"
-                                onClick={async (ev) => {
-                                  ev.stopPropagation();
-                                  try {
-                                    await apiTasks.update(task._id, { completed: true });
-                                    showToast(`Task completed: "${task.title}"`);
-                                    fetchTasks();
-                                  } catch {
-                                    showToast("Failed to complete task", "error");
-                                  }
-                                }}
-                                className="w-3.5 h-3.5 rounded-full border border-emerald-500/40 flex items-center justify-center hover:bg-emerald-500/25 shrink-0 cursor-pointer"
-                              >
-                                <div className="w-1.5 h-1.5 rounded-full bg-transparent group-hover/task:bg-emerald-500/60"></div>
-                              </button>
-                              <div className="min-w-0 flex-1">
-                                <h5 className="text-[10px] font-bold truncate leading-tight tracking-wider uppercase">{task.title}</h5>
-                                <span className="text-[8px] opacity-60 font-semibold tracking-wider block mt-0.5">⚠️ Task Due</span>
-                              </div>
-                            </div>
-                          ))}
-
-                          {/* If completely empty (no event, no tasks), show + Book button */}
-                          {!match && matchTasks.length === 0 && (
-                            <div 
-                              onClick={() => handleCellClick(dayObj.fullDate, hour)}
-                              className="w-full h-full rounded-md transition-all duration-150 flex items-center justify-center select-none text-[8px] font-tech font-bold text-white/0 group-hover:text-white/20 uppercase tracking-widest cursor-pointer"
-                            >
-                              + Book
-                            </div>
-                          )}
+                      {/* Daily Habits (All-Day equivalent) */}
+                      {dayHabits.length > 0 && (
+                        <div className="flex flex-col gap-2 mb-1">
+                           {dayHabits.map(habit => (
+                             <div key={habit._id} className="w-full rounded-xl border border-purple-500/30 bg-purple-500/10 hover:border-purple-500/50 text-purple-400 p-3 shadow-[0_0_12px_rgba(168,85,247,0.15)] transition-all duration-300 relative overflow-hidden flex items-start gap-2 select-none hover:scale-[1.02]">
+                               <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.8)]"></div>
+                               <div className="flex-1 min-w-0 pl-1.5">
+                                  <h5 className="text-[11px] font-bold uppercase leading-tight tracking-wide break-words text-white mb-1">{habit.name}</h5>
+                                  <span className="text-[8px] opacity-80 font-bold uppercase tracking-wider flex items-center gap-1 text-purple-400">
+                                     🔥 Daily Habit
+                                  </span>
+                               </div>
+                             </div>
+                           ))}
                         </div>
-                      );
-                    })}
+                      )}
+
+                      {combinedScheduled.length > 0 && (
+                        <div className="flex flex-col gap-2">
+                           {combinedScheduled.map(item => {
+                               const isAiBlock = item.type === 'ai_block' || item.aiGenerated;
+                               
+                               // If this layer is filtered out, don't show
+                               if (isAiBlock && !layerFilters.ai_block) return null;
+                               if (!isAiBlock && item.type === 'deadline' && !layerFilters.deadline) return null;
+                               if (!isAiBlock && item.type !== 'deadline' && !layerFilters.user_block) return null;
+
+                               return (
+                                 <div 
+                                    key={item._id} 
+                                    onClick={() => {
+                                      setModalData({
+                                        _id: item._id,
+                                        title: item.title,
+                                        type: item.type,
+                                        startTime: new Date(item.startTime),
+                                        duration: (new Date(item.endTime).getTime() - new Date(item.startTime).getTime()) / 60000,
+                                        notes: item.notes || '',
+                                        notificationsEnabled: item.notificationsEnabled !== false
+                                      });
+                                      setIsModalOpen(true);
+                                    }} 
+                                    className={`w-full rounded-xl border transition-all duration-300 flex flex-col p-3 relative overflow-hidden select-none hover:shadow-xl hover:scale-[1.02] cursor-pointer ${
+                                    isAiBlock
+                                      ? 'bg-[#E5B842]/10 border-[#E5B842]/25 hover:border-[#E5B842]/45 text-[#E5B842] shadow-[0_0_12px_rgba(229,184,66,0.06)]'
+                                      : item.type === 'deadline'
+                                        ? 'bg-[#FF5F5F]/10 border-[#FF5F5F]/20 hover:border-[#FF5F5F]/40 text-[#FF5F5F] shadow-[0_4px_12px_rgba(255,95,95,0.06)]'
+                                        : 'bg-[#4A9EFF]/10 border-[#4A9EFF]/20 hover:border-[#4A9EFF]/40 text-[#4A9EFF] shadow-[0_4px_12px_rgba(74,158,255,0.06)]'
+                                  } ${item._id === highlightedEventId ? 'animate-event-pulse' : ''}`}>
+                                    <div className={`absolute left-0 top-0 bottom-0 w-[4px] ${isAiBlock ? 'bg-gradient-to-b from-[#E5B842] to-[#FFF2CC]' : item.type === 'deadline' ? 'bg-[#FF5F5F]' : 'bg-[#4A9EFF]'}`}></div>
+                                    <div className="pl-1">
+                                      <div className="flex items-center gap-1.5 mb-1.5 opacity-70">
+                                        <Clock className="w-3 h-3" />
+                                        <span className="text-[9px] font-bold tracking-wider">{new Date(item.startTime).toLocaleTimeString('en-US', {hour: 'numeric', minute:'2-digit', hour12: true})}</span>
+                                      </div>
+                                      <h5 className="text-[11px] font-bold uppercase leading-tight tracking-wide mb-1 break-words">{item.title}</h5>
+                                      <span className="text-[8px] opacity-60 font-semibold uppercase tracking-wider block">
+                                        {isAiBlock ? (item.taskId && (localTasks.find(t => t._id === item.taskId)?.urgency >= 8) ? '🔥 Priority Focus' : '🤖 AI Scheduled') : item.type === 'deadline' ? '⚠️ Deadline' : '👤 Synced Event'}
+                                      </span>
+                                    </div>
+                                 </div>
+                               );
+                           })}
+                        </div>
+                      )}
+
+                      {/* Empty State / Add Button */}
+                      {combinedScheduled.length === 0 && (
+                        <button onClick={() => {
+                          setModalData(prev => ({
+                            ...prev,
+                            _id: null,
+                            title: '',
+                            type: 'user_block',
+                            startTime: dayObj.fullDate,
+                            duration: 45
+                          }));
+                          setIsModalOpen(true);
+                        }} className="flex-1 w-full flex flex-col items-center justify-center border border-dashed border-white/5 rounded-xl text-white/20 hover:text-white/60 hover:border-white/20 transition-all duration-300 font-tech font-bold uppercase tracking-widest text-[10px] cursor-pointer group hover:bg-white/[0.02] min-h-[100px]">
+                          <Plus className="w-4 h-4 mb-2 opacity-0 group-hover:opacity-100 transition-opacity transform group-hover:scale-110" /> 
+                          <span className="opacity-50 group-hover:opacity-100 transition-opacity">Book Slot</span>
+                        </button>
+                      )}
+
+                    </div>
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
 
           </div>
         </div>
 
         {/* Side Panel: Scheduled Lists & Filters */}
-        <div className="lg:col-span-3 space-y-6">
+        <div className="lg:col-span-3 space-y-6 sticky top-32 h-fit">
           
           {/* Chronos Layers Filter */}
           <div className="p-6 bg-[#090909] border border-white/[0.04] rounded-3xl space-y-4 layered-shadow-lg">
@@ -726,11 +650,11 @@ export default function CalendarPage({ tasks }) {
             </div>
             
             {/* Custom Control Chips */}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-3">
               {[
-                { key: 'ai_block', label: 'AI Scheduled Tasks', colorClass: 'bg-gradient-to-r from-[#E5B842] to-[#FFF2CC] border-[#E5B842]/30 text-[#E5B842]', shadowClass: 'shadow-[0_0_8px_rgba(229,184,66,0.3)]' },
-                { key: 'user_block', label: 'My Added Events', colorClass: 'bg-status-blue border-status-blue/30 text-status-blue', shadowClass: 'shadow-[0_0_8px_rgba(74,158,255,0.3)]' },
-                { key: 'deadline', label: 'Upcoming Deadlines', colorClass: 'bg-status-red border-status-red/30 text-status-red', shadowClass: 'shadow-[0_0_8px_rgba(255,95,95,0.3)]' },
+                { key: 'ai_block', label: 'AI Scheduled Tasks', icon: Bot, textColor: 'text-[#E5B842]', bgColor: 'bg-[#E5B842]/10', borderColor: 'border-[#E5B842]/30', shadowColor: 'shadow-[0_0_15px_rgba(229,184,66,0.3)]' },
+                { key: 'user_block', label: 'My Added Events', icon: User, textColor: 'text-[#4A9EFF]', bgColor: 'bg-[#4A9EFF]/10', borderColor: 'border-[#4A9EFF]/30', shadowColor: 'shadow-[0_0_15px_rgba(74,158,255,0.3)]' },
+                { key: 'deadline', label: 'Upcoming Deadlines', icon: AlertTriangle, textColor: 'text-[#FF5F5F]', bgColor: 'bg-[#FF5F5F]/10', borderColor: 'border-[#FF5F5F]/30', shadowColor: 'shadow-[0_0_15px_rgba(255,95,95,0.3)]' },
               ].map(filter => {
                 const checked = filter.key === 'ai_block' ? layerFilters.ai_block : filter.key === 'user_block' ? layerFilters.user_block : layerFilters.deadline;
                 const toggle = () => {
@@ -742,22 +666,29 @@ export default function CalendarPage({ tasks }) {
                     setLayerFilters(prev => ({ ...prev, deadline: !prev.deadline }));
                   }
                 };
+                
+                const Icon = filter.icon;
+
                 return (
                   <button
                     key={filter.key}
                     type="button"
                     onClick={toggle}
-                    className={`w-full flex items-center justify-between p-3 rounded-xl border text-[10px] font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer ${
+                    className={`w-full flex items-center justify-between p-3.5 rounded-2xl border transition-all duration-300 cursor-pointer hover:scale-[1.02] ${
                       checked 
-                        ? 'bg-white/[0.04] border-white/10 text-white' 
-                        : 'bg-transparent border-transparent text-white/30 hover:text-white/65'
+                        ? `bg-white/[0.02] ${filter.borderColor} text-white shadow-lg` 
+                        : 'bg-white/[0.01] border-white/5 text-white/40 hover:text-white/80 hover:bg-white/[0.02]'
                     }`}
                   >
-                    <span className="flex items-center gap-2">
-                      <span className={`w-2 h-2 rounded-full inline-block ${filter.key === 'ai_block' ? 'bg-[#E5B842]' : filter.key === 'user_block' ? 'bg-status-blue' : 'bg-status-red'} ${checked ? filter.shadowClass : ''}`}></span>
-                      {filter.label}
+                    <span className="flex items-center gap-3.5">
+                      <div className={`p-2.5 rounded-xl flex items-center justify-center transition-all duration-300 border ${checked ? `${filter.bgColor} ${filter.borderColor} ${filter.shadowColor}` : 'bg-white/5 border-transparent'}`}>
+                         <Icon className={`w-4 h-4 ${checked ? filter.textColor : 'text-white/40'}`} />
+                      </div>
+                      <span className={`text-[13px] font-bold uppercase tracking-wide font-tech transition-opacity ${checked ? 'opacity-100 text-white' : 'opacity-60'}`}>
+                        {filter.label}
+                      </span>
                     </span>
-                    <span className={`text-[8px] px-1.5 py-0.5 rounded-md font-mono ${checked ? 'bg-white/10 text-white/80' : 'bg-white/5 text-white/20'}`}>
+                    <span className={`text-[9px] px-3 py-1.5 rounded-lg font-bold tracking-widest transition-all ${checked ? `${filter.bgColor} ${filter.textColor} ${filter.borderColor} border` : 'bg-transparent border border-white/10 text-white/40'}`}>
                       {checked ? 'SHOW' : 'HIDE'}
                     </span>
                   </button>
@@ -792,74 +723,30 @@ export default function CalendarPage({ tasks }) {
             </button>
           </div>
 
-          {/* Sync status */}
-          <div className="p-6 bg-[#090909] border border-white/[0.04] rounded-3xl space-y-4 layered-shadow-lg">
-            <div className="flex items-center gap-2 border-b border-white/5 pb-2">
-              <RefreshCw className="w-4 h-4 text-white/50" />
-              <h4 className="text-xs font-tech font-bold uppercase tracking-wider text-white/80">Sync Integrations</h4>
-            </div>
-            <div className="space-y-3.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-white/70">Google Calendar</span>
-                <button 
-                  onClick={() => setSyncSettings(prev => ({ ...prev, google: !prev.google }))}
-                  className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-300 relative cursor-pointer ${syncSettings.google ? 'bg-[#E5B842]' : 'bg-white/10'}`}
-                  type="button"
-                >
-                  <div className={`w-4 h-4 rounded-full bg-black transition-transform duration-300 ${syncSettings.google ? 'translate-x-4' : 'translate-x-0'}`} />
-                </button>
-              </div>
-            </div>
-          </div>
 
-          {/* Pending Tasks timeline */}
-          <div className="p-6 bg-[#090909] border border-white/[0.04] rounded-3xl space-y-4 layered-shadow-lg">
-            <h4 className="text-xs font-tech font-bold uppercase tracking-wider text-white/40">Unscheduled Tasks</h4>
-            {unscheduledTasks.length === 0 ? (
-              <div className="p-4 bg-black/20 border border-dashed border-white/5 rounded-xl text-center">
-                <span className="text-[10px] text-white/30 uppercase font-semibold">All tasks scheduled</span>
-              </div>
-            ) : (
-              <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
-                {unscheduledTasks.map((task, idx) => (
-                  <div key={task._id || task.id || `unsched-${idx}`} className="p-3 bg-black/40 border border-white/[0.03] rounded-xl hover:border-white/10 transition-all duration-300 space-y-2">
-                    <h5 className="text-xs font-bold text-white/80 leading-none truncate">{task.title}</h5>
-                    <div className="flex items-center justify-between text-[10px] font-semibold uppercase">
-                      <span className="text-white/40 flex items-center gap-0.5">
-                        <Clock className="w-2.5 h-2.5" /> {task.estimatedMinutes || task.duration || 30}m
-                      </span>
-                      <span 
-                        onClick={() => handleTriggerAutoSchedule()}
-                        className="text-[#E5B842] hover:text-[#FFF2CC] cursor-pointer transition-colors"
-                      >
-                        Auto schedule &rarr;
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
 
         </div>
 
       </div>
 
       {/* Booking / Edit Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      {isModalOpen && createPortal(
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
           <div 
-            className="bg-[#0A0A0A] border border-white/10 rounded-3xl p-6 w-full max-w-md shadow-2xl relative space-y-6 animate-scale-up"
+            className="bg-[#050505] border border-white/10 rounded-[2rem] p-8 w-full max-w-md shadow-[0_0_60px_rgba(0,0,0,0.9)] relative space-y-7 animate-scale-up overflow-hidden group"
             onClick={e => e.stopPropagation()}
           >
+            {/* Subtle glow effect behind modal */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-32 bg-[#E5B842]/5 blur-[100px] pointer-events-none rounded-full" />
+            
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-white/5 pb-4">
-              <h3 className="text-xl font-display font-black tracking-tight text-white leading-none">
+            <div className="flex items-center justify-between border-b border-white/5 pb-5 relative z-10">
+              <h3 className="text-xl font-display font-black tracking-tight bg-gradient-to-br from-white to-white/40 bg-clip-text text-transparent leading-none">
                 {modalData._id ? 'Manage Schedule Slot' : 'Book Schedule Slot'}
               </h3>
               <button 
                 onClick={() => setIsModalOpen(false)}
-                className="p-1.5 hover:bg-white/5 rounded-xl transition-colors text-white/40 hover:text-white cursor-pointer"
+                className="p-2 hover:bg-white/5 rounded-2xl transition-colors text-white/40 hover:text-white cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -879,21 +766,40 @@ export default function CalendarPage({ tasks }) {
               </div>
 
               <div>
-                <label className="text-[10px] font-tech font-bold uppercase tracking-wider text-white/40 block mb-2">Layer Type</label>
-                <div className="grid grid-cols-3 gap-2">
+                <label className="text-[10px] font-tech font-bold uppercase tracking-wider text-white/40 block mb-2.5">Layer Type</label>
+                <div className={`grid ${modalData._id && modalData.type === 'ai_block' ? 'grid-cols-3' : 'grid-cols-2'} gap-3`}>
                   {[
-                    {key: 'ai_block', label: '🤖 AI Scheduled', activeClass: 'border-[#E5B842] bg-[#E5B842]/10 text-[#E5B842] shadow-[0_0_12px_rgba(229,184,66,0.1)]', inactiveClass: 'border-white/5 bg-white/[0.02] text-white/40 hover:text-white hover:bg-white/[0.04]' },
-                    { key: 'user_block', label: '👤 User Block', activeClass: 'border-status-blue bg-status-blue/10 text-status-blue shadow-[0_0_12px_rgba(74,158,255,0.1)]', inactiveClass: 'border-white/5 bg-white/[0.02] text-white/40 hover:text-white hover:bg-white/[0.04]' },
-                    { key: 'deadline', label: '⚠️ Deadline', activeClass: 'border-status-red bg-status-red/10 text-status-red shadow-[0_0_12px_rgba(255,95,95,0.1)]', inactiveClass: 'border-white/5 bg-white/[0.02] text-white/40 hover:text-white hover:bg-white/[0.04]' }
+                    ...(modalData._id && modalData.type === 'ai_block' ? [{
+                      key: 'ai_block', 
+                      icon: <Bot className="w-5 h-5 mb-0.5" />,
+                      label: 'AI Scheduled', 
+                      activeClass: 'border-[#E5B842]/50 bg-gradient-to-br from-[#E5B842]/20 to-[#E5B842]/5 text-[#E5B842] shadow-[0_0_25px_rgba(229,184,66,0.25)] ring-1 ring-[#E5B842]/30 scale-[1.02]', 
+                      inactiveClass: 'border-white/5 bg-white/[0.02] text-white/40 hover:text-white hover:bg-white/[0.04] hover:shadow-[0_0_15px_rgba(255,255,255,0.05)] hover:-translate-y-0.5' 
+                    }] : []),
+                    { 
+                      key: 'user_block', 
+                      icon: <User className="w-5 h-5 mb-0.5" />,
+                      label: 'User Block', 
+                      activeClass: 'border-status-blue/50 bg-gradient-to-br from-status-blue/20 to-status-blue/5 text-status-blue shadow-[0_0_25px_rgba(74,158,255,0.25)] ring-1 ring-status-blue/30 scale-[1.02]', 
+                      inactiveClass: 'border-white/5 bg-white/[0.02] text-white/40 hover:text-white hover:bg-white/[0.04] hover:shadow-[0_0_15px_rgba(255,255,255,0.05)] hover:-translate-y-0.5' 
+                    },
+                    { 
+                      key: 'deadline', 
+                      icon: <AlertTriangle className="w-5 h-5 mb-0.5" />,
+                      label: 'Deadline', 
+                      activeClass: 'border-status-red/50 bg-gradient-to-br from-status-red/20 to-status-red/5 text-status-red shadow-[0_0_25px_rgba(255,95,95,0.25)] ring-1 ring-status-red/30 scale-[1.02]', 
+                      inactiveClass: 'border-white/5 bg-white/[0.02] text-white/40 hover:text-white hover:bg-white/[0.04] hover:shadow-[0_0_15px_rgba(255,255,255,0.05)] hover:-translate-y-0.5' 
+                    }
                   ].map(tab => (
                     <button
                       key={tab.key}
                       type="button"
                       onClick={() => setModalData(prev => ({ ...prev, type: tab.key }))}
-                      className={`py-2 px-1 text-[10px] font-bold uppercase tracking-wider rounded-xl border text-center transition-all duration-300 cursor-pointer ${
+                      className={`flex flex-col items-center justify-center gap-1.5 py-3 px-2 text-[10px] font-bold uppercase tracking-wider rounded-2xl border text-center transition-all duration-300 cursor-pointer ${
                         modalData.type === tab.key ? tab.activeClass : tab.inactiveClass
                       }`}
                     >
+                      {tab.icon}
                       {tab.label}
                     </button>
                   ))}
@@ -908,18 +814,37 @@ export default function CalendarPage({ tasks }) {
                     type="datetime-local" 
                     value={modalData.startTime ? new Date(new Date(modalData.startTime).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ''}
                     onChange={e => setModalData(prev => ({ ...prev, startTime: new Date(e.target.value) }))}
-                    className="w-full bg-black/60 border border-white/10 hover:border-white/20 focus:border-[#E5B842]/50 rounded-xl px-3 py-2 text-xs text-white outline-none transition-colors cursor-pointer"
+                    className="w-full bg-black/40 border border-white/10 hover:border-white/20 focus:border-[#E5B842]/60 focus:bg-white/[0.04] focus:shadow-[0_0_15px_rgba(229,184,66,0.15)] rounded-2xl px-4 py-3 text-sm text-white outline-none transition-all duration-300 cursor-pointer"
                   />
                 </div>
-                <div>
-                  <label className="text-[10px] font-tech font-bold uppercase tracking-wider text-white/40 block mb-1.5">Duration (mins)</label>
-                  <input 
-                    type="number" 
-                    value={modalData.duration}
-                    onChange={e => setModalData(prev => ({ ...prev, duration: parseInt(e.target.value) || 45 }))}
-                    className="w-full bg-black/60 border border-white/10 hover:border-white/20 focus:border-[#E5B842]/50 rounded-xl px-3 py-2 text-xs text-white outline-none transition-colors"
-                  />
-                </div>
+                {modalData.type === 'deadline' ? (
+                  <div>
+                    <label className="text-[10px] font-tech font-bold uppercase tracking-wider text-status-red/70 block mb-1.5 flex items-center gap-1.5">
+                      <Clock className="w-3 h-3" /> Ending Time
+                    </label>
+                    <input 
+                      type="datetime-local" 
+                      value={modalData.startTime && !isNaN(modalData.duration) ? new Date(new Date(modalData.startTime).getTime() + (modalData.duration * 60000) - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ''}
+                      onChange={e => {
+                        if (!e.target.value) return;
+                        const newEndTime = new Date(e.target.value);
+                        const durationMins = Math.max(1, Math.round((newEndTime - new Date(modalData.startTime)) / 60000));
+                        setModalData(prev => ({ ...prev, duration: durationMins }));
+                      }}
+                      className="w-full bg-black/40 border border-status-red/20 hover:border-status-red/40 focus:border-status-red focus:bg-status-red/5 focus:ring-1 focus:ring-status-red/30 rounded-2xl px-4 py-3 text-sm text-white outline-none transition-all duration-300 cursor-pointer"
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <label className="text-[10px] font-tech font-bold uppercase tracking-wider text-white/40 block mb-1.5">Duration (mins)</label>
+                    <input 
+                      type="number" 
+                      value={modalData.duration}
+                      onChange={e => setModalData(prev => ({ ...prev, duration: parseInt(e.target.value) || 45 }))}
+                      className="w-full bg-black/40 border border-white/10 hover:border-white/20 focus:border-[#E5B842]/60 focus:bg-white/[0.04] focus:shadow-[0_0_15px_rgba(229,184,66,0.15)] rounded-2xl px-4 py-3 text-sm text-white outline-none transition-all duration-300"
+                    />
+                  </div>
+                )}
               </div>
 
               <div>
@@ -928,24 +853,10 @@ export default function CalendarPage({ tasks }) {
                   placeholder="Additional context/notes..."
                   value={modalData.notes}
                   onChange={e => setModalData(prev => ({ ...prev, notes: e.target.value }))}
-                  className="w-full bg-black/60 border border-white/10 hover:border-white/20 focus:border-[#E5B842]/50 rounded-xl px-3 py-2 text-xs text-white outline-none transition-colors h-16 resize-none"
+                  className="w-full bg-black/40 border border-white/10 hover:border-white/20 focus:border-[#E5B842]/50 focus:bg-white/[0.02] rounded-2xl px-4 py-3 text-sm text-white outline-none transition-all duration-300 h-20 resize-none"
                 />
               </div>
 
-              {/* Notification Preferences */}
-              <div className="pt-1.5">
-                <label className="flex items-center gap-2.5 cursor-pointer text-xs text-white/70 hover:text-white transition-colors">
-                  <input 
-                    type="checkbox" 
-                    checked={modalData.notificationsEnabled} 
-                    onChange={e => setModalData(prev => ({ ...prev, notificationsEnabled: e.target.checked }))}
-                    className="w-4 h-4 rounded border-white/10 text-[#E5B842] focus:ring-0 focus:ring-offset-0 bg-black cursor-pointer"
-                  />
-                  <span className="font-semibold uppercase tracking-wider text-[10px] text-white/65">
-                    Enable high-frequency reminders (1 day, 5h, 3h, 2h, 1h before)
-                  </span>
-                </label>
-              </div>
 
               {/* Actions Footer */}
               <div className="flex items-center justify-between border-t border-white/5 pt-4 mt-2">
@@ -961,37 +872,39 @@ export default function CalendarPage({ tasks }) {
                   )}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <button 
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="px-4 py-2 bg-[#0F0F0F] border border-white/10 hover:bg-white/[0.05] rounded-xl text-xs font-bold uppercase tracking-wider transition-all text-white/70 hover:text-white cursor-pointer"
+                    className="px-6 py-2.5 bg-white/[0.03] border border-white/10 hover:bg-white/[0.08] hover:border-white/20 rounded-2xl text-xs font-bold uppercase tracking-wider transition-all duration-300 text-white/70 hover:text-white cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button 
                     type="submit"
-                    className="px-5 py-2 bg-[#E5B842] hover:bg-[#FFF2CC] text-black rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer font-bold"
+                    className="px-8 py-2.5 bg-gradient-to-r from-[#E5B842] to-[#FFD566] hover:brightness-110 text-black rounded-2xl text-xs font-black uppercase tracking-wider transition-all duration-300 flex items-center gap-1.5 cursor-pointer shadow-[0_0_20px_rgba(229,184,66,0.2)] hover:shadow-[0_0_30px_rgba(229,184,66,0.4)] hover:-translate-y-0.5"
                   >
-                    Save
+                    <Check className="w-4 h-4" /> Save
                   </button>
                 </div>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Toast Notification */}
-      {toast && (
-        <div className={`fixed bottom-6 right-6 z-50 px-5 py-3.5 rounded-2xl border backdrop-blur-md shadow-2xl flex items-center gap-3 animate-fade-in ${
+      {toast && createPortal(
+        <div className={`fixed bottom-6 right-6 z-[9999] px-5 py-3.5 rounded-2xl border backdrop-blur-md shadow-2xl flex items-center gap-3 animate-fade-in ${
           toast.type === 'error' 
             ? 'bg-status-red/10 border-status-red/30 text-status-red' 
             : 'bg-black/90 border-[#E5B842]/30 text-[#E5B842]'
         }`}>
           {toast.type === 'error' ? <AlertCircle className="w-4 h-4" /> : <Check className="w-4 h-4" />}
           <span className="text-xs font-bold tracking-wide uppercase">{toast.message}</span>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

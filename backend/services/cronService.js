@@ -142,7 +142,7 @@ export const startCronJobs = () => {
         // 4. Check upcoming meetings or exams for high-frequency alerts
         const upcomingEvents = await CalendarEvent.find({
           userId,
-          startTime: { $gte: now, $lte: new Date(now.getTime() + 25 * 60 * 60 * 1000) },
+          startTime: { $gte: new Date(now.getTime() - 30 * 60 * 1000), $lte: new Date(now.getTime() + 25 * 60 * 60 * 1000) },
           notificationsEnabled: { $ne: false }
         });
 
@@ -162,23 +162,25 @@ export const startCronJobs = () => {
           if (hoursRemaining >= 23.5 && hoursRemaining <= 24.5) {
             intervalKey = '24h';
             timeLabel = 'in 24 hours (tomorrow)';
-          } else if (hoursRemaining >= 4.5 && hoursRemaining <= 5.3) {
-            intervalKey = '5h';
-            timeLabel = 'in 5 hours';
-          } else if (hoursRemaining >= 2.5 && hoursRemaining <= 3.3) {
-            intervalKey = '3h';
-            timeLabel = 'in 3 hours';
-          } else if (hoursRemaining >= 1.5 && hoursRemaining <= 2.3) {
-            intervalKey = '2h';
-            timeLabel = 'in 2 hours';
-          } else if (hoursRemaining >= 0.0 && hoursRemaining <= 1.3) {
+          } else if (hoursRemaining >= 7.5 && hoursRemaining <= 8.5) {
+            intervalKey = '8h';
+            timeLabel = 'in 8 hours';
+          } else if (hoursRemaining >= 0.5 && hoursRemaining <= 1.5) {
             intervalKey = '1h';
             timeLabel = 'in 1 hour';
+          } else if (hoursRemaining >= -0.5 && hoursRemaining <= 0.5) {
+            intervalKey = '0h';
+            timeLabel = 'right now';
           }
 
           if (intervalKey && !event.notifiedIntervals?.includes(intervalKey)) {
             const formattedTime = new Date(event.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const message = `Reminder: "${event.title}" is scheduled ${timeLabel} at ${formattedTime}.`;
+            let message;
+            if (intervalKey === '0h') {
+              message = `Reminder: "${event.title}" is starting right now at ${formattedTime}.`;
+            } else {
+              message = `Reminder: "${event.title}" is scheduled ${timeLabel} at ${formattedTime}.`;
+            }
             
             const notification = await createNotification(
               userId,

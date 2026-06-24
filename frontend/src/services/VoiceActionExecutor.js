@@ -144,8 +144,8 @@ export class VoiceActionExecutor {
           
           if (Array.isArray(freeSlots) && freeSlots.length > 0) {
             const slotDescriptions = freeSlots.map(s => {
-              const start = new Date(s.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-              const end = new Date(s.end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+              const start = new Date(s.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+              const end = new Date(s.end).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
               return `${start} to ${end}`;
             });
             const slotsText = `You have ${freeSlots.length} free blocks today: ${slotDescriptions.slice(0, 3).join(', and ')}.`;
@@ -255,6 +255,14 @@ export class VoiceActionExecutor {
         if (scopeText) {
           this.speak(scopeText);
         }
+        break;
+      }
+
+      case 'close_intent': {
+        const text = voiceResponse || intentObject.response || "Going to sleep.";
+        this.speak(text);
+        window.dispatchEvent(new CustomEvent('resq:close'));
+        wakeWordEngine.resetToIdle();
         break;
       }
 

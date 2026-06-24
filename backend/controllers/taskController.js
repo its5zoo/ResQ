@@ -56,11 +56,17 @@ export const createTask = async (req, res) => {
   const { title, description, urgency, category, completed, subtasks, estimatedMinutes, duration, dueDate } = req.body;
 
   try {
+    let finalUrgency = urgency;
+    if (!urgency) {
+      const { inferTaskUrgency } = await import('../services/geminiService.js');
+      finalUrgency = await inferTaskUrgency(title, dueDate || new Date());
+    }
+
     const task = new Task({
       userId: req.user._id,
       title,
       description: description || '',
-      urgency: urgency || 5,
+      urgency: finalUrgency,
       category: category || 'General',
       completed: completed || false,
       subtasks: subtasks || [],

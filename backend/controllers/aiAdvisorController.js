@@ -25,8 +25,9 @@ export const getDailySummary = async (req, res) => {
     });
 
     const habits = await Habit.find({ userId: req.user._id });
+    const goals = await Goal.find({ userId: req.user._id });
 
-    const summary = await generateDailySummary(req.user, tasks, events, habits);
+    const summary = await generateDailySummary(req.user, tasks, events, habits, goals);
     res.json({ summary });
   } catch (error) {
     res.status(500).json({ message: error.message });

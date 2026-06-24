@@ -8,9 +8,11 @@ import {
   Circle, 
   Sparkles, 
   X,
-  PlusCircle
+  PlusCircle,
+  ChevronDown
 } from 'lucide-react';
 import { tasks as apiTasks } from '../../services/api.js';
+import CustomDatePicker from '../Shared/CustomDatePicker.jsx';
 
 export default function TasksPage({ 
   tasks, 
@@ -27,9 +29,45 @@ export default function TasksPage({
   
   // Task Creation States
   const [title, setTitle] = useState('');
-  const [urgency, setUrgency] = useState(5);
-  const [dueDate, setDueDate] = useState('Today');
-  const [duration, setDuration] = useState(30);
+  const [urgency, setUrgency] = useState('');
+  const [dueDate, setDueDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [openDropdown, setOpenDropdown] = useState(null);
+
+  const renderDropdown = (name, value, options, onChange) => {
+    const isOpen = openDropdown === name;
+    const selectedLabel = options.find(o => o.value.toString() === value.toString())?.label;
+
+    return (
+      <div className="relative">
+        <div 
+          onClick={() => setOpenDropdown(isOpen ? null : name)}
+          className={`bg-[#0B0B0B] border ${isOpen ? 'border-[#E5B842]/40 shadow-[0_0_10px_rgba(229,184,66,0.1)]' : 'border-white/10'} hover:border-white/20 rounded-xl px-3 py-3 text-[11px] text-white flex items-center justify-between cursor-pointer transition-all duration-300`}
+        >
+          <span className="truncate font-semibold text-white/80">{selectedLabel}</span>
+          <ChevronDown className={`w-3.5 h-3.5 text-[#E5B842] transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+        </div>
+        
+        {isOpen && (
+          <div className="absolute top-full left-0 mt-1 w-full bg-[#050505] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden animate-fade-in-up">
+            {options.map((opt, i) => (
+              <div 
+                key={opt.value}
+                onClick={() => {
+                  onChange(opt.value);
+                  setOpenDropdown(null);
+                }}
+                className={`px-3 py-2.5 text-[11px] cursor-pointer transition-all font-medium ${
+                  value.toString() === opt.value.toString() ? 'text-[#E5B842] bg-[#E5B842]/5' : 'text-white/60 hover:text-white hover:bg-white/5'
+                } ${i !== options.length - 1 ? 'border-b border-white/[0.02]' : ''}`}
+              >
+                {opt.label}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   // Slide-over states
   const [selectedTask, setSelectedTask] = useState(null);
@@ -122,20 +160,11 @@ export default function TasksPage({
     if (!title.trim()) return;
 
     try {
-      let resolvedDueDate = new Date();
-      if (dueDate === 'Tomorrow') {
-        resolvedDueDate.setDate(resolvedDueDate.getDate() + 1);
-      } else if (dueDate === 'In 2 Days') {
-        resolvedDueDate.setDate(resolvedDueDate.getDate() + 2);
-      } else if (dueDate === 'In 3 Days') {
-        resolvedDueDate.setDate(resolvedDueDate.getDate() + 3);
-      }
-
       const taskData = {
         title,
-        urgency: parseInt(urgency),
-        dueDate: resolvedDueDate,
-        estimatedMinutes: parseInt(duration),
+        urgency: urgency ? parseInt(urgency) : undefined,
+        dueDate: new Date(dueDate),
+        estimatedMinutes: 30,
         category: 'Work',
         subtasks: [
           { title: 'Formulate core structure', completed: false }
@@ -231,64 +260,45 @@ export default function TasksPage({
 
       {/* Task Creation Form */}
       <form onSubmit={handleCreateTask} className="p-6 bg-[#090909] border border-white/[0.04] rounded-2xl space-y-4 layered-shadow-lg">
-        <h3 className="text-[10px] font-bold text-[#E5B842] tracking-widest uppercase font-display">Quick Add Priority Node</h3>
+        <h3 className="text-[10px] font-bold text-[#E5B842] tracking-widest uppercase font-display mb-4">Quick Add Priority Node</h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+        <div className="flex flex-col lg:flex-row gap-4 items-center w-full">
           <input 
             type="text"
             placeholder="What needs to be finished?"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="md:col-span-6 bg-[#0B0B0B] border border-white/10 hover:border-white/20 focus:border-[#E5B842]/40 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-hidden transition-all duration-300"
+            className="flex-1 w-full bg-[#0B0B0B] border border-white/10 hover:border-white/20 focus:border-[#E5B842]/40 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-hidden transition-all duration-300"
             required
           />
 
-          <div className="grid grid-cols-3 gap-2 md:col-span-6">
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
             {/* Urgency */}
-            <select 
-              value={urgency}
-              onChange={(e) => setUrgency(e.target.value)}
-              className="bg-[#0B0B0B] border border-white/10 hover:border-white/20 focus:border-[#E5B842]/40 rounded-xl px-3 py-3 text-sm text-white focus:outline-hidden transition-all duration-300 cursor-pointer"
-            >
-              <option value="4">Urgency: 4</option>
-              <option value="6">Urgency: 6 (Med)</option>
-              <option value="8">Urgency: 8 (High)</option>
-              <option value="10">Urgency: 10 (Critical)</option>
-            </select>
-
-            {/* Time Estimation */}
-            <select 
-              value={duration}
-              onChange={(e) => setDuration(e.target.value)}
-              className="bg-[#0B0B0B] border border-white/10 hover:border-white/20 focus:border-[#E5B842]/40 rounded-xl px-3 py-3 text-sm text-white focus:outline-hidden transition-all duration-300 cursor-pointer"
-            >
-              <option value="15">15 Mins</option>
-              <option value="30">30 Mins</option>
-              <option value="45">45 Mins</option>
-              <option value="60">60 Mins</option>
-            </select>
+            <div className="w-full sm:w-[150px] shrink-0">
+              {renderDropdown('urgency', urgency, [
+                { value: '', label: 'Set Urgency' },
+                { value: 4, label: 'Urgency: 4' },
+                { value: 6, label: 'Urgency: 6 (Med)' },
+                { value: 8, label: 'Urgency: 8 (High)' },
+                { value: 10, label: 'Urgency: 10 (Crit)' }
+              ], setUrgency)}
+            </div>
 
             {/* Due date */}
-            <select 
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              className="bg-[#0B0B0B] border border-white/10 hover:border-white/20 focus:border-[#E5B842]/40 rounded-xl px-3 py-3 text-sm text-white focus:outline-hidden transition-all duration-300 cursor-pointer"
-            >
-              <option value="Today">Today</option>
-              <option value="Tomorrow">Tomorrow</option>
-              <option value="In 2 Days">In 2 Days</option>
-              <option value="In 3 Days">In 3 Days</option>
-            </select>
-          </div>
-        </div>
+            <div className="w-full sm:w-[160px] shrink-0">
+              <CustomDatePicker 
+                value={dueDate}
+                onChange={(dateStr) => setDueDate(dateStr)}
+              />
+            </div>
 
-        <div className="flex justify-end">
-          <button 
-            type="submit"
-            className="px-6 py-3 bg-transparent text-[#E5B842] border border-[#E5B842]/40 hover:bg-[#E5B842] hover:text-black hover:border-transparent text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center gap-1.5 cursor-pointer font-sans active:scale-[0.98]"
-          >
-            <Plus className="w-4 h-4" /> Deploy Task
-          </button>
+            <button 
+              type="submit"
+              className="w-full sm:w-auto px-6 py-3 bg-transparent text-[#E5B842] border border-[#E5B842]/40 hover:bg-[#E5B842] hover:text-black hover:border-transparent text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-300 flex justify-center items-center gap-1.5 cursor-pointer font-sans active:scale-[0.98] shrink-0"
+            >
+              <Plus className="w-4 h-4" /> Deploy Task
+            </button>
+          </div>
         </div>
       </form>
 
@@ -312,18 +322,46 @@ export default function TasksPage({
         </div>
 
         {/* Sort */}
-        <div className="flex items-center gap-2">
-          <SlidersHorizontal className="w-3.5 h-3.5 text-white/40" />
-          <span className="text-[10px] text-white/40 uppercase font-bold">Sort:</span>
-          <select 
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="bg-[#0B0B0B] border border-white/10 hover:border-white/20 focus:border-[#E5B842]/40 rounded-lg px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white/70 focus:outline-hidden cursor-pointer transition-all duration-300"
-          >
-            <option value="priorityRank">AI Priority Rank</option>
-            <option value="urgency">Manual Urgency</option>
-            <option value="duration">Focus Duration</option>
-          </select>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal className="w-3.5 h-3.5 text-white/40" />
+            <span className="text-[10px] text-white/40 uppercase font-bold">Sort:</span>
+          </div>
+          <div className="relative min-w-[140px]">
+            <div 
+              onClick={() => setOpenDropdown(openDropdown === 'sort' ? null : 'sort')}
+              className={`bg-[#0B0B0B] border ${openDropdown === 'sort' ? 'border-[#E5B842]/40 shadow-[0_0_10px_rgba(229,184,66,0.1)]' : 'border-white/10'} hover:border-white/20 rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white flex items-center justify-between cursor-pointer transition-all duration-300`}
+            >
+              <span className="truncate">{
+                sortBy === 'priorityRank' ? 'AI Priority Rank' : 
+                sortBy === 'urgency' ? 'Manual Urgency' : 'Focus Duration'
+              }</span>
+              <ChevronDown className={`w-3.5 h-3.5 text-[#E5B842] transition-transform duration-300 ${openDropdown === 'sort' ? 'rotate-180' : ''}`} />
+            </div>
+            
+            {openDropdown === 'sort' && (
+              <div className="absolute top-full right-0 mt-1 w-full min-w-[160px] bg-[#050505] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden animate-fade-in-up">
+                {[
+                  { value: 'priorityRank', label: 'AI Priority Rank' },
+                  { value: 'urgency', label: 'Manual Urgency' },
+                  { value: 'duration', label: 'Focus Duration' }
+                ].map((opt, i, arr) => (
+                  <div 
+                    key={opt.value}
+                    onClick={() => {
+                      setSortBy(opt.value);
+                      setOpenDropdown(null);
+                    }}
+                    className={`px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-all ${
+                      sortBy === opt.value ? 'text-[#E5B842] bg-[#E5B842]/5' : 'text-white/60 hover:text-white hover:bg-white/5'
+                    } ${i !== arr.length - 1 ? 'border-b border-white/[0.02]' : ''}`}
+                  >
+                    {opt.label}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

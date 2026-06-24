@@ -111,7 +111,7 @@ export default function CustomDatePicker({ value, onChange, placeholder = "Selec
   };
 
   return (
-    <div className="relative md:col-span-3" ref={containerRef}>
+    <div className="relative w-full" ref={containerRef}>
       {/* Trigger Input/Button */}
       <div 
         onClick={() => setIsOpen(!isOpen)}

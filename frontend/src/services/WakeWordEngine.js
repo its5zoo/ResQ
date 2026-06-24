@@ -28,14 +28,17 @@ class WakeWordEngine {
     this.commandSilenceTimer = null;
     this.idleConversationTimer = null;
     this.isAiSpeaking = false;
+    this.isProcessingBackend = false;
 
-    this.handleVoiceStart = () => { this.isAiSpeaking = true; };
+    this.handleVoiceStart = () => { this.isAiSpeaking = true; this.isProcessingBackend = false; };
     this.handleVoiceEnd = () => { this.isAiSpeaking = false; this.resetIdleTimer(); };
+    this.handleVoiceResponseReceived = () => { this.isProcessingBackend = false; this.resetIdleTimer(); };
     window.addEventListener('resq:voice-start', this.handleVoiceStart);
     window.addEventListener('resq:voice-end', this.handleVoiceEnd);
+    window.addEventListener('resq:voice-response-received', this.handleVoiceResponseReceived);
 
     // Wake words for fuzzy matching (excluding dangerous substrings like 'he rescue' or 'a resq')
-    this.wakeWords = ["hey resq", "hey rescue", "hey res q", "hey resk", "hey risq", "hey risk", "hey wresq", "hey raceq", "hey race q", "hey req", "hey rec", "hey rex", "hey rack", "hair rescue", "air rescue", "okay resq", "ok resq", "hey risk you", "ok rescue", "hey ask you", "hey rest cue"];
+    this.wakeWords = ["rescue", "resq", "hey resq", "hey rescue", "hey res q", "hey resk", "hey risq", "hey risk", "hey wresq", "hey raceq", "hey race q", "hey req", "hey rec", "hey rex", "hey rack", "hair rescue", "air rescue", "okay resq", "ok resq", "hey risk you", "ok rescue", "hey ask you", "hey rest cue"];
 
     // Bind event handlers
     this.handleVisibilityChange = this.handleVisibilityChange.bind(this);
@@ -381,7 +384,7 @@ class WakeWordEngine {
   resetIdleTimer() {
     if (this.idleConversationTimer) clearTimeout(this.idleConversationTimer);
     this.idleConversationTimer = setTimeout(() => {
-      if (this.isWoken && !this.isAiSpeaking) {
+      if (this.isWoken && !this.isAiSpeaking && !this.isProcessingBackend) {
         console.log('[WakeWordEngine] 15 seconds idle timeout reached. Going to sleep.');
         
         if (this.awaitingClarification) {
@@ -486,12 +489,12 @@ class WakeWordEngine {
 
         if (latest.trim()) {
           this.commandSilenceTimer = setTimeout(() => {
-            console.log('[WakeWordEngine] 4s speech silence detected, sending turn to backend.');
+            console.log('[WakeWordEngine] 3s speech silence detected, sending turn to backend.');
             if (this.latestTranscript.trim()) {
               this.finalizeConversationTurn(this.latestTranscript);
               this.latestTranscript = '';
             }
-          }, 4000);
+          }, 3000);
         }
       };
 
@@ -537,20 +540,11 @@ class WakeWordEngine {
   finalizeConversationTurn(transcript) {
     const text = transcript.trim();
     if (text) {
-      // Local sleep interception
-      const isSleepCommand = /^(bye|goodbye|sleep|go to sleep|stop listening)$/i.test(text.replace(/[^\w\s]/g, '').trim());
-      if (isSleepCommand) {
-        console.log('[WakeWordEngine] Sleep command detected. Going to sleep.');
-        if (this.awaitingClarification) this.exitClarificationMode();
-        window.dispatchEvent(new CustomEvent('resq:close'));
-        this.speak("Goodbye.");
-        this.resetToIdle();
-        return;
-      }
+      this.isProcessingBackend = true;
+      if (this.idleConversationTimer) clearTimeout(this.idleConversationTimer);
 
       console.log('[WakeWordEngine] Sending conversation turn:', text);
       window.dispatchEvent(new CustomEvent('resq:command', { detail: { transcript: text } }));
-      this.resetIdleTimer();
     }
   }
 

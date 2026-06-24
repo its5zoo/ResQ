@@ -18,6 +18,7 @@ router.route('/')
       body('keyResults').optional().isArray().withMessage('Key results must be an array'),
       body('keyResults.*.title').optional().notEmpty().withMessage('Key result title cannot be empty'),
       body('keyResults.*.progress').optional().isInt({ min: 0, max: 100 }).withMessage('Key result progress must be between 0 and 100'),
+      body('manualMilestones').optional().isArray(),
       validateRequest
     ],
     createGoal

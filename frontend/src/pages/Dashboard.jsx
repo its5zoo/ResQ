@@ -144,7 +144,7 @@ export default function Dashboard({ currentTab: propTab, setCurrentTab: propSetT
       
       {/* Main Workspace Frame */}
       <main className="flex-1 h-screen overflow-y-auto px-8 py-6 relative z-10">
-        <div className="max-w-6xl mx-auto w-full">
+        <div className="max-w-[1800px] mx-auto w-full">
           {renderContent()}
         </div>
       </main>

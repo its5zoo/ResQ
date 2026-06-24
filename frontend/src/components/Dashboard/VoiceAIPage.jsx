@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { Mic, MicOff, Sparkles, Send, Volume2 } from 'lucide-react';
+import { Mic, MicOff, Sparkles, Send, Volume2, VolumeX } from 'lucide-react';
 import { voice as apiVoice } from '../../services/api.js';
 
 export default function VoiceAIPage() {
   const [isListening, setIsListening] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
   const [messages, setMessages] = useState([
     { role: 'ai', text: "Hello! I am your ResQ AI companion. Ask me to outline your day, list your critical deadlines, or organize calendar blocks for you." }
   ]);
@@ -18,6 +19,7 @@ export default function VoiceAIPage() {
 
   // Helper to select the polished female voice
   const speakResponse = (text) => {
+    if (isMuted) return;
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
     
@@ -129,18 +131,32 @@ export default function VoiceAIPage() {
   }, []);
 
   return (
-    <div className="space-y-8 animate-fade-in flex flex-col justify-between h-[82vh] font-sans">
+    <div className="animate-fade-in flex flex-col h-full min-h-[82vh] font-sans">
       
       {/* Top Header */}
-      <div className="border-b border-white/5 pb-6">
-        <span className="text-xs font-tech font-bold tracking-[0.3em] text-[#E5B842] block mb-2">AUDIO SHIELD</span>
-        <h2 className="text-3xl font-display font-black tracking-tight text-white leading-none">
-          Hands-Free Voice Assistant
-        </h2>
+      <div className="border-b border-white/5 pb-6 flex items-center justify-between mb-8 shrink-0">
+        <div>
+          <span className="text-xs font-tech font-bold tracking-[0.3em] text-[#E5B842] block mb-2">AUDIO SHIELD</span>
+          <h2 className="text-3xl font-display font-black tracking-tight text-white leading-none">
+            Hands-Free Voice Assistant
+          </h2>
+        </div>
+        <button 
+          onClick={() => {
+            if (!isMuted && 'speechSynthesis' in window) window.speechSynthesis.cancel();
+            setIsMuted(!isMuted);
+          }}
+          className={`p-3 rounded-xl border transition-all duration-300 cursor-pointer ${
+            isMuted ? 'bg-status-red/10 border-status-red/30 text-status-red hover:bg-status-red/20' : 'bg-[#E5B842]/10 border-[#E5B842]/30 text-[#E5B842] hover:bg-[#E5B842]/20'
+          }`}
+          title={isMuted ? "Unmute AI Voice" : "Mute AI Voice"}
+        >
+          {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+        </button>
       </div>
 
       {/* Main chat window */}
-      <div className="flex-1 overflow-y-auto space-y-4 pr-2 max-h-[50vh] p-6 bg-[#090909] border border-white/[0.04] rounded-3xl layered-shadow-lg">
+      <div className="flex-1 overflow-y-auto space-y-4 pr-2 p-6 bg-[#090909] border border-white/[0.04] rounded-3xl layered-shadow-lg mb-8 min-h-[300px]">
         {messages.map((msg, idx) => (
           <div 
             key={idx} 
@@ -168,7 +184,7 @@ export default function VoiceAIPage() {
       </div>
 
       {/* Bottom control controls */}
-      <div className="space-y-6">
+      <div className="space-y-6 shrink-0 mt-auto">
         {/* Suggested Queries */}
         <div className="flex flex-wrap justify-center gap-2">
           {sampleQuestions.map((qItem, idx) => (

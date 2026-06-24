@@ -2,9 +2,12 @@ import { useEffect } from 'react';
 import Navbar from '../components/Landing/Navbar';
 import Hero from '../components/Landing/Hero';
 import FeatureStrip from '../components/Landing/FeatureStrip';
-import FeaturesGrid from '../components/Landing/FeaturesGrid';
-import ChronosLayersSection from '../components/Landing/ChronosLayersSection';
+
 import DashboardPreview from '../components/Landing/DashboardPreview';
+import CoreWorkflowSection from '../components/Landing/CoreWorkflowSection';
+import GoalSystemSection from '../components/Landing/GoalSystemSection';
+import CalendarSection from '../components/Landing/CalendarSection';
+import AnalyticsSection from '../components/Landing/AnalyticsSection';
 import VoiceSection from '../components/Landing/VoiceSection';
 import MobileSection from '../components/Landing/MobileSection';
 import CTASection from '../components/Landing/CTASection';
@@ -54,9 +57,15 @@ export default function Landing() {
       <Navbar />
       <Hero />
       <FeatureStrip />
-      <FeaturesGrid />
-      <ChronosLayersSection />
+      
+      {/* New Narrative Flow */}
       <DashboardPreview />
+      <CoreWorkflowSection />
+      <GoalSystemSection />
+      <CalendarSection />
+      <AnalyticsSection />
+      
+      {/* Existing Sections */}
       <VoiceSection />
       <MobileSection />
       <CTASection />

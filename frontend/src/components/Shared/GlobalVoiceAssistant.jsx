@@ -191,7 +191,8 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
             setShowPermissionModal(false);
             wakeWordEngine.init();
           } else if (result.state === 'denied') {
-            setPermissionDenied(true);
+            const hasSeen = localStorage.getItem('resq:mic-denied-seen');
+            setPermissionDenied(!hasSeen);
             setShowPermissionModal(false);
           } else if (result.state === 'prompt') {
             setPermissionDenied(false);
@@ -555,6 +556,8 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
 
   async function handleVoiceResult(result) {
     if (!result) return;
+    
+    window.dispatchEvent(new CustomEvent('resq:voice-response-received'));
 
     // Check if blocked by limit
     if (result.blocked) {
@@ -820,19 +823,41 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
 
   return (
     <>
-      {/* Persistent microphone permission denied banner */}
+      {/* Once-only Microphone Permission Denied Pop-up */}
       {permissionDenied && (
-        <div className="fixed top-0 left-0 right-0 bg-red-950/90 border-b border-red-500/20 px-4 py-2.5 text-center text-xs font-semibold text-red-200 z-[10000] backdrop-blur-md flex items-center justify-center gap-2 shadow-lg animate-fade-in-up">
-          <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
-          <span>Enable mic in browser settings for voice features</span>
-          <a 
-            href="https://support.google.com/chrome/answer/2693767" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="underline hover:text-white transition-colors ml-1"
-          >
-            How to enable
-          </a>
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-[10000] flex items-center justify-center p-4">
+          <div className="bg-[#0c0c0e] border border-red-500/20 rounded-3xl p-6 max-w-sm w-full text-center space-y-4 shadow-2xl animate-fade-in-up relative overflow-hidden">
+            <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto">
+              <MicOff className="w-6 h-6 text-red-500" />
+            </div>
+            <h3 className="text-white text-base font-tech font-bold tracking-wide">Microphone Access Denied</h3>
+            <p className="text-white/80 text-sm leading-relaxed pb-2 font-sans font-medium">
+              If you don't turn on the mic, you won't be able to talk to the AI using voice or do related tasks.
+            </p>
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => {
+                  localStorage.setItem('resq:mic-denied-seen', 'true');
+                  setPermissionDenied(false);
+                }}
+                className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 text-white font-semibold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer"
+              >
+                I Understand
+              </button>
+              <a 
+                href="https://support.google.com/chrome/answer/2693767" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                onClick={() => {
+                  localStorage.setItem('resq:mic-denied-seen', 'true');
+                  setPermissionDenied(false);
+                }}
+                className="flex-1 py-2.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 font-semibold text-xs uppercase tracking-wider rounded-xl transition-all border border-red-500/30 cursor-pointer flex items-center justify-center"
+              >
+                How to Enable
+              </a>
+            </div>
+          </div>
         </div>
       )}
 
@@ -868,217 +893,61 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
         </div>
       )}
 
-      <div className="resq-orb-container group">
-        {/* Drawer expands upward from the orb when active */}
-        {isWoken && (
-          <div className="voice-console absolute bottom-20 right-0 w-[calc(100vw-32px)] sm:w-[420px] bg-[#09090b]/95 border border-white/10 rounded-3xl p-6 shadow-2xl z-[9998] font-sans backdrop-blur-xl animate-fade-in-up flex flex-col gap-4">
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-white/5 pb-3">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-[var(--orb-gold)]" />
-                <span className="text-xs font-tech font-bold text-[var(--orb-gold)] tracking-wider uppercase">ResQ Voice AI</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[9px] font-tech px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/50 uppercase">
-                  {micState === 'speaking' ? 'Speaking' : micState === 'processing' ? 'Thinking' : 'Listening'}
-                </span>
-                <button 
-                  onClick={closeAssistant}
-                  className="p-1 hover:bg-white/5 rounded-lg text-white/40 hover:text-white transition-colors cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
+      {isWoken && (
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#080808]/95 backdrop-blur-xl animate-fade-in font-sans">
+          
+          {/* Close Button */}
+          <button 
+            onClick={closeAssistant} 
+            className="absolute top-8 right-8 p-3 rounded-full bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-all cursor-pointer border border-white/10"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          {/* Center Mic & Waveform */}
+          <div className="flex items-center justify-center gap-6 mb-8 relative">
+            <div className="absolute flex items-center justify-center pointer-events-none">
+              <WaveVisualizer bars={35} micState={micState} />
             </div>
-
-            {/* Last spoken command (user's words) in gray */}
-            <div className="space-y-1">
-              <span className="text-[10px] font-tech text-white/30 uppercase tracking-widest block">Last Command</span>
-              <p className="text-sm font-medium text-white/40 italic pl-1 border-l-2 border-white/10 min-h-[20px]">
-                {transcript || 'Waiting for voice input...'}
-              </p>
-            </div>
-
-            {/* ResQ's response in white */}
-            <div className="voice-ai-response-box space-y-1 bg-white/[0.02] border border-white/[0.03] p-4 rounded-2xl relative">
-              <span className="text-[10px] font-tech text-[var(--orb-gold)] uppercase tracking-widest block mb-1">ResQ Response</span>
-              <p className="text-sm text-white leading-relaxed font-sans">
-                {aiResponse}
-              </p>
-
-              {/* Action Choices */}
-              {choices.length > 0 && (
-                <div className="flex flex-col gap-2 mt-4 pt-3 border-t border-white/5">
-                  {choices.map((choice, idx) => (
-                    <button
-                      key={idx}
-                      onClick={choice.action}
-                      className="w-full text-left text-xs bg-white/5 hover:bg-[var(--orb-gold)] hover:text-black border border-white/10 hover:border-[var(--orb-gold)] text-white/80 px-3.5 py-2 rounded-xl font-semibold transition-all duration-300 cursor-pointer"
-                    >
-                      {choice.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Action taken confirmation with icon */}
-            {actionMeta && (
-              <div className="flex items-center gap-2 px-4 py-2.5 bg-white/[0.02] border border-white/[0.05] rounded-2xl text-xs font-semibold">
-                <actionMeta.icon className={`w-4 h-4 ${actionMeta.color}`} />
-                <span className="text-white/40">Action:</span>
-                <span className="text-white font-tech uppercase tracking-wider">{actionMeta.label}</span>
-              </div>
-            )}
-
-            {/* Quick action buttons */}
-            <div className="space-y-2 pt-2 border-t border-white/5">
-              <span className="text-[9px] font-tech text-white/30 uppercase tracking-widest block mb-1.5">Quick Actions</span>
-              <div className="grid grid-cols-2 gap-2">
-                <button 
-                  onClick={() => triggerScenario("schedule a meeting")}
-                  className="flex items-center gap-2 p-3 rounded-xl bg-white/5 border border-white/5 hover:border-[var(--orb-gold)]/40 hover:bg-white/[0.08] transition-all text-left group/btn cursor-pointer"
-                >
-                  <CalendarDays className="w-4 h-4 text-[var(--orb-blue)]" />
-                  <span className="text-xs text-white/70 font-semibold font-tech">Schedule</span>
-                </button>
-                <button 
-                  onClick={() => triggerScenario("add a task")}
-                  className="flex items-center gap-2 p-3 rounded-xl bg-white/5 border border-white/5 hover:border-[var(--orb-gold)]/40 hover:bg-white/[0.08] transition-all text-left group/btn cursor-pointer"
-                >
-                  <CheckSquare className="w-4 h-4 text-[var(--orb-green)]" />
-                  <span className="text-xs text-white/70 font-semibold font-tech">Add Task</span>
-                </button>
-                <button 
-                  onClick={() => triggerScenario("start focus session")}
-                  className="flex items-center gap-2 p-3 rounded-xl bg-white/5 border border-white/5 hover:border-[var(--orb-gold)]/40 hover:bg-white/[0.08] transition-all text-left group/btn cursor-pointer"
-                >
-                  <Flame className="w-4 h-4 text-amber-500" />
-                  <span className="text-xs text-white/70 font-semibold font-tech">Focus Mode</span>
-                </button>
-                <button 
-                  onClick={() => triggerScenario("summarize my day")}
-                  className="flex items-center gap-2 p-3 rounded-xl bg-white/5 border border-white/5 hover:border-[var(--orb-gold)]/40 hover:bg-white/[0.08] transition-all text-left group/btn cursor-pointer"
-                >
-                  <Sparkles className="w-4 h-4 text-purple-400" />
-                  <span className="text-xs text-white/70 font-semibold font-tech">My Day</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Command Usage Progress Bar (free tier only) */}
-            {usageStats && usageStats.plan === 'free' && (
-              <div className="space-y-1.5 pt-2.5 border-t border-white/5">
-                <div className="flex justify-between items-center text-[9px] font-tech font-bold uppercase tracking-wider">
-                  {usageStats.remaining < 5 && usageStats.remaining > 0 ? (
-                    <span className="text-amber-500">{usageStats.remaining} commands remaining</span>
-                  ) : usageStats.remaining === 0 ? (
-                    <span className="text-red-500">0 commands remaining</span>
-                  ) : (
-                    <span className="text-white/40">Monthly Voice AI Command Usage</span>
-                  )}
-                  <span className="text-white/60">{usageStats.used} / {usageStats.limit} used</span>
-                </div>
-                <div className="w-full h-1.5 bg-white/5 border border-white/10 rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full transition-all duration-500 ${
-                      usageStats.remaining === 0 ? 'bg-red-500' : usageStats.remaining < 5 ? 'bg-amber-500' : 'bg-[var(--orb-gold)]'
-                    }`}
-                    style={{ width: `${Math.min(100, (usageStats.used / usageStats.limit) * 100)}%` }}
-                  />
-                </div>
-                {usageStats.remaining === 0 && (
-                  <button
-                    onClick={() => setShowUpgradeModal(true)}
-                    className="w-full mt-1 py-2 bg-red-500 hover:bg-red-600 text-white font-tech font-bold text-[9px] uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-lg shadow-red-500/10"
-                  >
-                    Upgrade to Premium
-                  </button>
-                )}
-              </div>
-            )}
-
-            {/* Text Input Fallback when SpeechRecognition is offline or for keyboard use */}
-            <form 
-              onSubmit={(e) => {
-                e.preventDefault();
-                const input = e.target.elements.voiceInput.value.trim();
-                if (input) {
-                  setTranscript(input);
-                  sendTranscriptToBackend(input);
-                  e.target.elements.voiceInput.value = '';
-                }
-              }}
-              className="flex gap-2 border-t border-white/5 pt-3"
-            >
-              <input
-                name="voiceInput"
-                type="text"
-                placeholder="Type a command..."
-                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/40 focus:outline-none focus:border-[var(--orb-gold)] transition-all font-sans"
-              />
-              <button
-                type="submit"
-                className="px-4 py-2 bg-[var(--orb-gold)] hover:bg-[#FFF2CC] text-black font-tech font-bold text-[10px] uppercase tracking-wider rounded-xl transition-all cursor-pointer"
-              >
-                Send
-              </button>
-            </form>
-
-            {/* "Powered by Gemini" micro-badge at bottom in subtle gold */}
-            <div className="flex items-center justify-center pt-2 border-t border-white/5">
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--orb-gold)]/5 border border-[var(--orb-gold)]/15 shadow-[0_0_10px_rgba(229,184,66,0.05)]">
-                <Sparkles className="w-3 h-3 text-[var(--orb-gold)] animate-pulse" />
-                <span className="text-[9px] font-tech font-bold text-[var(--orb-gold)] uppercase tracking-wider">Powered by Gemini 1.5 Flash</span>
-              </div>
+            
+            <div className={`w-24 h-24 rounded-[2rem] bg-[#0c0c0e] border border-white/5 flex items-center justify-center z-10 relative transition-all duration-500 ${micState === 'listening' ? 'shadow-[0_0_60px_rgba(229,184,66,0.15)] scale-105 border-[var(--orb-gold)]/30' : 'shadow-2xl'}`}>
+               <Mic className={`w-10 h-10 ${micState === 'listening' ? 'text-[var(--orb-gold)]' : 'text-white/40'} transition-colors duration-300 relative z-10`} />
+               {micState === 'listening' && <div className="absolute inset-0 bg-[var(--orb-gold)]/5 rounded-[2rem] animate-pulse"></div>}
             </div>
           </div>
-        )}
 
-        {/* Animated outer ring, state-dependent */}
-        <div 
-          className={`orb-ring-outer state-${orbState}`} 
-          style={orbState === 'alert' ? { '--alert-color': alertColor, '--alert-glow': alertGlow } : {}}
-        />
+          <h2 className="text-2xl font-display font-black text-white mb-3 tracking-tight">
+            {micState === 'speaking' ? "I'm speaking" : micState === 'processing' ? "I'm thinking..." : "I'm listening"}
+          </h2>
+          
+          <p className="text-base text-white/40 mb-12 max-w-2xl text-center min-h-[24px] px-6 font-medium">
+            {transcript || "Speak now..."}
+          </p>
 
-        {/* Main circle button */}
-        <div 
-          className={`orb-core ${!aiVoiceEnabled ? 'state-disabled' : isLocked ? 'state-locked' : ''}`}
-          onClick={!aiVoiceEnabled ? null : isLocked ? () => setShowUpgradeModal(true) : (isWoken ? closeAssistant : triggerWakeUp)}
-          title={!aiVoiceEnabled ? "Voice AI disabled — Enable in Settings" : isLocked ? "Voice AI limit reached — Upgrade to Premium" : (isWoken ? "Close Assistant" : "Say 'Hey ResQ' or Click to Speak")}
-        >
-          {/* WaveVisualizer bars={19} - only visible when speaking/listening */}
-          {(orbState === 'speaking' || orbState === 'listening') && (
-            <WaveVisualizer bars={19} micState={micState} />
-          )}
+          {/* AI Response Box */}
+          <div className={`max-w-2xl w-full mx-4 transition-all duration-500 transform ${aiResponse ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0 pointer-events-none'}`}>
+            <div className="bg-[#09090b] border border-white/10 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[var(--orb-gold)] to-transparent opacity-20"></div>
+               <div className="flex items-start gap-4">
+                 <div className="w-8 h-8 rounded-full bg-[var(--orb-gold)]/10 border border-[var(--orb-gold)]/20 flex items-center justify-center shrink-0 mt-0.5">
+                   <Sparkles className="w-4 h-4 text-[var(--orb-gold)]" />
+                 </div>
+                 <p className="text-white/90 text-[15px] leading-relaxed font-sans">{aiResponse}</p>
+               </div>
 
-          {/* LockIcon - visible when locked */}
-          {isLocked && !(!aiVoiceEnabled) && (
-            <Lock className="w-5 h-5 text-gray-500 transition-colors duration-300 group-hover:text-white z-10" />
-          )}
+               {/* Action taken confirmation */}
+               {actionMeta && (
+                 <div className="flex items-center gap-2 mt-6 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-xs font-semibold w-max animate-fade-in">
+                   <actionMeta.icon className={`w-4 h-4 ${actionMeta.color}`} />
+                   <span className="text-white/40">Action completed:</span>
+                   <span className="text-white font-tech uppercase tracking-wider">{actionMeta.label}</span>
+                 </div>
+               )}
+            </div>
+          </div>
 
-          {/* MicOff - visible when disabled */}
-          {!aiVoiceEnabled && (
-            <MicOff className="w-5 h-5 text-gray-500 z-10" />
-          )}
-
-          {/* MicIcon - visible in idle when not locked and enabled */}
-          {orbState === 'idle' && !isLocked && aiVoiceEnabled && (
-            <Mic className="w-5 h-5 text-[var(--orb-gold)] transition-colors duration-300 group-hover:text-white z-10" />
-          )}
-
-          {/* Close icon - visible when woken and processing or alert */}
-          {isWoken && (orbState === 'processing' || orbState === 'alert') && (
-            <X className="w-5 h-5 text-white z-10" />
-          )}
-
-          {/* StateLabel - "Listening...", "Thinking...", etc. */}
-          <StateLabel orbState={orbState} />
         </div>
-
-        {/* Status badge: green=on, gray=off, red=error */}
-        <div className={`orb-status-badge status-${!speechSupported ? 'error' : isWoken ? 'on' : 'off'}`} />
-      </div>
+      )}
 
       {/* Fullscreen Focus HUD Overlay */}
       {focusActive && (
