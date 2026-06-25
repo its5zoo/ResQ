@@ -515,7 +515,43 @@ const getLocalFallbackResult = (transcript, context) => {
         suggestAlternative: null
       };
     }
-    
+
+    const relativeTimeMatch = clean.match(/(?:after|in)\s+(\d+)\s*(min|hour|hr|minute|hours|hrs)/i);
+    if (relativeTimeMatch) {
+      const amount = parseInt(relativeTimeMatch[1]);
+      const unit = relativeTimeMatch[2].toLowerCase();
+      
+      let additionalMs = 0;
+      if (unit.startsWith('min')) {
+        additionalMs = amount * 60 * 1000;
+      } else if (unit.startsWith('h') || unit.startsWith('hr')) {
+        additionalMs = amount * 60 * 60 * 1000;
+      }
+      
+      const targetDate = new Date(Date.now() + additionalMs);
+      const endTime = new Date(targetDate.getTime() + 45 * 60 * 1000);
+      
+      const formattedTime = targetDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      return {
+        intent: 'schedule_event',
+        confidence: 0.95,
+        extractedData: {
+          title,
+          startTime: targetDate.toISOString(),
+          endTime: endTime.toISOString(),
+          type: 'ai_block',
+          notes: 'Scheduled via local fallback (relative time)'
+        },
+        missingFields: [],
+        clarificationQuestion: null,
+        voiceResponse: `Got it. I've scheduled '${title}' for ${formattedTime}.`,
+        uiAction: null,
+        navigationTarget: 'calendar',
+        suggestAlternative: null
+      };
+    }      
+
     // Clarify if no time specified, but suggest a specific slot proactively
     const targetDateForSlot = new Date();
     if (dayTomorrow) {
