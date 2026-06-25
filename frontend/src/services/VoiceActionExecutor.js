@@ -23,9 +23,14 @@ export class VoiceActionExecutor {
 
     const { intent, extractedData, clarificationQuestion, voiceResponse, uiAction, navigationTarget } = intentObject;
 
+    // Reset clarification state if this is not a clarification request
+    if (intent !== 'needs_clarification') {
+      this.awaitingClarification = false;
+    }
+
     // 1. Speak the voice response IMMEDIATELY (don't wait for actions)
     const responseText = voiceResponse || intentObject.response || clarificationQuestion;
-    if (responseText) {
+    if (responseText && !this.awaitingClarification) {
       this.speak(responseText);
     }
 
