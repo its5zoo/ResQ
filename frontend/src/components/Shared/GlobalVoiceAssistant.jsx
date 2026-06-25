@@ -531,16 +531,24 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
     socket.on('voice:response', handleVoiceResponse);
     socket.on('resq:proactive_alert', handleProactiveAlert);
 
+    const handleTextCommand = (e) => {
+      if (e.detail && e.detail.text) {
+        sendTranscriptToBackend(e.detail.text);
+      }
+    };
+    window.addEventListener('resq:send-text-command', handleTextCommand);
+
     return () => {
       socket.off('voice:response', handleVoiceResponse);
       socket.off('resq:proactive_alert', handleProactiveAlert);
+      window.removeEventListener('resq:send-text-command', handleTextCommand);
     };
   }, []);
 
   async function handleVoiceResult(result) {
     if (!result) return;
     
-    window.dispatchEvent(new CustomEvent('resq:voice-response-received'));
+    window.dispatchEvent(new CustomEvent('resq:voice-response-received', { detail: result }));
 
     // Check if blocked by limit
     if (result.blocked) {

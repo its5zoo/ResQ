@@ -10,6 +10,8 @@ import { createNotification } from './notificationService.js';
 import { io } from '../socket/socketHandler.js';
 import { checkAlertTriggers } from './alertService.js';
 import { sendPushToUser } from './pushService.js';
+import { setPendingProactiveCommand } from './voiceIntentService.js';
+import { sendEmailReminder } from './emailService.js';
 
 export const startCronJobs = () => {
   // Runs every 10 minutes for proactive alerts
@@ -150,12 +152,6 @@ export const startCronJobs = () => {
         });
 
         for (const event of upcomingEvents) {
-          const isMeetingOrExam = event.type === 'meeting' || 
-            /meeting|exam|test|quiz/i.test(event.title) || 
-            /meeting|exam|test|quiz/i.test(event.notes);
-            
-          if (!isMeetingOrExam) continue;
-
           const timeDiffMs = event.startTime.getTime() - now.getTime();
           const hoursRemaining = timeDiffMs / (1000 * 60 * 60);
 
@@ -201,6 +197,10 @@ export const startCronJobs = () => {
             if (notification && io) {
               console.log(`[Cron] Emitting event_reminder (${intervalKey}) to ${roomName} for event "${event.title}"`);
               io.to(roomName).emit('notification:new', notification);
+            }
+            
+            if (user.email) {
+              await sendEmailReminder(user.email, `Event Reminder: ${event.title}`, message);
             }
           }
         }

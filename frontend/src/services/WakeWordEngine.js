@@ -539,12 +539,12 @@ class WakeWordEngine {
           this.commandSilenceTimer = setTimeout(() => {
             // Double-check AI isn't speaking or in cooldown before submitting
             if (this.isAiSpeaking || this.postSpeechCooldown) return;
-            console.log('[WakeWordEngine] 3s speech silence detected, sending turn to backend.');
+            console.log('[WakeWordEngine] 2s speech silence detected, sending turn to backend.');
             if (this.latestTranscript.trim()) {
               this.finalizeConversationTurn(this.latestTranscript);
               this.latestTranscript = '';
             }
-          }, 3000);
+          }, 2000);
         }
       };
 

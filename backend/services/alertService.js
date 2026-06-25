@@ -6,6 +6,8 @@ import Notification from '../models/Notification.js';
 import { generateDailySummary } from './geminiService.js';
 import { io } from '../socket/socketHandler.js';
 import { sendPushToUser } from './pushService.js';
+import { setPendingProactiveCommand } from './voiceIntentService.js';
+import { sendEmailReminder } from './emailService.js';
 
 /**
  * Helper to fetch daily task/event info and ask Gemini to build a spoken morning briefing
@@ -108,7 +110,7 @@ export async function checkAlertTriggers() {
         });
 
         if (!existing) {
-          const message = `Just a heads up — your ${event.title} starts in 15 minutes.`;
+          const message = `Your ${event.title} starts in 15 minutes.`;
 
           await Notification.create({
             userId,
@@ -126,6 +128,9 @@ export async function checkAlertTriggers() {
           }
           // Native OS push notification
           await sendPushToUser(userId, '📅 Meeting Starting Soon', message, { tag: `meeting-${event._id}`, url: '/dashboard?tab=calendar' });
+          if (user.email) {
+            await sendEmailReminder(user.email, `Meeting Starting Soon: ${event.title}`, message);
+          }
         }
       }
 
@@ -148,7 +153,7 @@ export async function checkAlertTriggers() {
         });
 
         if (!existing) {
-          const message = `Your deadline for ${task.title} is in 2 hours. Want me to block focus time now?`;
+          const message = `Your time is up for ${task.title}. Should I mark it as completed?`;
 
           await Notification.create({
             userId,
@@ -157,6 +162,9 @@ export async function checkAlertTriggers() {
             type: 'deadline_warning'
           });
 
+          // Register proactive voice command context
+          setPendingProactiveCommand(userId, 'deadline', { taskId: task._id, title: task.title });
+
           if (io) {
             console.log(`[AlertService] Sending deadline warning to ${roomName} for "${task.title}"`);
             io.to(roomName).emit('resq:proactive_alert', {
@@ -164,6 +172,10 @@ export async function checkAlertTriggers() {
               type: 'deadline',
               taskId: task._id
             });
+          }
+          
+          if (user.email) {
+            await sendEmailReminder(user.email, `Deadline Alert: ${task.title}`, `Your time is up for ${task.title}. Log in to ResQ to mark it as completed.`);
           }
         }
       }
@@ -195,7 +207,7 @@ export async function checkAlertTriggers() {
 
             if (!existing) {
               const streak = habit.streak || 0;
-              const message = `Don't forget your ${habit.name} habit today. You're on a ${streak}-day streak!`;
+              const message = `Your time for the ${habit.name} habit is up. Should I mark it as done?`;
 
               await Notification.create({
                 userId,
@@ -204,12 +216,20 @@ export async function checkAlertTriggers() {
                 type: 'habit_miss'
               });
 
+              // Register proactive voice command context
+              setPendingProactiveCommand(userId, 'habit', { habitId: habit._id, title: habit.name });
+
               if (io) {
                 console.log(`[AlertService] Sending habit reminder to ${roomName} for "${habit.name}"`);
                 io.to(roomName).emit('resq:proactive_alert', {
                   message,
-                  type: 'focus'
+                  type: 'habit',
+                  habitId: habit._id
                 });
+              }
+              
+              if (user.email) {
+                await sendEmailReminder(user.email, `Habit Reminder: ${habit.name}`, `Your time for the ${habit.name} habit is up. Log in to ResQ to mark it as done and keep your ${streak}-day streak!`);
               }
             }
           }
@@ -217,6 +237,6 @@ export async function checkAlertTriggers() {
       }
     }
   } catch (err) {
-    console.error('[AlertService] checkAlertTriggers failed:', err);
+    console.error('[AlertService] checkAlertTriggers error:', err);
   }
 }

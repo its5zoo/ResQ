@@ -1027,6 +1027,33 @@ export const resolveClarification = async (userId, followUpTranscript, timezoneC
     // If they said something else (e.g. "yes, schedule a meeting"), we just fall through and process it as a new command!
   }
 
+  // Handle proactive alert response
+  if (pending.originalIntent === 'proactive_alert_response') {
+    const isAffirmative = cleanFollowUp.includes('yes') || cleanFollowUp.includes('yeah') || cleanFollowUp.includes('yep') || cleanFollowUp.includes('sure') || cleanFollowUp.includes('do it') || cleanFollowUp.includes('mark it');
+    
+    if (isAffirmative) {
+      if (pending.proactiveType === 'deadline') {
+        return {
+          intent: 'complete_task',
+          extractedData: { taskId: pending.extractedData.taskId, title: pending.extractedData.title },
+          voiceResponse: `Got it. I've marked "${pending.extractedData.title}" as complete.`
+        };
+      } else if (pending.proactiveType === 'habit') {
+        return {
+          intent: 'complete_habit',
+          extractedData: { habitId: pending.extractedData.habitId, name: pending.extractedData.title },
+          voiceResponse: `Awesome. I've checked off your ${pending.extractedData.title} habit.`
+        };
+      }
+    } else {
+      return {
+        intent: 'casual_chat',
+        voiceResponse: "Okay, I'll leave it as pending for now.",
+        extractedData: {}
+      };
+    }
+  }
+
   // Handle task focus slot creation turn (Flow 2)
   if (pending.originalIntent === 'create_task_focus_suggest') {
     const isAffirmative = cleanFollowUp.includes('yes') || 
@@ -1327,12 +1354,18 @@ Return ONLY valid JSON matching the exact RESPONSE FORMAT specified in the Maste
 export const clearPendingCommands = (userId) => {
   if (pendingCommands.has(userId.toString())) {
     pendingCommands.delete(userId.toString());
-    console.log(`[voiceIntentService] Purged pending voice commands cache for user: ${userId}`);
+    return true;
   } else if (pendingCommands.has(userId)) {
     pendingCommands.delete(userId);
-    console.log(`[voiceIntentService] Purged pending voice commands cache for user: ${userId}`);
-  } else {
-    console.log(`[voiceIntentService] No pending voice commands cache found for user: ${userId}`);
+    return true;
   }
+  return false;
 };
 
+export const setPendingProactiveCommand = (userId, type, payload) => {
+  pendingCommands.set(userId.toString(), {
+    originalIntent: 'proactive_alert_response',
+    extractedData: payload,
+    proactiveType: type
+  });
+};

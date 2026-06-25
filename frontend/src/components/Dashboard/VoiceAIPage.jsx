@@ -42,27 +42,30 @@ export default function VoiceAIPage() {
     window.speechSynthesis.speak(utterance);
   };
 
+  useEffect(() => {
+    const handleVoiceResponse = (e) => {
+      const result = e.detail;
+      if (result && result.response) {
+        setIsProcessing(false);
+        setMessages(prev => [...prev, { role: 'ai', text: result.response }]);
+        // GlobalVoiceAssistant handles speaking the response, so we don't call speakResponse here
+      }
+    };
+    
+    window.addEventListener('resq:voice-response-received', handleVoiceResponse);
+    return () => window.removeEventListener('resq:voice-response-received', handleVoiceResponse);
+  }, []);
+
   const handleSend = async (textVal) => {
-    if (!textVal.trim()) return;
+    if (!textVal.trim() || isProcessing) return;
     
     // Add user message
     setMessages(prev => [...prev, { role: 'user', text: textVal }]);
     setInputText('');
     setIsProcessing(true);
 
-    try {
-      const result = await apiVoice.sendCommand(textVal);
-      setIsProcessing(false);
-      
-      setMessages(prev => [...prev, { role: 'ai', text: result.response }]);
-      speakResponse(result.response);
-    } catch (err) {
-      console.error('Error in Voice AI page command:', err);
-      setIsProcessing(false);
-      const errReply = "Sorry, I had trouble communicating with the Gemini brain.";
-      setMessages(prev => [...prev, { role: 'ai', text: errReply }]);
-      speakResponse(errReply);
-    }
+    // Dispatch event to GlobalVoiceAssistant
+    window.dispatchEvent(new CustomEvent('resq:send-text-command', { detail: { text: textVal } }));
   };
 
   const startLocalRecognition = () => {

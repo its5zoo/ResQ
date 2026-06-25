@@ -25,6 +25,7 @@ export default function DashboardHome({ setCurrentTab }) {
   const [aiPriorityItems, setAiPriorityItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
+  const [completingItems, setCompletingItems] = useState([]);
 
   const fetchDashboardData = async () => {
     try {
@@ -91,6 +92,12 @@ export default function DashboardHome({ setCurrentTab }) {
       const task = localTasks.find(t => t._id === id);
       if (!task) return;
       
+      // Animate out of High Priority Stack
+      setCompletingItems(prev => [...prev, id]);
+      setTimeout(() => {
+        setAiPriorityItems(prev => prev.filter(i => i.id !== id));
+      }, 300);
+
       // Optimistic UI Update
       setLocalTasks(prev => prev.map(t => t._id === id ? { ...t, completed: !task.completed } : t));
       
@@ -101,23 +108,63 @@ export default function DashboardHome({ setCurrentTab }) {
       console.error('Error toggling task:', err);
       // Revert optimistic update
       setLocalTasks(prev => prev.map(t => t._id === id ? { ...t, completed: !t.completed } : t));
+      setCompletingItems(prev => prev.filter(itemId => itemId !== id));
     }
   };
 
   const handleToggleHabit = async (id) => {
     try {
+      // Animate out of High Priority Stack
+      setCompletingItems(prev => [...prev, id]);
+      setTimeout(() => {
+        setAiPriorityItems(prev => prev.filter(i => i.id !== id));
+      }, 300);
+
       const updated = await apiHabits.markComplete(id);
       setLocalHabits(prev => prev.map(h => h._id === id ? updated : h));
       refreshAISummary();
     } catch (err) {
       console.error('Error toggling habit:', err);
+      setCompletingItems(prev => prev.filter(itemId => itemId !== id));
     }
   };
 
   const pendingTasks = localTasks.filter(t => !t.completed);
-  const completedTasks = localTasks.filter(t => t.completed);
-  const completedRate = localTasks.length > 0 ? Math.round((completedTasks.length / localTasks.length) * 100) : 0;
+  
+  const calculateDailyCompletion = () => {
+    const todayStr = new Date().toDateString();
+    const now = new Date();
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
+    const currentDayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][now.getDay()];
 
+    let expectedCount = 0;
+    let completedCount = 0;
+
+    // Daily Tasks
+    localTasks.forEach(t => {
+      const tDate = new Date(t.dueDate || t.createdAt || now);
+      const isDueTodayOrEarlier = tDate <= endOfToday;
+      const isDueExactlyToday = tDate.toDateString() === todayStr;
+      
+      if (!t.completed && isDueTodayOrEarlier) {
+        expectedCount++;
+      } else if (t.completed && isDueExactlyToday) {
+        expectedCount++;
+        completedCount++;
+      }
+    });
+
+    // Daily Habits
+    const todayHabits = localHabits.filter(h => h.targetDays?.includes(currentDayName));
+    expectedCount += todayHabits.length;
+    completedCount += todayHabits.filter(h => h.completions?.some(c => new Date(c.date).toDateString() === todayStr && c.completed)).length;
+
+    if (expectedCount === 0) return 0; // or 100, but 0 is standard if nothing is scheduled
+    return Math.round((completedCount / expectedCount) * 100);
+  };
+
+  const completedRate = calculateDailyCompletion();
 
   const hasCritical = pendingTasks.some(t => t.urgency >= 9);
   const riskText = hasCritical ? 'URGENT HAZARD' : pendingTasks.length > 0 ? 'MODERATE' : 'OPTIMIZED';
@@ -182,24 +229,48 @@ export default function DashboardHome({ setCurrentTab }) {
       };
     }).slice(0, 5);
 
-  const priorityStackItems = aiPriorityItems.map(item => {
-    return {
-      id: item.id,
-      type: item.type,
-      title: item.title,
-      priorityScore: item.priorityScore || 0,
-      reason: item.reason || 'AI Prioritized',
-      label: item.type === 'task' ? 'Task' : item.type === 'event' ? 'Event' : item.type === 'habit' ? 'Habit' : 'Goal',
-      icon: item.type === 'event' ? <Calendar className="w-5 h-5" /> : item.type === 'habit' ? <Flame className="w-5 h-5" /> : <Circle className="w-5 h-5" />,
-      rankText: `Score ${item.priorityScore || 0}/100`,
-      action: () => {
-        if (item.type === 'task') handleToggleTask(item.id);
-        else if (item.type === 'habit') handleToggleHabit(item.id);
-        else setCurrentTab(item.type === 'event' ? 'calendar' : 'goals');
-      },
-      urgency: (item.priorityScore || 50) / 10
-    };
-  });
+  const priorityStackItems = aiPriorityItems
+    .filter(item => {
+      // Filter out events that have passed
+      if (item.type === 'event') {
+        const localEvent = localEvents.find(e => e._id === item.id);
+        if (localEvent) {
+          const end = new Date(localEvent.endTime);
+          if (end < now) return false;
+        }
+      }
+      return true;
+    })
+    .map(item => {
+      let timeString = null;
+      if (item.type === 'event') {
+        const localEvent = localEvents.find(e => e._id === item.id);
+        if (localEvent) {
+          const start = new Date(localEvent.startTime);
+          const end = new Date(localEvent.endTime);
+          const formatTime = (d) => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+          timeString = `${formatTime(start)} - ${formatTime(end)}`;
+        }
+      }
+
+      return {
+        id: item.id,
+        type: item.type,
+        title: item.title,
+        priorityScore: item.priorityScore || 0,
+        reason: item.reason || 'AI Prioritized',
+        label: item.type === 'task' ? 'Task' : item.type === 'event' ? 'Event' : item.type === 'habit' ? 'Habit' : 'Goal',
+        icon: item.type === 'event' ? <Calendar className="w-5 h-5" /> : item.type === 'habit' ? <Flame className="w-5 h-5" /> : <Circle className="w-5 h-5" />,
+        rankText: `Score ${item.priorityScore || 0}/100`,
+        timeString,
+        action: () => {
+          if (item.type === 'task') handleToggleTask(item.id);
+          else if (item.type === 'habit') handleToggleHabit(item.id);
+          else setCurrentTab(item.type === 'event' ? 'calendar' : 'goals');
+        },
+        urgency: (item.priorityScore || 50) / 10
+      };
+    });
 
   const todayAgendaItems = (() => {
     let items = [];
@@ -293,12 +364,9 @@ export default function DashboardHome({ setCurrentTab }) {
             </div>
             <AlertTriangle className="w-6 h-6 text-[#E5B842]" />
           </div>
-          <button 
-            onClick={() => setCurrentTab('tasks')}
-            className="text-sm font-semibold text-[#E5B842] hover:text-[#FFF2CC] transition-colors flex items-center gap-1 cursor-pointer self-start"
-          >
-            Review now →
-          </button>
+          <div className="text-xs font-medium text-white/40 tracking-wide">
+            Stay focused and keep crushing your goals.
+          </div>
         </div>
 
         {/* Habit Streak */}
@@ -393,7 +461,11 @@ export default function DashboardHome({ setCurrentTab }) {
                   <div 
                     key={item.id} 
                     onClick={() => item.action()}
-                    className="p-5 bg-black border border-white/[0.03] rounded-2xl hover:border-white/10 transition-all duration-300 cursor-pointer select-none active:scale-[0.98]"
+                    className={`p-5 bg-black border border-white/[0.03] rounded-2xl transition-all duration-300 cursor-pointer select-none ${
+                      completingItems.includes(item.id) 
+                        ? 'opacity-0 scale-95 translate-x-8 pointer-events-none' 
+                        : 'opacity-100 scale-100 translate-x-0 hover:border-white/10 active:scale-[0.98]'
+                    }`}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-4 min-w-0 pt-1">
@@ -421,9 +493,16 @@ export default function DashboardHome({ setCurrentTab }) {
                         <span className={`text-xs font-bold px-2.5 py-1 rounded-md ${item.type === 'event' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : item.type === 'habit' ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20' : item.type === 'goal' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'bg-[#E5B842]/5 border border-[#E5B842]/20 text-[#E5B842]'}`}>
                           {item.rankText}
                         </span>
-                        <span className="text-xs font-bold uppercase tracking-widest text-white/40 flex items-center gap-1">
-                          {item.type === 'habit' ? <Flame className="w-3 h-3" /> : <Calendar className="w-3 h-3" />} {item.label}
-                        </span>
+                        <div className="flex flex-col items-end gap-1">
+                          <span className="text-xs font-bold uppercase tracking-widest text-white/40 flex items-center gap-1">
+                            {item.type === 'habit' ? <Flame className="w-3 h-3" /> : <Calendar className="w-3 h-3" />} {item.label}
+                          </span>
+                          {item.timeString && (
+                            <span className="text-[10px] font-bold text-white/30 tracking-wider">
+                              {item.timeString}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
 
