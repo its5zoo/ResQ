@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { Mic, MicOff, Sparkles, Send, Volume2, VolumeX } from 'lucide-react';
 import { voice as apiVoice } from '../../services/api.js';
+import PremiumGuard from '../Shared/PremiumGuard.jsx';
 
-export default function VoiceAIPage() {
+export default function VoiceAIPage({ setCurrentTab }) {
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -139,7 +140,7 @@ export default function VoiceAIPage() {
     };
   }, []);
 
-  return (
+  const content = (
     <div className="animate-fade-in flex flex-col h-full min-h-[75vh] lg:min-h-[82vh] font-sans">
       
       {/* Top Header */}
@@ -250,5 +251,13 @@ export default function VoiceAIPage() {
 
     </div>
   );
-}
 
+  return (
+    <PremiumGuard
+      feature="voice_ai"
+      onUpgrade={() => setCurrentTab ? setCurrentTab('subscription') : window.location.href = '/pricing'}
+    >
+      {content}
+    </PremiumGuard>
+  );
+}

@@ -413,3 +413,71 @@ export const google = {
     }
   }
 };
+
+export const subscription = {
+  /** Get current user's subscription/trial status */
+  getStatus: async () => {
+    try {
+      const response = await api.get('/subscription/status');
+      return response.data;
+    } catch (error) {
+      return handleRequestError(error);
+    }
+  },
+
+  /** Claim 7-day free trial — requires phone number */
+  claimTrial: async (phone) => {
+    try {
+      const response = await api.post('/subscription/trial/claim', { phone });
+      return response.data;
+    } catch (error) {
+      return handleRequestError(error);
+    }
+  },
+
+  /**
+   * Create a Razorpay order on the backend.
+   * Returns { order_id, amount, currency, plan_type, amount_inr }
+   */
+  createOrder: async (plan_type) => {
+    try {
+      const response = await api.post('/subscription/payment/create-order', { plan_type });
+      return response.data;
+    } catch (error) {
+      return handleRequestError(error);
+    }
+  },
+
+  /**
+   * Verify Razorpay payment signature and activate subscription.
+   * Sends { razorpay_order_id, razorpay_payment_id, razorpay_signature, plan_type }
+   */
+  verifyPayment: async (payload) => {
+    try {
+      const response = await api.post('/subscription/payment/verify', payload);
+      return response.data;
+    } catch (error) {
+      return handleRequestError(error);
+    }
+  },
+
+  /** Get user's payment transaction history */
+  getHistory: async () => {
+    try {
+      const response = await api.get('/subscription/payment/history');
+      return response.data;
+    } catch (error) {
+      return handleRequestError(error);
+    }
+  },
+
+  /** Cancel active subscription (access continues until expiry date) */
+  cancel: async () => {
+    try {
+      const response = await api.post('/subscription/cancel');
+      return response.data;
+    } catch (error) {
+      return handleRequestError(error);
+    }
+  }
+};

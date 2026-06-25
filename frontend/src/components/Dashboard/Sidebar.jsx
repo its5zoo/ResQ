@@ -10,7 +10,9 @@ import {
   Bell, 
   LogOut,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Crown,
+  Zap
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../../context/AuthContext.jsx';
@@ -18,7 +20,7 @@ import LogoutModal from '../Shared/LogoutModal.jsx';
 
 export default function Sidebar({ currentTab, setCurrentTab }) {
   const navigate = useNavigate();
-  const { user, logout } = useAuthContext();
+  const { user, logout, isPremiumActive } = useAuthContext();
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
@@ -50,7 +52,18 @@ export default function Sidebar({ currentTab, setCurrentTab }) {
                   <span className="text-silver-gradient text-shine-sweep">Res</span>
                   <span className="text-gold-sweep text-glow-gold">Q</span>
                 </span>
-                {user?.plan === 'premium' && (
+                {isPremiumActive && user?.plan === 'trial' && (
+                  <div className="relative mt-0.5 ml-1.5 group cursor-default">
+                    <div className="absolute inset-0 bg-purple-500 rounded-md blur-md opacity-30"></div>
+                    <div className="relative px-2 py-1 rounded-md bg-[#111] border border-purple-500/60 flex items-center justify-center gap-1">
+                      <Zap className="w-2.5 h-2.5 text-purple-400" />
+                      <span className="text-[10px] font-display font-black tracking-[0.15em] text-purple-400 uppercase leading-none">
+                        TRIAL
+                      </span>
+                    </div>
+                  </div>
+                )}
+                {isPremiumActive && user?.plan !== 'trial' && (
                   <div className="relative mt-0.5 ml-1.5 group cursor-default">
                     <div className="absolute inset-0 bg-[#E5B842] rounded-md blur-md opacity-40 group-hover:opacity-80 transition-opacity duration-300"></div>
                     <div className="relative px-2 py-1 rounded-md bg-[#111] border border-[#E5B842]/60 flex items-center justify-center">

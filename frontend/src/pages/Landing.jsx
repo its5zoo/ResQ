@@ -57,12 +57,12 @@ export default function Landing() {
       <FeatureStrip />
       
       {/* New Narrative Flow */}
-      <CoreWorkflowSection />
+      <VoiceSection />
       <GoalSystemSection />
       <CalendarSection />
       
       {/* Existing Sections */}
-      <VoiceSection />
+      <CoreWorkflowSection />
       <MobileSection />
       <CTASection />
       <Footer />

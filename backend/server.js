@@ -28,6 +28,7 @@ import voiceRoutes from './routes/voice.js';
 import settingsRoutes from './routes/settings.js';
 import googleCalendarRoutes from './routes/googleCalendar.js';
 import pushRoutes from './routes/push.js';
+import subscriptionRoutes from './routes/subscription.js';
 
 // Initialize environment variables
 dotenv.config();
@@ -106,6 +107,7 @@ app.use('/api/voice', protect, checkGeminiKey, aiVoiceLimiter, voiceRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/google', googleCalendarRoutes);
 app.use('/api/push', pushRoutes);
+app.use('/api/subscription', subscriptionRoutes);
 
 // Base health check route
 app.get('/api/health', (req, res) => {

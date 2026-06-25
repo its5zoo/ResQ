@@ -13,15 +13,61 @@ const userSchema = new mongoose.Schema({
     trim: true,
     lowercase: true
   },
+  phone: {
+    type: String,
+    default: null,
+    trim: true
+  },
   passwordHash: {
     type: String,
     required: true
   },
   plan: {
     type: String,
-    enum: ['free', 'premium'],
+    enum: ['free', 'trial', 'premium'],
     default: 'free'
   },
+
+  // ── Free Trial ───────────────────────────────────────────────────────────────
+  trial_claimed: {
+    type: Boolean,
+    default: false
+  },
+  trial_start_date: {
+    type: Date,
+    default: null
+  },
+  trial_end_date: {
+    type: Date,
+    default: null
+  },
+
+  // ── Subscription ─────────────────────────────────────────────────────────────
+  subscription_type: {
+    type: String,
+    enum: ['monthly', 'yearly', 'none'],
+    default: 'none'
+  },
+  subscription_status: {
+    type: String,
+    enum: ['active', 'expired', 'cancelled', 'none'],
+    default: 'none'
+  },
+  subscription_start: {
+    type: Date,
+    default: null
+  },
+  subscription_end: {
+    type: Date,
+    default: null
+  },
+  last_payment_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Payment',
+    default: null
+  },
+
+  // ── UI / App Settings (existing) ─────────────────────────────────────────────
   theme: {
     type: String,
     enum: ['dark', 'light', 'matrix'],
@@ -93,6 +139,41 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   }
+}, {
+  // Enable virtuals in toJSON so they're included in API responses
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+});
+
+/**
+ * Virtual: isPremiumActive
+ * Returns true when the user currently has valid premium access via:
+ *   a) An active free trial that has not expired, OR
+ *   b) An active paid subscription that has not expired
+ */
+userSchema.virtual('isPremiumActive').get(function () {
+  const now = new Date();
+
+  // Active trial
+  if (this.plan === 'trial' && this.trial_end_date && this.trial_end_date > now) {
+    return true;
+  }
+
+  // Active paid subscription
+  if (
+    this.subscription_status === 'active' &&
+    this.subscription_end &&
+    this.subscription_end > now
+  ) {
+    return true;
+  }
+
+  // Legacy: plan was directly set to 'premium' (backward compat)
+  if (this.plan === 'premium' && this.subscription_status === 'active') {
+    return true;
+  }
+
+  return false;
 });
 
 // Hash password before saving

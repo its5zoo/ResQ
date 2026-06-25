@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, useNavigate, Navigate } from 'r
 import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
 import AuthPage from './pages/AuthPage';
+import PricingPage from './pages/PricingPage';
 import GlobalVoiceAssistant from './components/Shared/GlobalVoiceAssistant';
 import { wakeWordEngine } from './services/WakeWordEngine';
 import { useAuthContext } from './context/AuthContext';
@@ -46,6 +47,7 @@ function AppContent() {
           element={isAuthenticated ? <Dashboard currentTab={currentTab} setCurrentTab={setCurrentTab} /> : <Navigate to="/auth" replace />} 
         />
         <Route path="/auth" element={<AuthPage />} />
+        <Route path="/pricing" element={<PricingPage />} />
       </Routes>
       {isAuthenticated && user && (
         <GlobalVoiceAssistant 

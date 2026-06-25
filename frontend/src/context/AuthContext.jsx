@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState, useEffect } from 'react';
-import { auth, voice } from '../services/api.js';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { auth, voice, subscription as subscriptionApi } from '../services/api.js';
 import { wakeWordEngine } from '../services/WakeWordEngine.js';
 
 const AuthContext = createContext(null);
@@ -9,6 +9,21 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Subscription state
+  const [subscriptionStatus, setSubscriptionStatus] = useState(null);
+  const [isPremiumActive, setIsPremiumActive] = useState(false);
+
+  /** Fetch and cache the latest subscription status from the backend */
+  const refreshSubscription = useCallback(async () => {
+    try {
+      const status = await subscriptionApi.getStatus();
+      setSubscriptionStatus(status);
+      setIsPremiumActive(status.isPremiumActive || false);
+    } catch (err) {
+      console.warn('[AuthContext] Failed to refresh subscription status:', err);
+    }
+  }, []);
 
   // Load user data on mount if token exists
   useEffect(() => {
@@ -19,9 +34,10 @@ export function AuthProvider({ children }) {
           const userData = await auth.getMe();
           setUser(userData);
           setIsAuthenticated(true);
+          // isPremiumActive comes directly from the /me response (includes virtual)
+          setIsPremiumActive(userData.isPremiumActive || false);
         } catch (err) {
           console.error('[AuthContext] Session validation failed:', err);
-          // Token is invalid/expired
           localStorage.removeItem('token');
           setIsAuthenticated(false);
           setUser(null);
@@ -42,10 +58,12 @@ export function AuthProvider({ children }) {
       const fetchedUser = await auth.getMe();
       setUser(fetchedUser);
       setIsAuthenticated(true);
+      setIsPremiumActive(fetchedUser.isPremiumActive || false);
     } catch (err) {
       console.warn('[AuthContext] Failed to fetch full profile details on login, using fallback:', err);
       setUser(userData);
       setIsAuthenticated(true);
+      setIsPremiumActive(userData?.isPremiumActive || false);
     }
   };
 
@@ -67,10 +85,23 @@ export function AuthProvider({ children }) {
 
     setIsAuthenticated(false);
     setUser(null);
+    setSubscriptionStatus(null);
+    setIsPremiumActive(false);
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, loading, login, logout, setUser }}>
+    <AuthContext.Provider value={{
+      user,
+      isAuthenticated,
+      loading,
+      login,
+      logout,
+      setUser,
+      // Subscription
+      subscriptionStatus,
+      isPremiumActive,
+      refreshSubscription
+    }}>
       {children}
     </AuthContext.Provider>
   );

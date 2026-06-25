@@ -23,8 +23,8 @@ export const startCronJobs = () => {
     }
   });
 
-  // Runs every 30 minutes
-  cron.schedule('*/30 * * * *', async () => {
+  // Runs every 5 minutes
+  cron.schedule('*/5 * * * *', async () => {
     console.log('[Cron] Running scheduled audits for user alerts...');
     try {
       const users = await User.find({});
@@ -33,6 +33,7 @@ export const startCronJobs = () => {
       for (const user of users) {
         const userId = user._id;
         const roomName = `user_${userId}`;
+        const sendEmail = user.email && user.notificationPreferences?.email !== false;
 
         // 1. Check tasks with dueDate within next 2 hours
         const twoHoursFromNow = new Date(now.getTime() + 2 * 60 * 60 * 1000);
@@ -65,6 +66,10 @@ export const startCronJobs = () => {
             }
             // Native OS push notification
             await sendPushToUser(userId, `⏰ Deadline in 2h: ${task.title}`, message, { tag: `deadline-${task._id}`, url: '/dashboard?tab=tasks' });
+            
+            if (sendEmail) {
+              await sendEmailReminder(user.email, `Deadline Warning: ${task.title}`, message);
+            }
           }
         }
 
@@ -107,6 +112,9 @@ export const startCronJobs = () => {
                   console.log(`[Cron] Emitting habit_miss to ${roomName} for habit "${habit.name}"`);
                   io.to(roomName).emit('notification:new', notification);
                 }
+                if (sendEmail) {
+                  await sendEmailReminder(user.email, `Habit Missed: ${habit.name}`, message);
+                }
               }
             }
           }
@@ -141,6 +149,9 @@ export const startCronJobs = () => {
               console.log(`[Cron] Emitting goal_behind to ${roomName} for goal "${goal.title}"`);
               io.to(roomName).emit('notification:new', notification);
             }
+            if (sendEmail) {
+              await sendEmailReminder(user.email, `Goal Pace Alert: ${goal.title}`, message);
+            }
           }
         }
 
@@ -158,16 +169,19 @@ export const startCronJobs = () => {
           let intervalKey = null;
           let timeLabel = '';
 
-          if (hoursRemaining >= 23.5 && hoursRemaining <= 24.5) {
+          if (hoursRemaining >= 23.9 && hoursRemaining <= 24.1) {
             intervalKey = '24h';
             timeLabel = 'in 24 hours (tomorrow)';
-          } else if (hoursRemaining >= 7.5 && hoursRemaining <= 8.5) {
+          } else if (hoursRemaining >= 7.9 && hoursRemaining <= 8.1) {
             intervalKey = '8h';
             timeLabel = 'in 8 hours';
-          } else if (hoursRemaining >= 0.5 && hoursRemaining <= 1.5) {
+          } else if (hoursRemaining >= 0.9 && hoursRemaining <= 1.1) {
             intervalKey = '1h';
             timeLabel = 'in 1 hour';
-          } else if (hoursRemaining >= -0.5 && hoursRemaining <= 0.5) {
+          } else if (hoursRemaining >= 0.1 && hoursRemaining <= 0.25) {
+            intervalKey = '10m';
+            timeLabel = 'in 10 minutes';
+          } else if (hoursRemaining >= -0.05 && hoursRemaining <= 0.05) {
             intervalKey = '0h';
             timeLabel = 'right now';
           }
@@ -199,7 +213,7 @@ export const startCronJobs = () => {
               io.to(roomName).emit('notification:new', notification);
             }
             
-            if (user.email) {
+            if (sendEmail) {
               await sendEmailReminder(user.email, `Event Reminder: ${event.title}`, message);
             }
           }

@@ -80,6 +80,7 @@ export const getUserProfile = async (req, res) => {
         _id: user._id,
         name: user.name,
         email: user.email,
+        phone: user.phone,
         theme: user.theme,
         plan: user.plan,
         fontSize: user.fontSize,
@@ -93,6 +94,15 @@ export const getUserProfile = async (req, res) => {
         voiceInteractionsResetDate: user.voiceAI?.lastResetDate ?? new Date(),
         voiceAI: user.voiceAI,
         notifications: user.notifications || { webPush: true, phonePush: true, email: true, deadlineAlerts: true },
+        // Subscription & trial fields
+        isPremiumActive: user.isPremiumActive,
+        trial_claimed: user.trial_claimed,
+        trial_start_date: user.trial_start_date,
+        trial_end_date: user.trial_end_date,
+        subscription_type: user.subscription_type,
+        subscription_status: user.subscription_status,
+        subscription_start: user.subscription_start,
+        subscription_end: user.subscription_end,
         createdAt: user.createdAt,
       });
     } else {

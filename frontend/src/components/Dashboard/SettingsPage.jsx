@@ -1,23 +1,9 @@
 import { useState, useEffect } from 'react';
-import { 
-  Settings, 
-  Bell, 
-  Palette, 
-  LayoutGrid, 
-  Volume2, 
-  CreditCard, 
-  HardDrive, 
-  Shield, 
-  Heart, 
-  User, 
-  Check,
-  AlertCircle,
-  X,
-  ChevronDown
-} from 'lucide-react';
+import { Settings, Bell, Palette, LayoutGrid, Volume2, CreditCard, HardDrive, Shield, Heart, User, Check, AlertCircle, X, ChevronDown, Crown } from 'lucide-react';
 import { settings as apiSettings, auth, google as apiGoogle, voice } from '../../services/api.js';
 import { wakeWordEngine } from '../../services/WakeWordEngine.js';
 import voicePersonality from '../../services/VoicePersonality.js';
+import SubscriptionPage from './SubscriptionPage.jsx';
 
 export default function SettingsPage() {
   const [activeSubTab, setActiveSubTab] = useState('general');
@@ -513,7 +499,7 @@ export default function SettingsPage() {
     { id: 'personalization', label: 'Personalization', icon: Palette },
     { id: 'apps', label: 'Apps', icon: LayoutGrid },
     { id: 'voice', label: 'Voice AI', icon: Volume2 },
-    { id: 'billing', label: 'Billing', icon: CreditCard },
+    { id: 'subscription', label: 'Subscription', icon: Crown },
     { id: 'account', label: 'Account', icon: User }
   ];
 
@@ -993,86 +979,9 @@ export default function SettingsPage() {
           </div>
         );
 
-      case 'billing':
-        return (
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-display font-black text-white">Billing & Subscriptions</h3>
-              <p className="text-sm text-white/50">Manage subscription accounts, update card credentials, and select your workspace plan.</p>
-            </div>
 
-            <div className="space-y-6 max-w-xl">
-              {/* Plan Cards selection */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Free Plan Card */}
-                <div className={`p-5 rounded-3xl border transition-all duration-300 flex flex-col justify-between ${
-                  selectedPlan === 'free'
-                    ? 'border-white/20 bg-white/[0.02] text-white shadow-lg'
-                    : 'border-white/5 bg-black/40 text-white/60 hover:border-white/10'
-                }`}>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <span className="text-sm font-tech font-bold text-white/70 uppercase tracking-wider">STANDARD TIER</span>
-                        <h4 className="text-sm font-display font-black text-white mt-1">Free Plan</h4>
-                      </div>
-                      {selectedPlan === 'free' && (
-                        <span className="px-2 py-0.5 bg-white/10 text-white font-tech font-bold text-sm uppercase tracking-wider rounded-lg">ACTIVE</span>
-                      )}
-                    </div>
-                    <div className="text-xl font-display font-black text-white">
-                      $0.00 <span className="text-sm font-normal text-white/70">/ month</span>
-                    </div>
-                    <p className="text-sm text-white/50 leading-relaxed font-normal">
-                      Includes manual calendar integrations, standard priority queues, and basic analytics.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Premium Plan Card */}
-                <div className={`p-5 rounded-3xl border transition-all duration-300 flex flex-col justify-between ${
-                  selectedPlan === 'premium'
-                    ? 'border-[#E5B842]/40 bg-[#E5B842]/5 text-[#E5B842] shadow-lg shadow-[#E5B842]/5'
-                    : 'border-white/5 bg-black/40 text-white/60 hover:border-white/10'
-                }`}>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <span className="text-sm font-tech font-bold text-[#E5B842]/70 uppercase tracking-wider">AI AUTOMATED TIER</span>
-                        <h4 className="text-sm font-display font-black text-white mt-1">Premium Plan</h4>
-                      </div>
-                      {selectedPlan === 'premium' && (
-                        <span className="px-2 py-0.5 bg-[#E5B842] text-black font-tech font-bold text-sm uppercase tracking-wider rounded-lg">ACTIVE</span>
-                      )}
-                    </div>
-                    <div className="text-xl font-display font-black text-white">
-                      $19.00 <span className="text-sm font-normal text-white/70">/ month</span>
-                    </div>
-                    <p className="text-sm text-white/50 leading-relaxed font-normal">
-                      Unlocks ResQ Autopilot scheduling, AI Guard Rails safety filters, real-time sync, and companion app telemetry.
-                    </p>
-                  </div>
-                  {selectedPlan !== 'premium' && (
-                    <button 
-                      onClick={() => {
-                        setIsPaymentModalOpen(true);
-                      }}
-                      className="w-full py-2 bg-[#E5B842] hover:bg-[#FFF2CC] text-black text-sm font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer mt-4"
-                    >
-                      Upgrade to Premium
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Payment Card Details Removed */}
-
-              {/* Invoice Actions Removed */}
-            </div>
-          </div>
-        );
-
-
+      case 'subscription':
+        return <SubscriptionPage />;
 
       case 'account':
         return (

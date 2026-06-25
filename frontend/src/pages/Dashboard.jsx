@@ -11,6 +11,7 @@ import HabitsPage from '../components/Dashboard/HabitsPage';
 import VoiceAIPage from '../components/Dashboard/VoiceAIPage';
 import SettingsPage from '../components/Dashboard/SettingsPage';
 import NotificationsPage from '../components/Dashboard/NotificationsPage';
+import SubscriptionPage from '../components/Dashboard/SubscriptionPage';
 import { tasks as apiTasks, habits as apiHabits } from '../services/api';
 import { 
   Mic, 
@@ -198,11 +199,13 @@ export default function Dashboard({ currentTab: propTab, setCurrentTab: propSetT
       case 'habits':
         return <HabitsPage />;
       case 'voice':
-        return <VoiceAIPage />;
+        return <VoiceAIPage setCurrentTab={setCurrentTab} />;
       case 'notifications':
         return <NotificationsPage />;
       case 'settings':
         return <SettingsPage />;
+      case 'subscription':
+        return <SubscriptionPage setCurrentTab={setCurrentTab} />;
       default:
         return <DashboardHome tasks={tasks} toggleTask={toggleTask} habits={habits} toggleHabit={toggleHabit} setCurrentTab={setCurrentTab} />;
     }

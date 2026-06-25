@@ -19,8 +19,8 @@ export async function checkAndIncrementVoiceUsage(userId) {
     };
   }
 
-  // 2. Premium users: unlimited, skip limit check
-  if (user.plan === 'premium') {
+  // 2. Premium users (paid or active trial): unlimited, skip limit check
+  if (user.isPremiumActive) {
     return { blocked: false, user };
   }
 
