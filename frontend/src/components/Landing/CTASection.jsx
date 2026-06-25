@@ -1,8 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Zap, Shield, Calendar } from 'lucide-react';
+import { useAuthContext } from '../../context/AuthContext';
 
 export default function CTASection() {
   const navigate = useNavigate();
+  const { isAuthenticated, logout } = useAuthContext();
 
   return (
     <section className="py-24 lg:py-40 relative overflow-hidden bg-[#050505] bg-noise border-t border-white/[0.03]">
@@ -42,7 +44,7 @@ export default function CTASection() {
         <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 mb-12 text-white/35">
           <div className="flex items-center gap-1.5">
             <Shield className="w-3.5 h-3.5" />
-            <span className="text-xs font-tech uppercase tracking-widest">No credit card</span>
+            <span className="text-xs font-tech uppercase tracking-widest">Easy UPI</span>
           </div>
           <span className="hidden sm:block w-px h-3 bg-white/10"></span>
           <div className="flex items-center gap-1.5">
@@ -58,22 +60,45 @@ export default function CTASection() {
 
         {/* Action Button */}
         <div className="flex flex-col sm:flex-row items-center gap-4">
-          <button 
-            onClick={() => navigate('/auth')}
-            className="group relative w-full sm:w-auto px-10 py-4 rounded-2xl text-sm font-bold tracking-widest uppercase bg-[#E5B842] text-black hover:bg-[#FFF2CC] shadow-[0_0_40px_rgba(229,184,66,0.25)] hover:shadow-[0_0_60px_rgba(229,184,66,0.45)] transition-all duration-500 hover:-translate-y-1 active:translate-y-0 flex items-center justify-center gap-3 cursor-pointer font-tech active:scale-[0.98] overflow-hidden"
-          >
-            {/* Shine sweep on button */}
-            <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></span>
-            <span className="relative z-10">Sign in with Google Workspace</span>
-            <ArrowRight className="relative z-10 w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
-          </button>
+          {isAuthenticated ? (
+            <>
+              <button 
+                onClick={() => navigate('/dashboard')}
+                className="group relative w-full sm:w-auto px-10 py-4 rounded-2xl text-sm font-bold tracking-widest uppercase bg-[#E5B842] text-black hover:bg-[#FFF2CC] shadow-[0_0_40px_rgba(229,184,66,0.25)] hover:shadow-[0_0_60px_rgba(229,184,66,0.45)] transition-all duration-500 hover:-translate-y-1 active:translate-y-0 flex items-center justify-center gap-3 cursor-pointer font-tech active:scale-[0.98] overflow-hidden"
+              >
+                {/* Shine sweep on button */}
+                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></span>
+                <span className="relative z-10">Go to Dashboard</span>
+                <ArrowRight className="relative z-10 w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
+              </button>
 
-          <button
-            onClick={() => navigate('/auth')}
-            className="w-full sm:w-auto px-8 py-4 rounded-2xl text-sm font-bold tracking-wider uppercase bg-transparent text-white/60 border border-white/10 hover:border-white/25 hover:text-white transition-all duration-300 cursor-pointer font-tech html-light-btn-white"
-          >
-            Learn more
-          </button>
+              <button
+                onClick={logout}
+                className="w-full sm:w-auto px-8 py-4 rounded-2xl text-sm font-bold tracking-wider uppercase bg-transparent text-white/60 border border-white/10 hover:border-white/25 hover:text-white transition-all duration-300 cursor-pointer font-tech html-light-btn-white"
+              >
+                Sign Out
+              </button>
+            </>
+          ) : (
+            <>
+              <button 
+                onClick={() => navigate('/auth')}
+                className="group relative w-full sm:w-auto px-10 py-4 rounded-2xl text-sm font-bold tracking-widest uppercase bg-[#E5B842] text-black hover:bg-[#FFF2CC] shadow-[0_0_40px_rgba(229,184,66,0.25)] hover:shadow-[0_0_60px_rgba(229,184,66,0.45)] transition-all duration-500 hover:-translate-y-1 active:translate-y-0 flex items-center justify-center gap-3 cursor-pointer font-tech active:scale-[0.98] overflow-hidden"
+              >
+                {/* Shine sweep on button */}
+                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></span>
+                <span className="relative z-10">Sign in with Google Workspace</span>
+                <ArrowRight className="relative z-10 w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
+              </button>
+
+              <button
+                onClick={() => navigate('/auth')}
+                className="w-full sm:w-auto px-8 py-4 rounded-2xl text-sm font-bold tracking-wider uppercase bg-transparent text-white/60 border border-white/10 hover:border-white/25 hover:text-white transition-all duration-300 cursor-pointer font-tech html-light-btn-white"
+              >
+                Learn more
+              </button>
+            </>
+          )}
         </div>
 
       </div>

@@ -79,6 +79,16 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  notifications: {
+    webPush: { type: Boolean, default: true },
+    phonePush: { type: Boolean, default: true },
+    email: { type: Boolean, default: true },
+    deadlineAlerts: { type: Boolean, default: true }
+  },
+  pushSubscriptions: {
+    type: [Object],
+    default: []
+  },
   createdAt: {
     type: Date,
     default: Date.now

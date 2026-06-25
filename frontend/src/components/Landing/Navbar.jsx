@@ -65,6 +65,15 @@ export default function Navbar() {
     return () => { document.body.style.overflow = ''; };
   }, [isMobileMenuOpen]);
 
+  const handleNavClick = (e, section) => {
+    e.preventDefault();
+    const el = document.getElementById(section);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    setIsMobileMenuOpen(false);
+  };
+
   const navLinks = [
     { href: '#features', label: 'Features', section: 'features' },
     { href: '#voice', label: 'How It Works', section: 'voice' },
@@ -94,6 +103,7 @@ export default function Navbar() {
               <a 
                 key={section}
                 href={href} 
+                onClick={(e) => handleNavClick(e, section)}
                 className={`text-sm font-semibold tracking-wider uppercase transition-all duration-300 ${
                   activeSection === section 
                     ? 'text-[#E5B842] scale-105' 
@@ -203,7 +213,7 @@ export default function Navbar() {
                 <a
                   key={section}
                   href={href}
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  onClick={(e) => handleNavClick(e, section)}
                   className={`flex items-center px-4 py-3.5 rounded-xl text-sm font-bold uppercase tracking-wider transition-all ${
                     activeSection === section
                       ? 'bg-[#E5B842]/10 text-[#E5B842] border border-[#E5B842]/20'

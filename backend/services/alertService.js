@@ -5,6 +5,7 @@ import Habit from '../models/Habit.js';
 import Notification from '../models/Notification.js';
 import { generateDailySummary } from './geminiService.js';
 import { io } from '../socket/socketHandler.js';
+import { sendPushToUser } from './pushService.js';
 
 /**
  * Helper to fetch daily task/event info and ask Gemini to build a spoken morning briefing
@@ -64,6 +65,9 @@ export async function checkMorningBriefing(socket, userId) {
         type: 'focus'
       });
 
+      // Native OS push notification
+      await sendPushToUser(userId, '🌅 ResQ Morning Briefing', briefing, { tag: 'resq-briefing', url: '/' });
+
       user.lastBriefingDate = todayStr;
       await user.save();
     }
@@ -120,6 +124,8 @@ export async function checkAlertTriggers() {
               type: 'meeting'
             });
           }
+          // Native OS push notification
+          await sendPushToUser(userId, '📅 Meeting Starting Soon', message, { tag: `meeting-${event._id}`, url: '/dashboard?tab=calendar' });
         }
       }
 

@@ -57,6 +57,18 @@ export default function SettingsPage() {
   const [allowEmail, setAllowEmail] = useState(true);
   const [allowDeadlineAlerts, setAllowDeadlineAlerts] = useState(true);
 
+  const handleToggleNotification = async (key, currentValue, setter) => {
+    const newValue = !currentValue;
+    setter(newValue);
+    try {
+      await apiSettings.updateNotifications({ [key]: newValue });
+      showToast(`Notification preference updated`);
+    } catch (err) {
+      setter(currentValue);
+      showToast(`Failed to update preference`, 'error');
+    }
+  };
+
   // App settings
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem('resq-theme');
@@ -185,6 +197,12 @@ export default function SettingsPage() {
               start: data.workingHours.start || '09:00',
               end: data.workingHours.end || '18:00'
             });
+          }
+          if (data.notifications) {
+            setAllowWebPush(data.notifications.webPush !== false);
+            setAllowPhonePush(data.notifications.phonePush !== false);
+            setAllowEmail(data.notifications.email !== false);
+            setAllowDeadlineAlerts(data.notifications.deadlineAlerts !== false);
           }
           try {
             const usage = await voice.getUsage();
@@ -624,7 +642,7 @@ export default function SettingsPage() {
                   <span className="text-sm text-white/70">In web browser panel</span>
                 </div>
                 <button 
-                  onClick={() => setAllowWebPush(!allowWebPush)}
+                  onClick={() => handleToggleNotification('webPush', allowWebPush, setAllowWebPush)}
                   className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-300 relative cursor-pointer border ${allowWebPush ? 'bg-[#E5B842] border-[#E5B842]' : 'bg-transparent border-white/20'}`}
                 >
                   <div className={`w-3.5 h-3.5 rounded-full bg-black transition-transform duration-300 ${allowWebPush ? 'translate-x-4 bg-black' : 'translate-x-0 bg-white/40'}`} />
@@ -637,7 +655,7 @@ export default function SettingsPage() {
                   <span className="text-sm text-white/70">Receive notifications on companion mobile app</span>
                 </div>
                 <button 
-                  onClick={() => setAllowPhonePush(!allowPhonePush)}
+                  onClick={() => handleToggleNotification('phonePush', allowPhonePush, setAllowPhonePush)}
                   className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-300 relative cursor-pointer border ${allowPhonePush ? 'bg-[#E5B842] border-[#E5B842]' : 'bg-transparent border-white/20'}`}
                 >
                   <div className={`w-3.5 h-3.5 rounded-full bg-black transition-transform duration-300 ${allowPhonePush ? 'translate-x-4 bg-black' : 'translate-x-0 bg-white/40'}`} />
@@ -650,7 +668,7 @@ export default function SettingsPage() {
                   <span className="text-sm text-white/70">Recap metrics & completed tasks</span>
                 </div>
                 <button 
-                  onClick={() => setAllowEmail(!allowEmail)}
+                  onClick={() => handleToggleNotification('email', allowEmail, setAllowEmail)}
                   className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-300 relative cursor-pointer border ${allowEmail ? 'bg-[#E5B842] border-[#E5B842]' : 'bg-transparent border-white/20'}`}
                 >
                   <div className={`w-3.5 h-3.5 rounded-full bg-black transition-transform duration-300 ${allowEmail ? 'translate-x-4 bg-black' : 'translate-x-0 bg-white/40'}`} />
@@ -663,7 +681,7 @@ export default function SettingsPage() {
                   <span className="text-sm text-white/70">Warning alerts for upcoming deadlines</span>
                 </div>
                 <button 
-                  onClick={() => setAllowDeadlineAlerts(!allowDeadlineAlerts)}
+                  onClick={() => handleToggleNotification('deadlineAlerts', allowDeadlineAlerts, setAllowDeadlineAlerts)}
                   className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-300 relative cursor-pointer border ${allowDeadlineAlerts ? 'bg-[#E5B842] border-[#E5B842]' : 'bg-transparent border-white/20'}`}
                 >
                   <div className={`w-3.5 h-3.5 rounded-full bg-black transition-transform duration-300 ${allowDeadlineAlerts ? 'translate-x-4 bg-black' : 'translate-x-0 bg-white/40'}`} />

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Key, Mail, User, Eye, EyeOff } from 'lucide-react';
+import { Sparkles, Key, Mail, User, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { auth, google as apiGoogle } from '../services/api.js';
 import { useAuthContext } from '../context/AuthContext.jsx';
 
@@ -25,6 +25,8 @@ export default function AuthPage() {
       const theme = params.get('theme') || 'dark';
       const plan = params.get('plan') || 'free';
       login(token, { theme, plan }).then(() => {
+        localStorage.setItem('resq-current-tab', 'dashboard');
+        localStorage.setItem('resq-theme', theme);
         navigate('/dashboard');
       });
     } else if (urlError) {
@@ -58,7 +60,7 @@ export default function AuthPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
-
+ 
     try {
       let data;
       if (isRegister) {
@@ -70,6 +72,10 @@ export default function AuthPage() {
 
       // Store JWT token and default profile config
       await login(data.token, data);
+
+      // Explicitly set dashboard and theme
+      localStorage.setItem('resq-current-tab', 'dashboard');
+      localStorage.setItem('resq-theme', data.theme || 'dark');
 
       // Navigate to dashboard page
       navigate('/dashboard');
@@ -84,6 +90,15 @@ export default function AuthPage() {
   return (
     <div className="auth-page-container bg-[#080808] text-white min-h-screen relative bg-noise overflow-hidden flex items-center justify-center font-sans">
       
+      {/* Back button to landing */}
+      <button 
+        onClick={() => navigate('/')}
+        className="absolute top-6 left-6 z-20 flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 text-white/60 hover:text-white transition-all duration-300 font-tech text-xs uppercase tracking-wider cursor-pointer"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to Home
+      </button>
+
       {/* Background ambient gold/silver glows */}
       <div className="absolute inset-0 z-0 pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-[#E5B842]/5 rounded-full blur-[120px] animate-pulse"></div>

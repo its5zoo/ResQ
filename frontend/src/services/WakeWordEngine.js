@@ -30,8 +30,29 @@ class WakeWordEngine {
     this.isAiSpeaking = false;
     this.isProcessingBackend = false;
 
-    this.handleVoiceStart = () => { this.isAiSpeaking = true; this.isProcessingBackend = false; };
-    this.handleVoiceEnd = () => { this.isAiSpeaking = false; this.resetIdleTimer(); };
+    this.handleVoiceStart = () => {
+      this.isAiSpeaking = true;
+      this.isProcessingBackend = false;
+      // Clear any accumulated transcript from before AI started speaking
+      // to prevent it from being submitted after the AI finishes talking
+      this.latestTranscript = '';
+      if (this.commandSilenceTimer) {
+        clearTimeout(this.commandSilenceTimer);
+        this.commandSilenceTimer = null;
+      }
+    };
+    this.handleVoiceEnd = () => {
+      this.isAiSpeaking = false;
+      // 1 second cooldown after speaking ends to discard echo tail
+      this.postSpeechCooldown = true;
+      if (this.postSpeechCooldownTimer) clearTimeout(this.postSpeechCooldownTimer);
+      this.postSpeechCooldownTimer = setTimeout(() => {
+        this.postSpeechCooldown = false;
+        // Also clear any transcript built up during cooldown
+        this.latestTranscript = '';
+      }, 1000);
+      this.resetIdleTimer();
+    };
     this.handleVoiceResponseReceived = () => { this.isProcessingBackend = false; this.resetIdleTimer(); };
     window.addEventListener('resq:voice-start', this.handleVoiceStart);
     window.addEventListener('resq:voice-end', this.handleVoiceEnd);
@@ -381,6 +402,15 @@ class WakeWordEngine {
     this.resetIdleTimer();
   }
 
+  triggerProactiveWake() {
+    this.isWoken = true;
+    this.stopBackgroundListening();
+    
+    // Start capturing user command
+    this.startCommandListening();
+    this.resetIdleTimer();
+  }
+
   resetIdleTimer() {
     if (this.idleConversationTimer) clearTimeout(this.idleConversationTimer);
     this.idleConversationTimer = setTimeout(() => {
@@ -392,7 +422,6 @@ class WakeWordEngine {
         }
 
         window.dispatchEvent(new CustomEvent('resq:close'));
-        this.speak("Going to sleep.");
         this.resetToIdle();
       }
     }, 15000);
@@ -456,13 +485,25 @@ class WakeWordEngine {
       };
 
       recognition.onresult = (event) => {
-        // Barge-in Detection
+        // User Barge-In: If the user speaks while AI is talking, we ONLY cancel the AI's speech 
+        // if they use a wake word or explicit interruption word. This prevents the AI from cutting itself off due to echoes.
         if (this.isAiSpeaking) {
-          const result = event.results[event.resultIndex];
-          if (result && result[0] && result[0].transcript.trim().length > 2) {
-             console.log('[WakeWordEngine] Barge-in detected:', result[0].transcript);
-             if (window.speechSynthesis) window.speechSynthesis.cancel();
-             this.isAiSpeaking = false;
+          const currentTranscript = event.results[event.resultIndex][0].transcript.trim().toLowerCase();
+          
+          if (currentTranscript.length > 2) {
+             const bargeInWords = [...this.wakeWords, "stop", "cancel", "wait", "hold on", "shut up", "quiet"];
+             const isBargeIn = bargeInWords.some(w => currentTranscript.includes(w));
+
+             if (isBargeIn) {
+               console.log('[WakeWordEngine] User barged in explicitly! Canceling AI speech.');
+               voicePersonality.cancel();
+               this.isAiSpeaking = false;
+             } else {
+               // Ignore anything else as potential echo or background noise
+               return; 
+             }
+          } else {
+             return; // Ignore very short random noises
           }
         }
 
@@ -479,6 +520,13 @@ class WakeWordEngine {
         }
         
         const latest = finalTranscript || interimTranscript;
+
+        // CRITICAL: While AI is still speaking (or in post-speech cooldown), discard any transcripts.
+        // This prevents the AI's own audio from being heard by the mic and re-submitted as a command.
+        if (this.isAiSpeaking || this.postSpeechCooldown) {
+          return;
+        }
+
         this.latestTranscript = latest;
         
         if (interimTranscript) {
@@ -489,6 +537,8 @@ class WakeWordEngine {
 
         if (latest.trim()) {
           this.commandSilenceTimer = setTimeout(() => {
+            // Double-check AI isn't speaking or in cooldown before submitting
+            if (this.isAiSpeaking || this.postSpeechCooldown) return;
             console.log('[WakeWordEngine] 3s speech silence detected, sending turn to backend.');
             if (this.latestTranscript.trim()) {
               this.finalizeConversationTurn(this.latestTranscript);

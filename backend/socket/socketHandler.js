@@ -50,16 +50,16 @@ export const handleSocketEvents = (server) => {
     socket.join(roomName);
     console.log(`Socket ${socket.id} authenticated and joined room ${roomName}`);
 
-    // Trigger morning briefing if applicable
-    checkMorningBriefing(socket, userId);
+    // Trigger morning briefing if applicable (Disabled per user request to only speak on manual query)
+    // checkMorningBriefing(socket, userId);
 
     // voice:transcript event
     socket.on('voice:transcript', async (data) => {
-      const { transcript } = data;
+      const { transcript, tzOffsetMinutes, localISOTime } = data;
       if (!transcript) return;
 
       try {
-        console.log(`[Socket Voice] Transcript from ${userId}: ${transcript}`);
+        console.log(`[Socket Voice] Transcript from ${userId}: ${transcript} (tz offset: ${tzOffsetMinutes}min)`);
         
         // Apply voice usage/limits checks
         const check = await checkAndIncrementVoiceUsage(userId);
@@ -73,7 +73,7 @@ export const handleSocketEvents = (server) => {
           });
         }
 
-        const result = await executeVoiceCommand(userId, transcript);
+        const result = await executeVoiceCommand(userId, transcript, { tzOffsetMinutes, localISOTime });
         
         // Emit voice:response to the user
         socket.emit('voice:response', result);

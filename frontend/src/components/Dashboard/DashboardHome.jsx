@@ -87,11 +87,17 @@ export default function DashboardHome({ setCurrentTab }) {
     try {
       const task = localTasks.find(t => t._id === id);
       if (!task) return;
+      
+      // Optimistic UI Update
+      setLocalTasks(prev => prev.map(t => t._id === id ? { ...t, completed: !task.completed } : t));
+      
       const updated = await apiTasks.update(id, { completed: !task.completed });
       setLocalTasks(prev => prev.map(t => t._id === id ? updated : t));
       refreshAISummary();
     } catch (err) {
       console.error('Error toggling task:', err);
+      // Revert optimistic update
+      setLocalTasks(prev => prev.map(t => t._id === id ? { ...t, completed: !t.completed } : t));
     }
   };
 
@@ -113,8 +119,43 @@ export default function DashboardHome({ setCurrentTab }) {
   const hasCritical = pendingTasks.some(t => t.urgency >= 9);
   const riskText = hasCritical ? 'URGENT HAZARD' : pendingTasks.length > 0 ? 'MODERATE' : 'OPTIMIZED';
 
-  // Calculate habit streak summation or average
-  const totalStreak = localHabits.reduce((acc, h) => acc + (h.streak || 0), 0);
+  // Calculate habit streak: only increments when ALL scheduled habits for a day are completed
+  const calculatePerfectStreak = (habits) => {
+    if (!habits || habits.length === 0) return 0;
+    
+    let streak = 0;
+    const now = new Date();
+    
+    for (let i = 0; i < 365; i++) {
+      const d = new Date(now);
+      d.setDate(now.getDate() - i);
+      const dayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()];
+      const dateString = d.toDateString();
+      
+      const scheduledHabits = habits.filter(h => h.targetDays?.includes(dayName));
+      if (scheduledHabits.length === 0) continue; // No habits scheduled this day
+      
+      let allCompleted = true;
+      for (const habit of scheduledHabits) {
+        const completedOnDay = habit.completions?.some(c => new Date(c.date).toDateString() === dateString && c.completed);
+        if (!completedOnDay) {
+          allCompleted = false;
+          break;
+        }
+      }
+      
+      if (allCompleted) {
+        streak++;
+      } else {
+        // If it's today (i=0), they still have time, so don't break the streak, just don't increment it.
+        // If it's a past day (i>0), the streak is definitively broken.
+        if (i > 0) break;
+      }
+    }
+    return streak;
+  };
+
+  const totalStreak = calculatePerfectStreak(localHabits);
 
   const now = new Date();
   const endOfToday = new Date();
@@ -348,7 +389,8 @@ export default function DashboardHome({ setCurrentTab }) {
                 priorityStackItems.map((item) => (
                   <div 
                     key={item.id} 
-                    className="p-5 bg-black border border-white/[0.03] rounded-2xl hover:border-white/10 transition-all duration-300"
+                    onClick={() => item.action()}
+                    className="p-5 bg-black border border-white/[0.03] rounded-2xl hover:border-white/10 transition-all duration-300 cursor-pointer select-none active:scale-[0.98]"
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-4 min-w-0 pt-1">

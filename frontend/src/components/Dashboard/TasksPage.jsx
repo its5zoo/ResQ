@@ -188,7 +188,13 @@ export default function TasksPage({
     try {
       const task = tasks.find(t => t._id === id);
       if (!task) return;
+      
+      // Optimistic UI Update
+      setTasks(prev => prev.map(t => t._id === id ? { ...t, completed: !task.completed } : t));
+      
       const updated = await apiTasks.update(id, { completed: !task.completed });
+      
+      // Update with server response just in case
       setTasks(prev => prev.map(t => t._id === id ? updated : t));
       
       // Update selectedTask panel too if it's currently open
@@ -197,6 +203,8 @@ export default function TasksPage({
       }
     } catch (err) {
       console.error('Error toggling task:', err);
+      // Revert optimistic update on error
+      setTasks(prev => prev.map(t => t._id === id ? { ...t, completed: !t.completed } : t));
     }
   };
 
@@ -381,7 +389,8 @@ export default function TasksPage({
             sortedTasks.map((task) => (
               <div 
                 key={task._id} 
-                className={`p-5 border rounded-2xl hover:border-white/10 transition-all duration-300 cursor-pointer layered-shadow-lg ${
+                onClick={() => handleToggleTask(task._id)}
+                className={`p-5 border rounded-2xl hover:border-white/10 transition-all duration-300 cursor-pointer select-none active:scale-[0.98] layered-shadow-lg ${
                   task.completed ? 'opacity-50' : ''
                 } border-white/15 bg-[#090909] ${
                   highlightedTaskId === task._id ? 'animate-gold-highlight' : ''

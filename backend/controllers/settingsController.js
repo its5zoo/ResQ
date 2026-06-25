@@ -148,9 +148,25 @@ export const updateVoiceSettings = async (req, res) => {
       });
     }
 
-    res.json(user.voiceAI);
+    res.json({ message: 'Voice settings updated', voiceAI: user.voiceAI });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
+export const updateNotifications = async (req, res) => {
+  const notifications = req.body;
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    user.notifications = {
+      ...user.notifications,
+      ...notifications
+    };
+    await user.save();
+    res.json({ message: 'Notifications updated successfully', notifications: user.notifications });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

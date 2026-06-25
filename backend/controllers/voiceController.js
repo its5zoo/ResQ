@@ -8,7 +8,7 @@ import { reprioritizeTasksForUser } from './taskController.js';
 import { syncGoogleCalendar, updateEventInGoogleCalendar, deleteEventFromGoogleCalendar } from '../services/googleCalendarService.js';
 import { io } from '../socket/socketHandler.js';
 
-export const executeVoiceCommand = async (userId, transcript) => {
+export const executeVoiceCommand = async (userId, transcript, timezoneContext = null) => {
   const user = await User.findById(userId);
   if (!user) {
     throw new Error('User not found');
@@ -34,7 +34,7 @@ export const executeVoiceCommand = async (userId, transcript) => {
   }
 
   // Call voiceIntentService to resolve command/clarification
-  const resultObj = await resolveClarification(userId, transcript);
+  const resultObj = await resolveClarification(userId, transcript, timezoneContext);
   
   const intent = resultObj.intent;
   const payload = resultObj.extractedData || {};

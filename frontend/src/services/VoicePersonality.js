@@ -4,6 +4,11 @@ class VoicePersonality {
   }
 
   speak(text, options = {}) {
+    this.currentSpokenText = text;
+    // Fire voice-start IMMEDIATELY so WakeWordEngine mutes the mic right away.
+    // This closes the 1-2 second gap while TTS audio is being fetched from the server.
+    window.dispatchEvent(new CustomEvent('resq:voice-start'));
+
     return new Promise((resolve) => {
       // Cancel any ongoing speech first
       this.cancel();
@@ -12,7 +17,6 @@ class VoicePersonality {
       setTimeout(async () => {
         try {
           const token = localStorage.getItem('token');
-          // In production, use relative URL or env var. For this dev environment, use localhost:5000.
           const response = await fetch('http://localhost:5000/api/voice/tts', {
             method: 'POST',
             headers: {
@@ -36,10 +40,6 @@ class VoicePersonality {
           this.currentAudio = new Audio(url);
           this.currentAudio.volume = 0.95;
 
-          this.currentAudio.onplay = () => {
-            window.dispatchEvent(new CustomEvent('resq:voice-start'));
-          };
-
           this.currentAudio.onended = () => {
             window.dispatchEvent(new CustomEvent('resq:voice-end'));
             if (options.onEnd) {
@@ -61,6 +61,7 @@ class VoicePersonality {
           await this.currentAudio.play();
         } catch (error) {
           console.error('[VoicePersonality] Error playing ElevenLabs TTS:', error);
+          window.dispatchEvent(new CustomEvent('resq:voice-end'));
           resolve();
         }
       }, 120);

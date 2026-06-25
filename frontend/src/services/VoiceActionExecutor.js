@@ -58,18 +58,13 @@ export class VoiceActionExecutor {
         break;
       }
 
-      case 'complete_task': {
+      case 'complete_task':
+      case 'delete_task':
+      case 'update_task_priority': {
         try {
-          // Refetch tasks lists
           window.dispatchEvent(new CustomEvent('resq:refetch-tasks'));
-          
-          let taskId = extractedData?.taskId || extractedData?.id;
-          if (taskId) {
-            // Trigger strikethrough + fade styling
-            window.dispatchEvent(new CustomEvent('resq:task-completed-animation', { detail: { taskId } }));
-          }
         } catch (e) {
-          console.error('[VoiceActionExecutor] complete_task UI update failed:', e);
+          console.error('[VoiceActionExecutor] task mutation UI update failed:', e);
         }
         break;
       }
@@ -94,6 +89,30 @@ export class VoiceActionExecutor {
           }
         } catch (e) {
           console.error('[VoiceActionExecutor] schedule_event UI update failed:', e);
+        }
+        break;
+      }
+
+      case 'reschedule_event':
+      case 'cancel_event': {
+        try {
+          window.dispatchEvent(new CustomEvent('resq:refetch-calendar'));
+        } catch (e) {
+          console.error('[VoiceActionExecutor] calendar mutation UI update failed:', e);
+        }
+        break;
+      }
+
+      case 'create_habit':
+      case 'complete_habit': {
+        try {
+          window.dispatchEvent(new CustomEvent('resq:refetch-habits'));
+          // Navigate to habits section
+          if (typeof this.navigationCallback === 'function') {
+            this.navigationCallback('habits');
+          }
+        } catch (e) {
+          console.error('[VoiceActionExecutor] habit mutation UI update failed:', e);
         }
         break;
       }
@@ -217,6 +236,13 @@ export class VoiceActionExecutor {
 
       case 'permission_denied': {
         this.speak(intentObject.voiceResponse || voiceResponse || intentObject.response);
+        break;
+      }
+
+      case 'close_intent': {
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('resq:close'));
+        }, 2000); // Wait for speech to finish before closing
         break;
       }
 

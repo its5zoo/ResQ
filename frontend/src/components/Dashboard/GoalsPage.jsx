@@ -72,6 +72,11 @@ export default function GoalsPage() {
       await fetchGoals();
     };
     load();
+
+    // Refetch when voice AI creates a goal
+    const handleVoiceGoalCreated = () => fetchGoals();
+    window.addEventListener('resq:goals-data-changed', handleVoiceGoalCreated);
+    return () => window.removeEventListener('resq:goals-data-changed', handleVoiceGoalCreated);
   }, []);
 
   const handleAddGoal = async (e) => {

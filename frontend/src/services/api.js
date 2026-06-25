@@ -369,6 +369,14 @@ export const settings = {
       return handleRequestError(error);
     }
   },
+  updateNotifications: async (notifications) => {
+    try {
+      const response = await api.patch('/settings/notifications', notifications);
+      return response.data;
+    } catch (error) {
+      return handleRequestError(error);
+    }
+  },
 };
 
 export const google = {

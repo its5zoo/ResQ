@@ -27,6 +27,7 @@ import aiAdvisorRoutes from './routes/aiAdvisor.js';
 import voiceRoutes from './routes/voice.js';
 import settingsRoutes from './routes/settings.js';
 import googleCalendarRoutes from './routes/googleCalendar.js';
+import pushRoutes from './routes/push.js';
 
 // Initialize environment variables
 dotenv.config();
@@ -104,6 +105,7 @@ app.get('/api/voice/gemini-test', async (req, res) => {
 app.use('/api/voice', protect, checkGeminiKey, aiVoiceLimiter, voiceRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/google', googleCalendarRoutes);
+app.use('/api/push', pushRoutes);
 
 // Base health check route
 app.get('/api/health', (req, res) => {

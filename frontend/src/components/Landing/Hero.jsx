@@ -85,7 +85,7 @@ export default function Hero() {
               opacity: titleOpacity
             }}
           >
-            {/* Tagline */}
+            {/* Tagline with pulsing dot animation */}
             <div className="flex items-center gap-2.5 mb-6 opacity-0 animate-fade-in" style={{ animationDelay: '0.1s', animationFillMode: 'forwards' }}>
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>

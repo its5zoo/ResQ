@@ -11,6 +11,9 @@ const pendingCommands = new Map();
 // In-memory cache for continuous conversation context keyed by userId
 const conversationHistories = new Map();
 
+// In-memory cache for the last completed action per user (for memory/follow-up questions)
+const lastActions = new Map();
+
 /**
  * Helper to get date boundaries for a specific day
  */
@@ -444,7 +447,9 @@ const getLocalFallbackResult = (transcript, context) => {
       'dinner': 'Dinner',
       'break': 'Break',
       'sync': 'Sync Meeting',
-      'work': 'Deep Work'
+      'work': 'Deep Work',
+      'sleep': 'Sleeping Time',
+      'sleeping': 'Sleeping Time'
     };
     
     let subjectFound = false;
@@ -643,7 +648,9 @@ const getLocalFallbackResult = (transcript, context) => {
   }
 
   // 7. Today summary / brief fallback
-  if (clean.includes('today') || clean.includes('summarize') || clean.includes('summary') || clean.includes('briefing')) {
+  const hasSummaryKeywords = clean.includes('summarize') || clean.includes('summary') || clean.includes('briefing');
+  const hasTodayScheduleKeywords = clean.includes('today') && (clean.includes('what') || clean.includes('schedule') || clean.includes('my'));
+  if (hasSummaryKeywords || hasTodayScheduleKeywords) {
     return {
       intent: 'show_summary',
       confidence: 1.0,
@@ -690,7 +697,7 @@ const getLocalFallbackResult = (transcript, context) => {
 /**
  * Main Entry Point: Understand user command and decide action.
  */
-export const processVoiceCommand = async (transcript, userId) => {
+export const processVoiceCommand = async (transcript, userId, timezoneContext = null) => {
   // 1. Fetch User Context
   const user = await User.findById(userId);
   const userName = user?.name ? user.name.split(' ')[0] : 'User';
@@ -718,6 +725,35 @@ export const processVoiceCommand = async (transcript, userId) => {
   // 2. Fetch free slots today
   const freeSlots = await getFreeSlotsForDay(userId, new Date());
 
+  // Build timezone-aware time context so Gemini interprets "today", "tonight", "10 PM" correctly
+  const nowUtc = new Date();
+  
+  // Determine timezone offset from client context (if available), otherwise fallback to server's timezone
+  let tzOffsetMinutes = -nowUtc.getTimezoneOffset(); // getTimezoneOffset() is inverted
+  let localTimeStr = nowUtc.toLocaleString('en-US', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
+    timeZoneName: 'longOffset'
+  });
+
+  if (timezoneContext && typeof timezoneContext.tzOffsetMinutes === 'number') {
+    // The browser's getTimezoneOffset is positive for West (e.g. EST is +300), negative for East (IST is -330)
+    // We want the actual UTC offset, so we invert it: IST -> +330
+    tzOffsetMinutes = -timezoneContext.tzOffsetMinutes;
+    if (timezoneContext.localISOTime) {
+      localTimeStr = timezoneContext.localISOTime;
+    } else {
+      // Manual compute if only offset provided
+      const localTimeMs = nowUtc.getTime() + (tzOffsetMinutes * 60000);
+      localTimeStr = new Date(localTimeMs).toLocaleString('en-US', { timeZone: 'UTC' }) + ' (Local Computed)';
+    }
+  }
+
+  const tzOffsetHours = Math.floor(Math.abs(tzOffsetMinutes) / 60);
+  const tzOffsetMins = Math.abs(tzOffsetMinutes) % 60;
+  const tzSign = tzOffsetMinutes >= 0 ? '+' : '-';
+  const tzOffsetStr = `UTC${tzSign}${String(tzOffsetHours).padStart(2, '0')}:${String(tzOffsetMins).padStart(2, '0')}`;
+
   const userContext = {
     name: userName,
     workingHours: user?.workingHours || { start: '09:00', end: '18:00' },
@@ -727,13 +763,34 @@ export const processVoiceCommand = async (transcript, userId) => {
     habits,
     goals,
     freeSlots,
-    currentTime: new Date().toISOString()
+    currentTime: nowUtc.toISOString(),
+    localTime: localTimeStr,
+    timezone: tzOffsetStr
   };
+  const lastAction = lastActions.get(userId.toString()) || null;
 
   const masterSystemPrompt = `
 You are ResQ, an embedded AI productivity assistant inside a web application.
 You control: tasks, calendar events, habits, goals, notifications, and focus sessions.
 You do NOT control: external apps, purchases, emails to external people, social media, browsing the web, or anything outside this productivity dashboard.
+
+⚠️ CRITICAL TIMEZONE RULE — READ FIRST:
+The user's LOCAL timezone is: ${tzOffsetStr}
+The user's current LOCAL time is: ${localTimeStr}
+ALL times the user mentions (like "10 PM", "tomorrow 6 AM", "tonight") refer to their LOCAL timezone (${tzOffsetStr}).
+When you generate a startTime or endTime ISO string, you MUST convert the user's local time to UTC correctly.
+FORMULA: UTC = Local Time − (${tzSign}${tzOffsetHours}h ${tzOffsetMins}m)
+EXAMPLE: If user says "10 PM today" and timezone is UTC+5:30, the correct UTC ISO is: today at 16:30 UTC (22:00 - 5:30 = 16:30).
+NEVER treat the user's spoken time as UTC. Always apply the timezone offset.
+
+
+${lastAction ? `CONVERSATION MEMORY — Your last completed action was:
+Intent: ${lastAction.intent}
+Title/Name: ${lastAction.title || 'N/A'}
+Destination: ${lastAction.destination || 'N/A'}
+Time: ${lastAction.time || 'N/A'}
+USE THIS to answer follow-up questions like "where did you add that?", "what time did you set?", "which section is it in?". Answer naturally as if you remember it.
+` : ''}
 
 HUMAN-LIKE PERSONALITY AND INTERACTION RULES:
 1. **Intelligent Human Persona**: You are a sweet, highly capable, and intelligent human assistant, not an AI bot. You speak naturally with a warm, clear, and engaging tone. Avoid rigid structures, dry robotic confirmations, or repeating technical terms.
@@ -744,8 +801,12 @@ HUMAN-LIKE PERSONALITY AND INTERACTION RULES:
 6. **Rescheduling vs Scheduling**: If the user asks to "move", "switch", "reschedule", or "change" the time of an EXISTING event (e.g., "move my study session to 3 PM", "switch the meeting to 4 PM"), YOU MUST use the 'reschedule_event' intent. Extract the 'title' of the existing event (e.g. "Study Session", "Meeting") and the 'newStartTime'. DO NOT use 'schedule_event' because that creates a duplicate new event!
 7. **Strict Timing Intelligence**: When extracting times, PAY CLOSE ATTENTION to "AM" and "PM" markers. If a user says "by 2 AM" or "at 2 AM", you MUST parse it strictly as 02:00 (2:00 AM). DO NOT schedule it for 2 PM (14:00) unless they explicitly say PM or "afternoon". Also, DO NOT interpret "by 2 AM" as a deadline day-shift unless mathematically necessary. Stick exactly to the AM/PM given.
 8. **Vague Task Titles**: If the user asks to "set a task", "add a task", or "remind me" WITHOUT specifying WHAT the task is, you MUST return intent as 'needs_clarification' and ask them "What would you like to name the task?".
-9. **Sleep Command**: If the user says "sleep", "go to sleep", "close", or "stop listening", you MUST return intent 'needs_clarification', set voiceResponse to "Anything else?", and set extractedData to { isSleep: true }.
+9. **Sleep Command / Dismissal**: If the user tells you to sleep (e.g., "sleep", "go to sleep", "Gemini go to sleep", "Rescue close", "stop listening"), you MUST understand they are addressing you regardless of the name used. Return intent 'close_intent', set voiceResponse to a natural, friendly goodbye (like "Going to sleep, let me know if you need anything."), and set extractedData to { isSleep: true }. Do NOT ask for clarification.
 10. **LANGUAGE RULE**: You MUST output the 'voiceResponse' and 'clarificationQuestion' in ${user?.language === 'hi' ? 'Hindi' : 'English'} language. Do NOT use English if the language is Hindi.
+11. **Ambiguous Meetings and Unusual Times**: If the user asks to schedule a meeting at an unusual time (like 3 AM) or without a specific day (e.g. "meet at 3pm"), act like a human assistant. Return intent 'needs_clarification' and ask them for the missing day or confirm the unusual time (e.g., "When is your meeting?"). If they are vague or unsure, ask "Would you like to add this to a task instead?".
+12. **Sleeping Time Reminders**: If the user asks to "set sleeping time" to a specific time, you MUST use the 'schedule_event' intent to block that time in the calendar with the title "Sleeping Time", rather than creating a task or habit.
+13. **Smart Destination Routing (CRITICAL)**: When a user says something ambiguous like "add running", "add gym", "add walking" WITHOUT specifying WHERE (task, habit, calendar, or goal), you MUST return 'needs_clarification' with a clarification question like: "Sure! Should I add 'Running' as a daily habit, a task, or schedule it on your calendar?" Then wait for their answer. When they reply with their choice, complete the action. DO NOT guess the destination silently.
+14. **Follow-up Memory (CRITICAL)**: If the user asks "where did you add that?", "what section is it in?", "did you process it?", or any similar follow-up about the LAST action, use the CONVERSATION MEMORY provided above to answer them accurately. Tell them exactly where it was added and confirm the action completed.
 
 Your job is to parse the user's voice command, determine their exact intent, extract structured data, ask clarifying questions if critical info is missing, and return a precise JSON action object.
 
@@ -898,6 +959,29 @@ RESPONSE FORMAT — return ONLY valid JSON matching this format, no other text o
     if (finalResult) {
       history.push({ role: 'model', parts: [{ text: JSON.stringify(finalResult) }] });
       conversationHistories.set(userId.toString(), history);
+
+      // Store lastAction for memory follow-up questions
+      const actionableIntents = ['create_task', 'schedule_event', 'create_habit', 'create_goal', 'complete_task', 'complete_habit', 'update_goal_progress', 'set_focus_session'];
+      if (actionableIntents.includes(finalResult.intent)) {
+        const ed = finalResult.extractedData || {};
+        const destinationMap = {
+          create_task: 'Tasks section',
+          schedule_event: 'Calendar',
+          create_habit: 'Habits section',
+          create_goal: 'Goals section',
+          complete_task: 'Tasks section (marked complete)',
+          complete_habit: 'Habits section (marked complete)',
+          update_goal_progress: 'Goals section',
+          set_focus_session: 'Calendar (Focus Session)'
+        };
+        lastActions.set(userId.toString(), {
+          intent: finalResult.intent,
+          title: ed.title || ed.name || null,
+          destination: destinationMap[finalResult.intent] || null,
+          time: ed.startTime ? new Date(ed.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null,
+          raw: finalResult
+        });
+      }
     }
     
     return finalResult;
@@ -911,10 +995,10 @@ RESPONSE FORMAT — return ONLY valid JSON matching this format, no other text o
 /**
  * Resolves a clarification turn when the user responds to a clarification prompt
  */
-export const resolveClarification = async (userId, followUpTranscript) => {
+export const resolveClarification = async (userId, followUpTranscript, timezoneContext = null) => {
   const pending = pendingCommands.get(userId);
   if (!pending) {
-    return processVoiceCommand(followUpTranscript, userId);
+    return processVoiceCommand(followUpTranscript, userId, timezoneContext);
   }
 
   // Clear pendingCommand cache
@@ -1140,6 +1224,8 @@ Your task is to handle the user's response smartly:
 - IF the response is a completely new request (unrelated to the original transcript), ignore the original and process it as a brand NEW command.
 - IF the response provides clarification (like a different time or date), merge it with the original request and complete the action.
 - IF the user is explicitly canceling, return an 'out_of_scope' intent with a polite confirmation.
+- IF the user's response is still vague about the date/time, ask them "Would you like me to just add this to your tasks instead?" by returning 'needs_clarification'.
+- IF they say "yes" to adding it as a task instead, return a 'create_task' intent with the details.
 
 User context: ${JSON.stringify(pending.context)}
 
@@ -1170,11 +1256,31 @@ Return ONLY valid JSON matching the exact RESPONSE FORMAT specified in the Maste
           hours = 0;
         }
         
-        const targetDate = new Date();
-        if (dayTomorrow) {
-          targetDate.setDate(targetDate.getDate() + 1);
+        let targetDate;
+        
+        if (timezoneContext && typeof timezoneContext.tzOffsetMinutes === 'number') {
+          // If timezone context is provided, manually adjust the target date using the user's timezone offset
+          const nowUtcMs = Date.now();
+          // We apply the offset so we get what "now" is in their local time zone, but as a UTC date object.
+          const tzOffsetMinutes = -timezoneContext.tzOffsetMinutes; 
+          const localNowMs = nowUtcMs + (tzOffsetMinutes * 60000);
+          const localDateObj = new Date(localNowMs);
+          
+          if (dayTomorrow) {
+            localDateObj.setUTCDate(localDateObj.getUTCDate() + 1);
+          }
+          localDateObj.setUTCHours(hours, minutes, 0, 0);
+          
+          // Now convert the local target back to an actual UTC date
+          const targetUtcMs = localDateObj.getTime() - (tzOffsetMinutes * 60000);
+          targetDate = new Date(targetUtcMs);
+        } else {
+          targetDate = new Date();
+          if (dayTomorrow) {
+            targetDate.setDate(targetDate.getDate() + 1);
+          }
+          targetDate.setHours(hours, minutes, 0, 0);
         }
-        targetDate.setHours(hours, minutes, 0, 0);
         
         const duration = parseInt(pending.extractedData.durationMinutes) || 45;
         const endTime = new Date(targetDate.getTime() + duration * 60000);

@@ -135,12 +135,19 @@ export default function Dashboard({ currentTab: propTab, setCurrentTab: propSetT
       apiHabits.getAll().then(data => setHabits(data || [])).catch(console.error);
     };
 
+    const handleRefetchGoals = () => {
+      // Goals are managed in GoalsPage.jsx — dispatch a navigation event to trigger refresh
+      window.dispatchEvent(new CustomEvent('resq:goals-data-changed'));
+    };
+
     window.addEventListener('resq:refetch-tasks', handleRefetchTasks);
     window.addEventListener('resq:refetch-habits', handleRefetchHabits);
+    window.addEventListener('resq:refetch-goals', handleRefetchGoals);
 
     return () => {
       window.removeEventListener('resq:refetch-tasks', handleRefetchTasks);
       window.removeEventListener('resq:refetch-habits', handleRefetchHabits);
+      window.removeEventListener('resq:refetch-goals', handleRefetchGoals);
     };
   }, []);
 

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
 import AuthPage from './pages/AuthPage';
 import GlobalVoiceAssistant from './components/Shared/GlobalVoiceAssistant';
 import { wakeWordEngine } from './services/WakeWordEngine';
 import { useAuthContext } from './context/AuthContext';
+import { initPushNotifications } from './services/pushNotificationService';
 
 function AppContent() {
   const navigate = useNavigate();
@@ -20,7 +21,9 @@ function AppContent() {
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      wakeWordEngine.initialize(user)
+      wakeWordEngine.initialize(user);
+      // Initialize web push notifications for native OS alerts
+      initPushNotifications();
     } else {
       wakeWordEngine.destroy()
     }
@@ -40,7 +43,7 @@ function AppContent() {
         <Route path="/" element={<Landing />} />
         <Route 
           path="/dashboard" 
-          element={<Dashboard currentTab={currentTab} setCurrentTab={setCurrentTab} />} 
+          element={isAuthenticated ? <Dashboard currentTab={currentTab} setCurrentTab={setCurrentTab} /> : <Navigate to="/auth" replace />} 
         />
         <Route path="/auth" element={<AuthPage />} />
       </Routes>

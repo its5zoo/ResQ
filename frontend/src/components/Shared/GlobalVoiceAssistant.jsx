@@ -512,6 +512,9 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
       // Pulse orb in different color per type
       setProactivePulseType(type);
 
+      // Wake up the command listener silently so it waits for user response
+      wakeWordEngine.triggerProactiveWake();
+
       // Show alert banner
       setAiResponse(message);
       setIsWoken(true);
@@ -577,10 +580,14 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
     if (!text) return;
     setMicState('processing');
     
+    // Include timezone info so backend correctly resolves "today", "tonight", "10 PM" in the user's local time
+    const tzOffsetMinutes = new Date().getTimezoneOffset(); // positive = west of UTC
+    const localISOTime = new Date().toLocaleString('en-US', { timeZoneName: 'longOffset' });
+
     // Check socket first for lower latency
     if (socket && socket.connected) {
       console.log('[Socket Voice] Emitting voice:transcript:', text);
-      socket.emit('voice:transcript', { transcript: text });
+      socket.emit('voice:transcript', { transcript: text, tzOffsetMinutes, localISOTime });
     } else {
       // HTTP fallback
       console.log('[HTTP Voice] Sending voice command:', text);
@@ -747,6 +754,8 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
         // Suggest focus session
         const msg = "You've been quiet for a bit. Would you like me to start a focus session?";
         setAiResponse(msg);
+        
+        wakeWordEngine.triggerProactiveWake();
         setIsWoken(true);
         setProactivePulseType('focus'); // Gold pulse
         speakBack(msg);
@@ -874,56 +883,108 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
       )}
 
       {isWoken && (
-        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#050505]/85 backdrop-blur-md animate-fade-in font-sans">
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-end bg-black/70 backdrop-blur-xl animate-fade-in font-sans" onClick={(e) => { if (e.target === e.currentTarget) closeAssistant(); }}>
           
-          {/* Close Button */}
-          <button 
-            onClick={closeAssistant} 
-            className="absolute top-8 right-8 p-3 rounded-full bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all cursor-pointer border border-white/10"
-          >
-            <X className="w-5 h-5" />
-          </button>
-
-          {/* Center Mic & Waveform */}
-          <div className="relative flex items-center justify-center mb-8">
-            <WaveVisualizer micState={micState} />
+          {/* Premium glass card — bottom sheet */}
+          <div className="w-full max-w-2xl mx-auto mb-0 sm:mb-8 bg-[#070709]/95 backdrop-blur-2xl border border-white/[0.08] rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-[0_-20px_80px_rgba(0,0,0,0.8),0_0_0_1px_rgba(255,255,255,0.04)] overflow-hidden relative">
             
-            <div className={`w-28 h-28 rounded-[2.5rem] bg-[#0c0c0e]/80 backdrop-blur-xl flex items-center justify-center z-10 relative transition-all duration-500 ${micState === 'listening' ? 'shadow-[0_0_80px_rgba(0,229,255,0.2)] scale-105 border border-[#00E5FF]/40' : 'border border-white/10 shadow-2xl'}`}>
-               <Mic className={`w-10 h-10 ${micState === 'listening' ? 'text-[#00E5FF]' : 'text-white/70'} transition-colors duration-300 relative z-10`} />
+            {/* Top accent line */}
+            <div className={`absolute top-0 left-0 right-0 h-[1.5px] transition-all duration-700 ${micState === 'listening' ? 'bg-gradient-to-r from-transparent via-[#00F0FF] to-transparent shadow-[0_0_20px_rgba(0,240,255,0.6)]' : micState === 'processing' ? 'bg-gradient-to-r from-transparent via-[#E5B842] to-transparent shadow-[0_0_20px_rgba(229,184,66,0.6)]' : 'bg-gradient-to-r from-transparent via-[#E5B842]/60 to-transparent'}`}></div>
+
+            {/* Drag handle (mobile) */}
+            <div className="flex justify-center pt-3 pb-1 sm:hidden">
+              <div className="w-10 h-1 rounded-full bg-white/20"></div>
+            </div>
+
+            <div className="px-8 pt-5 pb-8">
+              
+              {/* Header row */}
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-3">
+                  <span className="font-display font-black text-lg tracking-tighter flex items-center">
+                    <span className="text-white/80">Res</span>
+                    <span className="text-[#E5B842]">Q</span>
+                  </span>
+                  <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-tech font-bold uppercase tracking-widest border transition-all duration-500 ${
+                    micState === 'listening' ? 'bg-[#00F0FF]/10 border-[#00F0FF]/30 text-[#00F0FF]' 
+                    : micState === 'processing' ? 'bg-[#E5B842]/10 border-[#E5B842]/30 text-[#E5B842]'
+                    : micState === 'speaking' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                    : 'bg-white/5 border-white/10 text-white/50'
+                  }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${micState === 'listening' ? 'bg-[#00F0FF] animate-pulse' : micState === 'processing' ? 'bg-[#E5B842] animate-spin' : micState === 'speaking' ? 'bg-emerald-400 animate-pulse' : 'bg-white/30'}`}></span>
+                    {micState === 'listening' ? 'Listening' : micState === 'processing' ? 'Thinking' : micState === 'speaking' ? 'Speaking' : 'Ready'}
+                  </div>
+                </div>
+                <button onClick={closeAssistant} className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white/50 hover:text-white transition-all duration-200 flex items-center justify-center cursor-pointer">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Central mic visualizer */}
+              <div className="flex flex-col items-center mb-8">
+                <div className="relative flex items-center justify-center mb-5">
+                  {micState === 'listening' && (
+                    <>
+                      <div className="absolute w-28 h-28 rounded-full border border-[#00F0FF]/15 animate-ping" style={{ animationDuration: '2.5s' }}></div>
+                      <div className="absolute w-36 h-36 rounded-full border border-[#00F0FF]/08 animate-ping" style={{ animationDuration: '2.5s', animationDelay: '0.8s' }}></div>
+                      <div className="absolute w-20 h-20 rounded-full bg-[#00F0FF]/5 animate-pulse" style={{ animationDuration: '1.5s' }}></div>
+                    </>
+                  )}
+                  {micState === 'processing' && (
+                    <>
+                      <div className="absolute w-24 h-24 rounded-full border-2 border-dashed border-[#E5B842]/30 animate-spin" style={{ animationDuration: '3s' }}></div>
+                      <div className="absolute w-20 h-20 rounded-full bg-[#E5B842]/5 animate-pulse"></div>
+                    </>
+                  )}
+                  <div className={`relative w-20 h-20 rounded-[1.75rem] flex items-center justify-center z-10 transition-all duration-500 ${micState === 'listening' ? 'bg-[#00F0FF]/10 border-2 border-[#00F0FF]/40 shadow-[0_0_50px_rgba(0,240,255,0.2)]' : micState === 'processing' ? 'bg-[#E5B842]/10 border-2 border-[#E5B842]/40 shadow-[0_0_50px_rgba(229,184,66,0.2)]' : micState === 'speaking' ? 'bg-emerald-500/10 border-2 border-emerald-500/40 shadow-[0_0_50px_rgba(52,199,89,0.2)]' : 'bg-white/5 border-2 border-white/10'}`}>
+                    <Mic className={`w-8 h-8 transition-colors duration-300 ${micState === 'listening' ? 'text-[#00F0FF]' : micState === 'processing' ? 'text-[#E5B842]' : micState === 'speaking' ? 'text-emerald-400' : 'text-white/60'}`} />
+                  </div>
+                </div>
+
+                {/* Animated waveform bars */}
+                <div className={`flex items-center gap-[3px] h-8 mb-4 transition-opacity duration-300 ${micState === 'listening' ? 'opacity-100' : 'opacity-0'}`}>
+                  {[0.4, 0.7, 1, 0.6, 0.9, 0.5, 0.8, 1, 0.7, 0.4, 0.6, 0.9, 0.5].map((h, i) => (
+                    <div key={i} className="w-[3px] rounded-full bg-[#00F0FF]" style={{ height: `${h * 100}%`, animation: `voiceBar 0.8s ease-in-out infinite alternate`, animationDelay: `${i * 0.07}s`, opacity: 0.5 + h * 0.5 }}></div>
+                  ))}
+                </div>
+
+                <h2 className="text-xl font-display font-black tracking-tight text-white mb-1">
+                  {micState === 'speaking' ? 'ResQ is responding' : micState === 'processing' ? 'Processing your request...' : "I'm listening..."}
+                </h2>
+                <p className="text-sm text-white/40 font-tech uppercase tracking-widest">
+                  {transcript ? `"${transcript}"` : micState === 'listening' ? 'Speak your command' : micState === 'processing' ? 'Analyzing intent...' : 'Say anything'}
+                </p>
+              </div>
+
+              {/* AI Response Box */}
+              <div className={`transition-all duration-500 transform ${aiResponse ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0 pointer-events-none'}`}>
+                <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#00F0FF]/30 to-transparent"></div>
+                  <div className="flex items-start gap-4">
+                    <div className="w-8 h-8 rounded-xl bg-[#00F0FF]/10 border border-[#00F0FF]/20 flex items-center justify-center shrink-0 mt-0.5">
+                      <Sparkles className="w-4 h-4 text-[#00F0FF]" />
+                    </div>
+                    <p className="text-white/85 text-sm leading-relaxed font-sans font-medium tracking-wide flex-1">{aiResponse}</p>
+                  </div>
+                  {actionMeta && (
+                    <div className="flex items-center gap-2 mt-4 pt-4 border-t border-white/5">
+                      <actionMeta.icon className={`w-3.5 h-3.5 ${actionMeta.color}`} />
+                      <span className="text-white/40 text-xs font-tech uppercase tracking-wider">Action:</span>
+                      <span className="text-white/70 text-xs font-tech font-bold uppercase tracking-wider">{actionMeta.label}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Bottom hint */}
+              <div className="flex items-center justify-center gap-4 mt-5 text-[10px] font-tech text-white/20 uppercase tracking-widest">
+                <span>Alt + V to toggle</span>
+                <span>·</span>
+                <span>Tap outside to close</span>
+              </div>
+
             </div>
           </div>
-
-          <h2 className="text-2xl font-display font-black text-white mb-3 tracking-tight">
-            {micState === 'speaking' ? "I'm speaking" : micState === 'processing' ? "I'm thinking..." : "I'm listening"}
-          </h2>
-          
-          <p className="text-sm text-white/70 mb-12 max-w-2xl text-center min-h-[24px] px-6 font-medium">
-            {transcript || "Speak now..."}
-          </p>
-
-          {/* AI Response Box */}
-          <div className={`max-w-3xl w-full mx-4 transition-all duration-500 transform ${aiResponse ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0 pointer-events-none'}`}>
-            <div className="bg-[#0c0c0e]/60 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-8 shadow-[0_20px_60px_rgba(0,0,0,0.4)] relative overflow-hidden group">
-               <div className="absolute inset-0 bg-gradient-to-b from-[#00E5FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
-               <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00E5FF]/50 to-transparent"></div>
-               <div className="flex items-start gap-5 relative z-10">
-                 <div className="w-10 h-10 rounded-2xl bg-[#00E5FF]/10 border border-[#00E5FF]/20 flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(0,229,255,0.15)]">
-                   <Sparkles className="w-5 h-5 text-[#00E5FF]" />
-                 </div>
-                 <p className="text-white/90 text-lg leading-relaxed font-sans font-medium tracking-wide pt-1.5">{aiResponse}</p>
-               </div>
-
-               {/* Action taken confirmation */}
-               {actionMeta && (
-                 <div className="flex items-center gap-2 mt-6 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm font-semibold w-max animate-fade-in">
-                   <actionMeta.icon className={`w-4 h-4 ${actionMeta.color}`} />
-                   <span className="text-white/70">Action completed:</span>
-                   <span className="text-white font-tech uppercase tracking-wider">{actionMeta.label}</span>
-                 </div>
-               )}
-            </div>
-          </div>
-
         </div>
       )}
 

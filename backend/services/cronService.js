@@ -9,6 +9,7 @@ import { generateNotificationMessage } from './geminiService.js';
 import { createNotification } from './notificationService.js';
 import { io } from '../socket/socketHandler.js';
 import { checkAlertTriggers } from './alertService.js';
+import { sendPushToUser } from './pushService.js';
 
 export const startCronJobs = () => {
   // Runs every 10 minutes for proactive alerts
@@ -60,6 +61,8 @@ export const startCronJobs = () => {
               console.log(`[Cron] Emitting deadline_warning to ${roomName} for task "${task.title}"`);
               io.to(roomName).emit('notification:new', notification);
             }
+            // Native OS push notification
+            await sendPushToUser(userId, `⏰ Deadline in 2h: ${task.title}`, message, { tag: `deadline-${task._id}`, url: '/dashboard?tab=tasks' });
           }
         }
 

@@ -178,23 +178,28 @@ export default function CalendarPage({ tasks }) {
     showToast('AI Focus blocks updated in real-time!');
   });
 
-  // Calculate dates of the active week based on offset
+  // Calculate dates of the active week based on offset to center the current day
   const getWeekDates = (offset) => {
     const now = new Date();
-    const currentDay = now.getDay();
-    const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
-    const monday = new Date(now);
-    monday.setDate(now.getDate() + diffToMonday + offset * 7);
-    monday.setHours(0, 0, 0, 0);
+    
+    // The center day of the view
+    const centerDate = new Date(now);
+    centerDate.setDate(now.getDate() + offset * 7);
+    centerDate.setHours(0, 0, 0, 0);
+    
+    // The start date is 3 days BEFORE the center date
+    const startDate = new Date(centerDate);
+    startDate.setDate(centerDate.getDate() - 3);
     
     const dates = [];
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const daysOfWeekList = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     
     for (let i = 0; i < 7; i++) {
-      const d = new Date(monday);
-      d.setDate(monday.getDate() + i);
+      const d = new Date(startDate);
+      d.setDate(startDate.getDate() + i);
       dates.push({
-        dayOfWeek: daysOfWeek[i],
+        dayOfWeek: daysOfWeekList[d.getDay()],
         dateNum: d.getDate(),
         monthLabel: months[d.getMonth()],
         year: d.getFullYear(),
@@ -524,7 +529,7 @@ export default function CalendarPage({ tasks }) {
           <div className="min-w-[600px] lg:min-w-[650px] overflow-y-auto pr-1 flex flex-col">
             
             {/* Main Grid: Days Columns */}
-            <div className="grid grid-cols-[repeat(7,_1fr)] divide-x divide-white/[0.06] bg-[#090909] border border-white/[0.06] rounded-2xl overflow-hidden shadow-inner">
+            <div className="grid grid-cols-7 divide-x divide-white/[0.06] bg-[#090909] border border-white/[0.06] rounded-2xl overflow-hidden shadow-inner">
               {weekDates.map((dayObj, idx) => {
                 const isToday = new Date(dayObj.fullDate).toDateString() === new Date().toDateString();
                 
@@ -690,7 +695,7 @@ export default function CalendarPage({ tasks }) {
                     key={filter.key}
                     type="button"
                     onClick={toggle}
-                    className={`w-full flex items-center justify-between p-3.5 rounded-2xl border transition-all duration-300 cursor-pointer hover:scale-[1.02] ${
+                    className={`w-full flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl border transition-all duration-300 cursor-pointer hover:scale-[1.02] ${
                       checked 
                         ? `bg-white/[0.02] ${filter.borderColor} text-white shadow-lg` 
                         : 'bg-white/[0.01] border-white/5 text-white/70 hover:text-white/80 hover:bg-white/[0.02]'
@@ -704,7 +709,7 @@ export default function CalendarPage({ tasks }) {
                         {filter.label}
                       </span>
                     </span>
-                    <span className={`text-xs sm:text-sm px-2.5 sm:px-3 py-1.5 rounded-lg font-bold tracking-widest shrink-0 transition-all ${checked ? `${filter.bgColor} ${filter.textColor} ${filter.borderColor} border` : 'bg-transparent border border-white/10 text-white/70'}`}>
+                    <span className={`text-xs sm:text-sm px-2.5 sm:px-3 py-1.5 rounded-lg font-bold tracking-widest shrink-0 transition-all ml-auto ${checked ? `${filter.bgColor} ${filter.textColor} ${filter.borderColor} border` : 'bg-transparent border border-white/10 text-white/70'}`}>
                       {checked ? 'SHOW' : 'HIDE'}
                     </span>
                   </button>

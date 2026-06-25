@@ -92,6 +92,7 @@ export const getUserProfile = async (req, res) => {
         voiceInteractionsCount: user.voiceAI?.monthlyCommandsUsed ?? 0,
         voiceInteractionsResetDate: user.voiceAI?.lastResetDate ?? new Date(),
         voiceAI: user.voiceAI,
+        notifications: user.notifications || { webPush: true, phonePush: true, email: true, deadlineAlerts: true },
         createdAt: user.createdAt,
       });
     } else {
