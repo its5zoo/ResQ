@@ -249,6 +249,30 @@ const postProcessResult = async (resultObj, userId, transcript, userContext) => 
     }
   }
 
+  // Intercept Destructive or Modifying Intents
+  const modifyingIntents = ['delete_task', 'edit_task', 'cancel_event', 'reschedule_event', 'delete_habit'];
+  if (modifyingIntents.includes(resultObj.intent)) {
+    const originalIntent = resultObj.intent;
+    const titleOrName = resultObj.extractedData?.title || resultObj.extractedData?.name || 'this item';
+    let actionWord = 'modify';
+    if (originalIntent.includes('delete') || originalIntent.includes('cancel')) actionWord = 'delete';
+    else if (originalIntent.includes('reschedule')) actionWord = 'reschedule';
+    else if (originalIntent.includes('edit')) actionWord = 'update';
+
+    resultObj.intent = 'needs_clarification';
+    resultObj.clarificationQuestion = `Are you sure you want to ${actionWord} '${titleOrName}'?`;
+    resultObj.voiceResponse = resultObj.clarificationQuestion;
+    
+    pendingCommands.set(userId, {
+      originalTranscript: transcript,
+      context: userContext,
+      extractedData: resultObj.extractedData,
+      originalIntent: originalIntent
+    });
+
+    return resultObj;
+  }
+
   // 4. Needs Clarification Caching
   if (resultObj.intent === 'needs_clarification') {
     pendingCommands.set(userId, {
@@ -1086,6 +1110,43 @@ export const resolveClarification = async (userId, followUpTranscript, timezoneC
         intent: 'casual_chat',
         voiceResponse: "Okay, I'll leave it as pending for now.",
         extractedData: {}
+      };
+    }
+  }
+
+  // Handle destructive/modifying intent confirmation
+  const modifyingIntents = ['delete_task', 'edit_task', 'cancel_event', 'reschedule_event', 'delete_habit'];
+  if (modifyingIntents.includes(pending.originalIntent)) {
+    const isAffirmative = cleanFollowUp.includes('yes') || cleanFollowUp.includes('yeah') || cleanFollowUp.includes('yep') || cleanFollowUp.includes('sure') || cleanFollowUp.includes('do it');
+    
+    if (isAffirmative) {
+      let actionDone = 'modified';
+      if (pending.originalIntent.includes('delete') || pending.originalIntent.includes('cancel')) actionDone = 'deleted';
+      else if (pending.originalIntent.includes('reschedule')) actionDone = 'rescheduled';
+      else if (pending.originalIntent.includes('edit')) actionDone = 'updated';
+
+      return {
+        intent: pending.originalIntent,
+        confidence: 1.0,
+        extractedData: pending.extractedData,
+        missingFields: [],
+        clarificationQuestion: null,
+        voiceResponse: `Got it. I've ${actionDone} that for you.`,
+        uiAction: null, // Note: The controller handles emitting socket updates
+        navigationTarget: null,
+        suggestAlternative: null
+      };
+    } else if (cleanFollowUp === 'no' || cleanFollowUp === 'nah' || cleanFollowUp.includes('cancel') || cleanFollowUp.includes('nevermind') || cleanFollowUp === 'no thanks') {
+      return {
+        intent: 'out_of_scope',
+        confidence: 1.0,
+        extractedData: {},
+        missingFields: [],
+        clarificationQuestion: null,
+        voiceResponse: "Okay, I've left it unchanged.",
+        uiAction: null,
+        navigationTarget: null,
+        suggestAlternative: null
       };
     }
   }

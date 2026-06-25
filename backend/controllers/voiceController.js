@@ -82,6 +82,21 @@ export const executeVoiceCommand = async (userId, transcript, timezoneContext = 
       await reprioritizeTasksForUser(userId);
       taskModified = true;
     }
+    else if (intent === 'edit_task') {
+      const taskId = payload.taskId;
+      const titleSearch = payload.title;
+      const updateData = {};
+      if (payload.newTitle) updateData.title = payload.newTitle;
+      if (payload.urgency) updateData.urgency = payload.urgency;
+      
+      if (taskId) {
+        await Task.findOneAndUpdate({ _id: taskId, userId }, updateData);
+      } else if (titleSearch) {
+        await Task.findOneAndUpdate({ title: new RegExp(titleSearch, 'i'), userId }, updateData);
+      }
+      await reprioritizeTasksForUser(userId);
+      taskModified = true;
+    }
     else if (intent === 'delete_task') {
       const taskId = payload.taskId;
       if (taskId) {
@@ -196,6 +211,15 @@ export const executeVoiceCommand = async (userId, transcript, timezoneContext = 
           habitsModified = true;
         }
       }
+    }
+    else if (intent === 'delete_habit') {
+      const habitId = payload.habitId;
+      if (habitId) {
+        await Habit.findOneAndDelete({ _id: habitId, userId });
+      } else if (payload.name) {
+        await Habit.findOneAndDelete({ name: new RegExp(payload.name, 'i'), userId });
+      }
+      habitsModified = true;
     }
     else if (intent === 'create_goal') {
       const targetDate = payload.targetDate ? new Date(payload.targetDate) : new Date(Date.now() + 30 * 86400000); // 30 days from now
