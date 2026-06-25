@@ -1,7 +1,12 @@
 import { Resend } from 'resend';
+import dotenv from 'dotenv';
+dotenv.config();
 
-// Initialize Resend with the provided API key
-const resend = new Resend('re_7b8mErRn_H5owStDaVy4agEp6YpKnRdP4');
+// Initialize Resend using environment variable - never hardcode API keys!
+if (!process.env.RESEND_API_KEY) {
+  throw new Error('RESEND_API_KEY is not set in environment variables');
+}
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 /**
  * Sends a notification email using Resend
