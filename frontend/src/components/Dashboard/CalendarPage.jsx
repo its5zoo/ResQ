@@ -565,19 +565,27 @@ export default function CalendarPage({ tasks }) {
                     <div className="flex-1 p-2.5 flex flex-col gap-4">
 
                       {/* Daily Habits (All-Day equivalent) */}
-                      {layerFilters.habit && dayHabits.length > 0 && (
+                      {layerFilters.habit && localHabits && localHabits.length > 0 && (
                         <div className="flex flex-col gap-2 mb-1">
-                           {dayHabits.map(habit => (
-                             <div key={habit._id} className="w-full rounded-xl border border-purple-500/30 bg-purple-500/10 hover:border-purple-500/50 text-purple-400 p-3 shadow-[0_0_12px_rgba(168,85,247,0.15)] transition-all duration-300 relative overflow-hidden flex items-start gap-2 select-none hover:scale-[1.02]">
-                               <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.8)]"></div>
-                               <div className="flex-1 min-w-0 pl-1.5">
-                                  <h5 className="text-[10px] font-bold uppercase leading-tight tracking-wide break-words text-white mb-1">{habit.name}</h5>
-                                  <span className="text-[10px] opacity-80 font-bold uppercase tracking-wider flex items-center gap-1 text-purple-400">
-                                     🔥 Daily Habit
-                                  </span>
+                           {localHabits.map(habit => {
+                             const isForDay = habit.targetDays && habit.targetDays.includes(dayObj.dayOfWeek);
+                             
+                             if (!isForDay) {
+                               // Placeholder for missing habit on this day to maintain grid alignment
+                               return <div key={`empty-${habit._id}`} className="h-[76px] w-full invisible"></div>;
+                             }
+
+                             return (
+                               <div key={habit._id} className="h-[76px] w-full rounded-xl border border-purple-500/30 bg-purple-500/10 hover:border-purple-500/50 text-purple-400 p-3 shadow-[0_0_12px_rgba(168,85,247,0.15)] transition-all duration-300 relative overflow-hidden flex items-start gap-2 select-none hover:scale-[1.02]">
+                                 <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.8)]"></div>
+                                 <div className="flex-1 min-w-0 pl-1.5 h-full flex flex-col justify-center">
+                                    <h5 className="text-[10px] font-bold uppercase leading-tight tracking-wide break-words text-white line-clamp-3">
+                                      {habit.name}
+                                    </h5>
+                                 </div>
                                </div>
-                             </div>
-                           ))}
+                             );
+                           })}
                         </div>
                       )}
 

@@ -3,7 +3,6 @@ import Navbar from '../components/Landing/Navbar';
 import Hero from '../components/Landing/Hero';
 import FeatureStrip from '../components/Landing/FeatureStrip';
 
-import DashboardPreview from '../components/Landing/DashboardPreview';
 import CoreWorkflowSection from '../components/Landing/CoreWorkflowSection';
 import GoalSystemSection from '../components/Landing/GoalSystemSection';
 import CalendarSection from '../components/Landing/CalendarSection';
@@ -58,7 +57,6 @@ export default function Landing() {
       <FeatureStrip />
       
       {/* New Narrative Flow */}
-      <DashboardPreview />
       <CoreWorkflowSection />
       <GoalSystemSection />
       <CalendarSection />
