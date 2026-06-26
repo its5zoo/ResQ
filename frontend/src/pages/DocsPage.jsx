@@ -41,7 +41,7 @@ export default function DocsPage() {
         <aside className={`
           fixed top-0 left-0 h-full w-72 bg-[#080808]/95 backdrop-blur-xl border-r border-white/5 z-[200]
           transform transition-transform duration-300 ease-in-out
-          lg:translate-x-0 lg:sticky lg:top-24 lg:h-[calc(100vh-6rem)] lg:w-64 lg:bg-transparent lg:border-none lg:z-auto
+          lg:translate-x-0 lg:sticky lg:top-24 lg:h-[calc(100vh-6rem)] lg:w-64 lg:bg-transparent lg:border-none lg:z-auto lg:self-start
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         `}>
           <div className="flex items-center justify-between p-4 lg:hidden border-b border-white/5">
