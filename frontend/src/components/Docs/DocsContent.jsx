@@ -1,13 +1,19 @@
-import { useEffect } from 'react';
+import { useContext, createContext } from 'react';
 import { 
   Info, Lightbulb, AlertTriangle, CheckCircle,
   Mic, Bot, Zap, Sparkles, Target, Flame, Calendar,
   CheckSquare, LayoutDashboard, BookOpen, Shield, Bell
 } from 'lucide-react';
 
+const DocsActiveSectionContext = createContext('');
+
 // ─── Reusable Doc Components ─────────────────────────────────
 
 function SectionHeading({ id, label, icon: Icon, children }) {
+  const activeSection = useContext(DocsActiveSectionContext);
+  if (activeSection && activeSection !== id) {
+    return null;
+  }
   return (
     <section id={id} className="scroll-mt-28 mb-20">
       <div className="flex items-center gap-3 mb-6 pb-4 border-b border-white/8">
@@ -108,37 +114,10 @@ function ExampleBox({ title, children }) {
 
 // ─── Main Content ─────────────────────────────────────────────
 
-export default function DocsContent({ setActiveSection }) {
-
-  useEffect(() => {
-    const sectionIds = [
-      'introduction','getting-started','dashboard','tasks','calendar',
-      'habits','goals','ai-assistant','voice-mode','notifications',
-      'productivity-features','ai-features','best-practices','faq',
-      'troubleshooting','privacy-security'
-    ];
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            setActiveSection(entry.target.id);
-          }
-        });
-      },
-      { rootMargin: '-20% 0px -60% 0px', threshold: 0 }
-    );
-
-    sectionIds.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) observer.observe(el);
-    });
-
-    return () => observer.disconnect();
-  }, [setActiveSection]);
-
+export default function DocsContent({ activeSection }) {
   return (
-    <div className="max-w-3xl mx-auto lg:mx-0">
+    <DocsActiveSectionContext.Provider value={activeSection}>
+      <div className="max-w-3xl mx-auto lg:mx-0">
 
       {/* ── Introduction ── */}
       <SectionHeading id="introduction" label="Overview" icon={BookOpen}>
@@ -861,6 +840,7 @@ export default function DocsContent({ setActiveSection }) {
         <p className="text-xs text-white/20 mt-1">Built with ❤ by the ResQ team</p>
       </div>
 
-    </div>
+      </div>
+    </DocsActiveSectionContext.Provider>
   );
 }

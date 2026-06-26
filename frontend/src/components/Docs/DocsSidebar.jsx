@@ -23,12 +23,13 @@ const sections = [
   { id: 'privacy-security', label: 'Privacy & Security', icon: Shield },
 ];
 
-export default function DocsSidebar({ activeSection, closeMobileSidebar }) {
+export default function DocsSidebar({ activeSection, setActiveSection, closeMobileSidebar }) {
   const handleClick = (id) => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (setActiveSection) {
+      setActiveSection(id);
     }
+    // Scroll window back to top when switching pages/sections
+    window.scrollTo({ top: 0, behavior: 'instant' });
     if (closeMobileSidebar) closeMobileSidebar();
   };
 

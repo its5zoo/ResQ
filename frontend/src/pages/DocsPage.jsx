@@ -51,7 +51,7 @@ export default function DocsPage() {
             </button>
           </div>
           <div className="h-full overflow-y-auto p-4 lg:p-0 scrollbar-hide">
-            <DocsSidebar activeSection={activeSection} closeMobileSidebar={() => setIsSidebarOpen(false)} />
+            <DocsSidebar activeSection={activeSection} setActiveSection={setActiveSection} closeMobileSidebar={() => setIsSidebarOpen(false)} />
           </div>
         </aside>
 
@@ -67,7 +67,7 @@ export default function DocsPage() {
             </button>
           </div>
           
-          <DocsContent setActiveSection={setActiveSection} />
+          <DocsContent activeSection={activeSection} />
         </main>
 
       </div>
