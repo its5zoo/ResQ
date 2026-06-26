@@ -418,6 +418,9 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
           startFocusSession('Deep Work Focus Block', 25);
           setAiResponse("Focus session started. Let's do this.");
           speakBack("Starting your focus session now. Twenty-five minutes on the clock.");
+        } else if (transcript.includes('stop') || transcript.includes('stop session') || transcript.includes('end session') || transcript.includes('stop focus') || transcript.includes('end focus')) {
+          // Immediately end — no confirmation required when using voice
+          handleEndSessionConfirm();
         } else {
           setAwaitingIdleFocusConfirmation(false);
           setAiResponse("No problem. Let me know when you're ready.");
@@ -747,7 +750,8 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
     const mins = parseInt(durationMinutes) || 25;
     setFocusDuration(mins);
     setFocusActive(true);
-    navigate('/dashboard?tab=dashboard');
+    // NOTE: No navigate — overlay renders on top of whatever page the user is on
+    // This prevents the black screen flash that navigate causes
   };
 
   function stopFocusSession() {

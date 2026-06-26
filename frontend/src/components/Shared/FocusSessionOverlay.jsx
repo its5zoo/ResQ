@@ -36,6 +36,9 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
     }, 300);
     // Note: GlobalVoiceAssistant already announces the session start — no duplicate TTS here
 
+    // Block notifications during focus session
+    window.dispatchEvent(new CustomEvent('resq:notifications-block', { detail: { blocked: true } }));
+
     // Block global wake word listeners on mount
     wakeWordEngine.stopBackgroundListener();
     wakeWordEngine.stopCommandListener();
@@ -45,11 +48,13 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
 
     return () => {
       activeRef.current = false;
-      stopBrownNoise();
       
       if (recognitionRef.current) {
         try { recognitionRef.current.abort(); } catch { /* ignore */ }
       }
+
+      // Unblock notifications
+      window.dispatchEvent(new CustomEvent('resq:notifications-block', { detail: { blocked: false } }));
 
       // Restore global wake word listener
       wakeWordEngine.startBackgroundListener();
@@ -97,9 +102,9 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
       } else if (transcript.includes('resume session') || transcript.includes('resume')) {
         setIsPaused(false);
         speakBack("Resuming session.");
-      } else if (transcript.includes('stop session') || transcript.includes('end session') || transcript.includes('stop focus') || transcript.includes('end focus')) {
-        setShowEndConfirmation(true);
-        speakBack("Are you sure you want to end the session? Just say stop session or click End.");
+      } else if (transcript.includes('stop session') || transcript.includes('end session') || transcript.includes('stop focus') || transcript.includes('end focus') || transcript === 'stop') {
+        // Immediately end — no confirmation needed for voice command
+        handleEndSessionConfirm();
       } else if (transcript.includes('time left') || transcript.includes('how much time left') || transcript.includes('remaining time')) {
         const mins = Math.floor(remainingSecondsRef.current / 60);
         const secs = remainingSecondsRef.current % 60;

@@ -26,6 +26,7 @@ export default function DashboardHome({ setCurrentTab }) {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
   const [completingItems, setCompletingItems] = useState([]);
+  const [notificationsBlocked, setNotificationsBlocked] = useState(false);
 
   const fetchDashboardData = async () => {
     try {
@@ -78,14 +79,22 @@ export default function DashboardHome({ setCurrentTab }) {
     fetchDashboardData();
   });
 
-  // Listen to 'notification:new' to show toast
+  // Listen to 'notification:new' to show toast (blocked during focus sessions)
   useSocket('notification:new', (notification) => {
+    if (notificationsBlocked) return;
     console.log('[Socket] notification:new received:', notification);
     setToast(notification);
     setTimeout(() => {
       setToast(null);
     }, 5000);
   });
+
+  // Listen for focus session notification block
+  useEffect(() => {
+    const handleBlock = (e) => setNotificationsBlocked(e.detail?.blocked ?? false);
+    window.addEventListener('resq:notifications-block', handleBlock);
+    return () => window.removeEventListener('resq:notifications-block', handleBlock);
+  }, []);
 
   const handleToggleTask = async (id) => {
     try {

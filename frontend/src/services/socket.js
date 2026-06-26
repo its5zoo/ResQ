@@ -19,7 +19,14 @@ export const socket = io(getSocketUrl(), {
 socket.on('connect', () => console.log('Socket connected:', socket.id));
 socket.on('connect_error', (err) => console.error('Socket error:', err));
 
+let notificationsBlocked = false;
+
+window.addEventListener('resq:notifications-block', (e) => {
+  notificationsBlocked = e.detail?.blocked ?? false;
+});
+
 socket.on('notification:new', (notification) => {
+  if (notificationsBlocked) return; // Block during focus session
   if ('Notification' in window && Notification.permission === 'granted') {
     new Notification('ResQ AI Alert', {
       body: typeof notification === 'string' ? notification : notification.message,
