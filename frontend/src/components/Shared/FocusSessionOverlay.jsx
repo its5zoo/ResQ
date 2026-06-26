@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
-  Play, Pause, X, Coffee, Wind
+  Play, Pause, X, Coffee
 } from 'lucide-react';
 import voicePersonality from '../../services/VoicePersonality.js';
 import { wakeWordEngine } from '../../services/WakeWordEngine.js';
@@ -11,11 +11,7 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
   const [remainingSeconds, setRemainingSeconds] = useState(duration * 60);
   const [totalSeconds, setTotalSeconds] = useState(duration * 60);
   const [showEndConfirmation, setShowEndConfirmation] = useState(false);
-  const [ambientSound, setAmbientSound] = useState('none'); // 'none' | 'brown_noise'
-
   const recognitionRef = useRef(null);
-  const audioCtxRef = useRef(null);
-  const brownNoiseSourceRef = useRef(null);
   
   const activeRef = useRef(true);
   const phaseRef = useRef(phase);
@@ -118,10 +114,6 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
         } else {
           speakBack("You can only skip break during a break phase.");
         }
-      } else if (transcript.includes('turn on focus sounds') || transcript.includes('enable focus sounds') || transcript.includes('turn on ambient sounds')) {
-        handleAmbientSoundMatrixToggle('brown_noise');
-      } else if (transcript.includes('turn off focus sounds') || transcript.includes('disable focus sounds') || transcript.includes('turn off ambient sounds')) {
-        handleAmbientSoundMatrixToggle('none');
       }
     };
 
@@ -282,66 +274,7 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
     });
   };
 
-  // 6. Web Audio Ambient Noise Loop (Lowpass Brown Noise)
-  const handleAmbientSoundMatrixToggle = (soundType) => {
-    if (ambientSound === soundType || soundType === 'none') {
-      setAmbientSound('none');
-      stopBrownNoise();
-      speakBack("Focus sounds deactivated.");
-    } else {
-      setAmbientSound('brown_noise');
-      startBrownNoise();
-      speakBack("Focus sounds activated.");
-    }
-  };
 
-  const startBrownNoise = () => {
-    stopBrownNoise();
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContext) return;
-    try {
-      const ctx = new AudioContext();
-      audioCtxRef.current = ctx;
-      
-      const bufferSize = 2 * ctx.sampleRate;
-      const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-      const output = noiseBuffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) {
-        output[i] = Math.random() * 2 - 1;
-      }
-
-      const source = ctx.createBufferSource();
-      source.buffer = noiseBuffer;
-      source.loop = true;
-
-      const filter = ctx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.value = 500; // Deep rumble focus
-
-      const gain = ctx.createGain();
-      gain.gain.value = 0.12;
-
-      source.connect(filter);
-      filter.connect(gain);
-      gain.connect(ctx.destination);
-
-      source.start(0);
-      brownNoiseSourceRef.current = source;
-    } catch (e) {
-      console.error('[BrownNoise] Failed:', e);
-    }
-  };
-
-  function stopBrownNoise() {
-    if (brownNoiseSourceRef.current) {
-      try { brownNoiseSourceRef.current.stop(); } catch { /* ignore */ }
-      brownNoiseSourceRef.current = null;
-    }
-    if (audioCtxRef.current) {
-      try { audioCtxRef.current.close(); } catch { /* ignore */ }
-      audioCtxRef.current = null;
-    }
-  }
 
   // Format MM:SS
   const formatTime = (totalSecs) => {
