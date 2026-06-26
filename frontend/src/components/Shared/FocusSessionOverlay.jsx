@@ -43,12 +43,15 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
     wakeWordEngine.stopBackgroundListening();
     wakeWordEngine.stopCommandListening();
 
-    // Start local SpeechRecognition
-    startLocalSpeechListener();
+    // Start local SpeechRecognition after a short delay to ensure hardware mic is released
+    const startTimeout = setTimeout(() => {
+      startLocalSpeechListener();
+    }, 400);
 
     return () => {
       activeRef.current = false;
-      
+      clearTimeout(startTimeout);
+
       if (recognitionRef.current) {
         if (typeof recognitionRef.current._stopCleanup === 'function') {
           recognitionRef.current._stopCleanup();
@@ -86,7 +89,10 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
       try {
         recog.start();
         isListening = true;
-      } catch { /* ignore if already started */ }
+      } catch (err) { 
+        // If it throws (e.g. mic not released yet), retry in 500ms
+        setTimeout(startRecog, 500);
+      }
     };
 
     recog.onresult = (e) => {
