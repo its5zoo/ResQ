@@ -36,9 +36,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Docker files
-Dockerfile
-.dockerignore
+# Scripts not needed in production container
+backend/scripts/testEndpoint.mjs
+backend/scripts/testRazorpay.mjs
 
 # OS files
 Thumbs.db

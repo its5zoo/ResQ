@@ -5,20 +5,27 @@ FROM node:20-alpine AS frontend-builder
 
 WORKDIR /app/frontend
 
-# Copy dependency definition files
+# Copy dependency definition files first (layer cache optimization)
 COPY frontend/package*.json ./
 
-# Install frontend dependencies (clean install)
+# Skip Chromium/Puppeteer download (not needed in production build)
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV CI=true
+
+# Install ALL dependencies (devDeps needed for vite build)
 RUN npm ci
 
 # Copy frontend source files
 COPY frontend/ ./
 
-# Set environment variables for build time
+# Set environment variables for build time (can be overridden via --build-arg)
 ARG VITE_API_URL=/api
 ARG VITE_RAZORPAY_KEY_ID=rzp_test_T5qrWwba5KeKww
+ARG VITE_VAPID_PUBLIC_KEY=""
 ENV VITE_API_URL=${VITE_API_URL}
 ENV VITE_RAZORPAY_KEY_ID=${VITE_RAZORPAY_KEY_ID}
+ENV VITE_VAPID_PUBLIC_KEY=${VITE_VAPID_PUBLIC_KEY}
 
 # Build frontend to static assets in /app/frontend/dist
 RUN npm run build
@@ -33,8 +40,8 @@ WORKDIR /app/backend
 # Copy dependency definition files
 COPY backend/package*.json ./
 
-# Install only production dependencies
-RUN npm ci --only=production
+# Install only production dependencies (no devDeps like nodemon)
+RUN npm ci --omit=dev
 
 # ==========================================
 # Stage 3: Final Production Runner
@@ -50,7 +57,7 @@ ENV PORT=8080
 # Create application directories
 RUN mkdir -p /app/backend /app/frontend/dist
 
-# Copy backend dependencies
+# Copy backend production dependencies
 COPY --from=backend-dependencies /app/backend/node_modules ./backend/node_modules
 
 # Copy backend source files
@@ -68,15 +75,14 @@ COPY backend/scripts ./backend/scripts
 # Copy compiled frontend from builder stage
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
-# Set appropriate permissions for the node user
+# Set appropriate file ownership for the non-root node user
 RUN chown -R node:node /app
 
-# Use the non-root 'node' user provided by Node.js base images for enhanced security
+# Run as non-root 'node' user for security
 USER node
 
 # Document the exposed port
 EXPOSE 8080
 
-# Production startup command
-# We run node directly to achieve fast startup times and bypass dev-only hooks
+# Production startup — run node directly, fast cold start
 CMD ["node", "backend/server.js"]

@@ -79,7 +79,7 @@ app.use(cors({
   origin: allowedOrigins,
   credentials: true
 }));
-app.use(morgan('dev'));
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(express.json());
 
 // Make Socket.IO instance accessible in request contexts
@@ -128,20 +128,18 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'ResQ API is running smoothly' });
 });
 
-// Serve frontend static assets in production
+// Serve frontend static assets in production (BEFORE error handler)
 if (process.env.NODE_ENV === 'production') {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
   app.use(express.static(path.join(__dirname, '../frontend/dist')));
-  app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api')) {
-      return next();
-    }
+  // Catch-all for SPA routing — only for non-API routes
+  app.get(/^(?!\/api).*/, (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
   });
 }
 
-// Error handling middleware
+// Error handling middleware (must be last)
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
