@@ -66,12 +66,7 @@ handleSocketEvents(server);
 
 // Global Middlewares
 app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      "media-src": ["'self'", "blob:"],
-    },
-  },
+  contentSecurityPolicy: false, // Disable CSP to allow React inline scripts, Google Translate, and external assets to load without being blocked.
 }));
 app.use(globalLimiter);
 
