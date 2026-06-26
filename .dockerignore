@@ -1,0 +1,53 @@
+# Node modules
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+
+# Build outputs
+frontend/dist/
+dist/
+
+# Git folder and config
+.git/
+.gitignore
+.github/
+
+# IDE configs
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Local environment files
+.env
+.env.local
+.env.*.local
+backend/.env
+frontend/.env
+backend/.env.example
+frontend/.env.example
+
+# NPM logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Docker files
+Dockerfile
+.dockerignore
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Temporary folders
+tmp/
+temp/
+logs/
+cache/
+.gemini/
+.agents/

@@ -3,7 +3,8 @@
  * Registers the Service Worker, subscribes the user, and keeps the subscription synced with the backend.
  */
 
-const VAPID_PUBLIC_KEY = 'BKIR78kw4trsF3OhEWo5s_ffh0euwPrJ8OcUGUq21AgjVW3YWwcz2wHkyCYTtPe7o28xtyjb-O7CoRdCvZUUsuY';
+const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || 'BKIR78kw4trsF3OhEWo5s_ffh0euwPrJ8OcUGUq21AgjVW3YWwcz2wHkyCYTtPe7o28xtyjb-O7CoRdCvZUUsuY';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -52,7 +53,7 @@ export async function initPushNotifications() {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    const response = await fetch('http://localhost:5000/api/push/subscribe', {
+    const response = await fetch(`${API_URL}/push/subscribe`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -86,7 +87,7 @@ export async function unsubscribeFromPush() {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    await fetch('http://localhost:5000/api/push/unsubscribe', {
+    await fetch(`${API_URL}/push/unsubscribe`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',

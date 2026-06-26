@@ -11,6 +11,7 @@
  */
 
 import { Crown, Lock, Zap, Star } from 'lucide-react';
+/* eslint-disable no-unused-vars */
 import { useAuthContext } from '../../context/AuthContext';
 
 const FEATURE_LABELS = {

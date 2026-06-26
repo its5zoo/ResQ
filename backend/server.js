@@ -4,6 +4,9 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import mongoose from 'mongoose';
 
 import connectDB from './config/db.js';
 import { errorHandler } from './middleware/errorHandler.js';
@@ -14,7 +17,7 @@ import { startCronJobs } from './services/cronService.js';
 // Middleware Imports
 import { protect } from './middleware/authMiddleware.js';
 import { checkGeminiKey } from './middleware/geminiCheck.js';
-import { aiVoiceLimiter } from './middleware/rateLimiter.js';
+import { aiVoiceLimiter, globalLimiter } from './middleware/rateLimiter.js';
 
 // Route Imports
 import authRoutes from './routes/auth.js';
@@ -32,6 +35,16 @@ import subscriptionRoutes from './routes/subscription.js';
 
 // Initialize environment variables
 dotenv.config();
+
+// Enforce critical environment variables in production
+if (process.env.NODE_ENV === 'production') {
+  const requiredEnv = ['MONGO_URI', 'JWT_SECRET'];
+  const missingEnv = requiredEnv.filter(env => !process.env[env]);
+  if (missingEnv.length > 0) {
+    console.error(`\x1b[31m[Error] Missing required environment variables in production: ${missingEnv.join(', ')}\x1b[0m`);
+    process.exit(1);
+  }
+}
 
 // Startup check for GEMINI_API_KEY
 const apiKey = process.env.GEMINI_API_KEY;
@@ -53,6 +66,7 @@ handleSocketEvents(server);
 
 // Global Middlewares
 app.use(helmet());
+app.use(globalLimiter);
 
 const allowedOrigins = Array.from(new Set([
   process.env.CLIENT_URL,
@@ -114,11 +128,50 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'ResQ API is running smoothly' });
 });
 
+// Serve frontend static assets in production
+if (process.env.NODE_ENV === 'production') {
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  app.use(express.static(path.join(__dirname, '../frontend/dist')));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      return next();
+    }
+    res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+  });
+}
+
 // Error handling middleware
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-server.listen(PORT, () => {
+// Listen on all network interfaces (0.0.0.0) for Cloud Run compatibility
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server executing in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
 });
+
+// Graceful shutdown support
+const gracefulShutdown = (signal) => {
+  console.log(`Received ${signal}. Shutting down gracefully...`);
+  server.close(async () => {
+    console.log('HTTP server closed.');
+    try {
+      await mongoose.connection.close();
+      console.log('MongoDB connection closed.');
+      process.exit(0);
+    } catch (err) {
+      console.error('Error during MongoDB connection close:', err);
+      process.exit(1);
+    }
+  });
+
+  // Force close container if shutdown takes too long
+  setTimeout(() => {
+    console.error('Could not close connections in time, forcefully shutting down');
+    process.exit(1);
+  }, 10000);
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));

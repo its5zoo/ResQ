@@ -5,7 +5,7 @@ import { subscription as subscriptionApi } from '../services/api';
 import {
   Check, X, Crown, Zap, Star, Shield, ArrowLeft,
   Sparkles, Mic, BarChart3, Brain, Clock, MessageSquare,
-  Target, Infinity, Phone, Mail, AlertCircle, Loader2, CheckCircle2
+  Target, Infinity as InfinityIcon, Phone, Mail, AlertCircle, Loader2, CheckCircle2
 } from 'lucide-react';
 
 // ── Plan definitions ──────────────────────────────────────────────────────────
@@ -353,7 +353,7 @@ function PlanCard({ planKey, plan, onSelectPlan, loading, userStatus }) {
 // ── Main Pricing Page ─────────────────────────────────────────────────────────
 export default function PricingPage() {
   const navigate = useNavigate();
-  const { user, isAuthenticated, isPremiumActive, refreshSubscription } = useAuthContext();
+  const { user, isAuthenticated, refreshSubscription } = useAuthContext();
 
   const [userStatus, setUserStatus] = useState(null);
   const [loadingPlan, setLoadingPlan] = useState(null);
@@ -579,7 +579,7 @@ export default function PricingPage() {
               { icon: Target, label: 'Unlimited Goals', color: 'text-green-400', bg: 'bg-green-400/10' },
               { icon: BarChart3, label: 'Advanced Analytics', color: 'text-cyan-400', bg: 'bg-cyan-400/10' },
               { icon: Sparkles, label: 'Smart Insights', color: 'text-[#E5B842]', bg: 'bg-[#E5B842]/10' },
-              { icon: Infinity, label: 'Future AI Upgrades', color: 'text-white', bg: 'bg-white/10' },
+              { icon: InfinityIcon, label: 'Future AI Upgrades', color: 'text-white', bg: 'bg-white/10' },
             ].map(({ icon: Icon, label, color, bg }) => (
               <div key={label} className="flex items-center gap-3 p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-white/10 transition-colors">
                 <div className={`w-9 h-9 rounded-lg ${bg} flex items-center justify-center shrink-0`}>

@@ -21,6 +21,14 @@ export default function TasksPage({
   const [filter, setFilter] = useState('today');
   const [sortBy, setSortBy] = useState('priorityRank');
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState(null);
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 3500);
+  };
   
   // Voice AI highlighting states
   const [highlightedTaskId, setHighlightedTaskId] = useState(null);
@@ -523,6 +531,18 @@ export default function TasksPage({
         </div>
 
       </div>
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`fixed bottom-20 lg:bottom-6 left-4 right-4 sm:left-auto sm:right-6 sm:w-auto z-50 px-4 sm:px-5 py-3 sm:py-3.5 rounded-2xl border backdrop-blur-md shadow-2xl flex items-center gap-3 animate-fade-in ${
+          toast.type === 'error' 
+            ? 'bg-status-red/10 border-status-red/30 text-status-red' 
+            : 'bg-black/90 border-[#E5B842]/30 text-[#E5B842]'
+        }`}>
+          <CheckCircle2 className="w-4 h-4" />
+          <span className="text-sm font-bold tracking-wide uppercase">{toast.message}</span>
+        </div>
+      )}
 
     </div>
   );

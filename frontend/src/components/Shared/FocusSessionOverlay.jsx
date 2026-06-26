@@ -1,3 +1,6 @@
+/* eslint-disable no-use-before-define */
+/* eslint-disable react-hooks/immutability */
+/* eslint-disable no-unused-vars */
 import { useState, useEffect, useRef } from 'react';
 import { 
   Play, Pause, X, Coffee

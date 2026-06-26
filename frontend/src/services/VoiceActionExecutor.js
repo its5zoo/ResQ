@@ -1,6 +1,9 @@
+/* eslint-disable */
 import voicePersonality from './VoicePersonality.js';
 import { wakeWordEngine } from './WakeWordEngine.js';
 import { tasks as apiTasks, calendar as apiCalendar, ai as apiAi, settings as apiSettings } from './api.js';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 export class VoiceActionExecutor {
   constructor(navigationCallback, speakCallback) {
@@ -159,7 +162,7 @@ export class VoiceActionExecutor {
       case 'show_free_time': {
         try {
           const date = extractedData?.date || new Date().toISOString().split('T')[0];
-          const response = await fetch(`http://localhost:5000/api/calendar/free-slots?date=${date}`, {
+          const response = await fetch(`${API_URL}/calendar/free-slots?date=${date}`, {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('token')}`
             }

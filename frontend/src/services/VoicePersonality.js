@@ -1,3 +1,5 @@
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 class VoicePersonality {
   constructor() {
     this.currentAudio = null;
@@ -17,7 +19,7 @@ class VoicePersonality {
       setTimeout(async () => {
         try {
           const token = localStorage.getItem('token');
-          const response = await fetch('http://localhost:5000/api/voice/tts', {
+          const response = await fetch(`${API_URL}/voice/tts`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -43,7 +45,7 @@ class VoicePersonality {
           this.currentAudio.onended = () => {
             window.dispatchEvent(new CustomEvent('resq:voice-end'));
             if (options.onEnd) {
-              try { options.onEnd(); } catch(e) {}
+              try { options.onEnd(); } catch { /* ignore */ }
             }
             URL.revokeObjectURL(url);
             this.currentAudio = null;

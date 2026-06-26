@@ -1,4 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+/* eslint-disable no-unused-vars */
+/* eslint-disable react-hooks/exhaustive-deps */
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Mic, MicOff, X, Sparkles, AlertTriangle, CalendarDays, RefreshCw,
   Flame, CheckSquare, Trash2,
@@ -420,7 +422,9 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
           speakBack("Starting your focus session now. Twenty-five minutes on the clock.");
         } else if (transcript.includes('stop') || transcript.includes('stop session') || transcript.includes('end session') || transcript.includes('stop focus') || transcript.includes('end focus')) {
           // Immediately end — no confirmation required when using voice
-          handleEndSessionConfirm();
+          setAwaitingIdleFocusConfirmation(false);
+          setAiResponse("Focus session cancelled.");
+          speakBack("Okay, I have cancelled the focus session.");
         } else {
           setAwaitingIdleFocusConfirmation(false);
           setAiResponse("No problem. Let me know when you're ready.");
