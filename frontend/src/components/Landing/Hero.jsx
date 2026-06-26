@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Play } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 export default function Hero() {
   const navigate = useNavigate();
@@ -134,14 +134,6 @@ export default function Hero() {
                 className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl text-sm font-bold tracking-wider uppercase bg-transparent text-white border border-white hover:bg-white hover:text-black shadow-lg shadow-white/5 hover:shadow-white/20 transition-all duration-500 hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 cursor-pointer font-tech active:scale-[0.98]"
               >
                 Get started free <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-              <button 
-                onClick={() => navigate('/dashboard')}
-                className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl text-sm font-bold tracking-wider uppercase border border-white/5 hover:border-white/20 text-white/70 hover:text-white transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer font-tech active:scale-[0.98] group"
-              >
-                <Play className="w-3 h-3 fill-white/10 text-white/60 group-hover:scale-110 group-hover:text-white transition-all" /> 
-                <span className="group-hover:hidden">Watch demo</span>
-                <span className="hidden group-hover:inline">▶ Play Preview</span>
               </button>
             </div>
 

@@ -1,4 +1,4 @@
-import { Mail, MapPin, User, FileText, Compass } from 'lucide-react';
+import { Mail, MapPin, User, FileText, Compass, ChevronRight } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -30,21 +30,48 @@ export default function Footer() {
             <h4 className="text-sm font-tech font-bold uppercase tracking-[0.2em] text-white/50 flex items-center gap-2">
               <Compass className="w-4 h-4 text-white/45" /> Workspace
             </h4>
-            <ul className="space-y-4 text-sm text-white/45 font-medium">
+            <ul className="space-y-3.5 text-sm text-white/45 font-medium">
               <li>
-                <a href="#features" className="hover:text-white transition-colors duration-300">Workspace Hub</a>
+                <a href="/dashboard?tab=dashboard" className="flex items-center gap-1 group hover:text-white transition-all duration-300 hover:translate-x-1">
+                  <ChevronRight className="w-3 h-3 opacity-0 -ml-3 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300 text-[#E5B842]" />
+                  <span>Workspace Hub</span>
+                </a>
               </li>
               <li>
-                <a href="#features" className="hover:text-white transition-colors duration-300">Priority Tasks</a>
+                <a href="/dashboard?tab=tasks" className="flex items-center gap-1 group hover:text-white transition-all duration-300 hover:translate-x-1">
+                  <ChevronRight className="w-3 h-3 opacity-0 -ml-3 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300 text-[#E5B842]" />
+                  <span>Priority Tasks</span>
+                </a>
               </li>
               <li>
-                <a href="#features" className="hover:text-white transition-colors duration-300">Calendar Sync</a>
+                <a href="/dashboard?tab=calendar" className="flex items-center gap-1 group hover:text-white transition-all duration-300 hover:translate-x-1">
+                  <ChevronRight className="w-3 h-3 opacity-0 -ml-3 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300 text-[#E5B842]" />
+                  <span>Calendar Sync</span>
+                </a>
               </li>
               <li>
-                <a href="#features" className="hover:text-white transition-colors duration-300">Strategic Goals</a>
+                <a href="/dashboard?tab=goals" className="flex items-center gap-1 group hover:text-white transition-all duration-300 hover:translate-x-1">
+                  <ChevronRight className="w-3 h-3 opacity-0 -ml-3 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300 text-[#E5B842]" />
+                  <span>Strategic Goals</span>
+                </a>
               </li>
               <li>
-                <a href="#features" className="hover:text-white transition-colors duration-300">Habit Streaks</a>
+                <a href="/dashboard?tab=habits" className="flex items-center gap-1 group hover:text-white transition-all duration-300 hover:translate-x-1">
+                  <ChevronRight className="w-3 h-3 opacity-0 -ml-3 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300 text-[#E5B842]" />
+                  <span>Habit Streaks</span>
+                </a>
+              </li>
+              <li>
+                <a href="/dashboard?tab=focus" className="flex items-center gap-1 group hover:text-white transition-all duration-300 hover:translate-x-1">
+                  <ChevronRight className="w-3 h-3 opacity-0 -ml-3 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300 text-[#E5B842]" />
+                  <span>Focus Session</span>
+                </a>
+              </li>
+              <li>
+                <a href="/dashboard?tab=voice" className="flex items-center gap-1 group hover:text-white transition-all duration-300 hover:translate-x-1">
+                  <ChevronRight className="w-3 h-3 opacity-0 -ml-3 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300 text-[#E5B842]" />
+                  <span>Voice AI Assistant</span>
+                </a>
               </li>
             </ul>
           </div>
@@ -54,12 +81,49 @@ export default function Footer() {
             <h4 className="text-sm font-tech font-bold uppercase tracking-[0.2em] text-white/50 flex items-center gap-2">
               <FileText className="w-4 h-4 text-white/45" /> Documentation
             </h4>
-            <ul className="space-y-4 text-sm text-white/35 font-medium">
-              <li className="cursor-not-allowed hover:text-white/45 transition-colors duration-300">Getting Started</li>
-              <li className="cursor-not-allowed hover:text-white/45 transition-colors duration-300">AI Priority Engine</li>
-              <li className="cursor-not-allowed hover:text-white/45 transition-colors duration-300">Calendar OAuth</li>
-              <li className="cursor-not-allowed hover:text-white/45 transition-colors duration-300">Voice AI Commands</li>
-              <li className="cursor-not-allowed hover:text-white/45 transition-colors duration-300">Privacy Safeguards</li>
+            <ul className="space-y-3.5 text-sm text-white/35 font-medium">
+              <li>
+                <a href="/docs#introduction" className="flex items-center gap-1 group hover:text-white transition-all duration-300 hover:translate-x-1">
+                  <ChevronRight className="w-3 h-3 opacity-0 -ml-3 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300 text-[#E5B842]" />
+                  <span>Introduction</span>
+                </a>
+              </li>
+              <li>
+                <a href="/docs#getting-started" className="flex items-center gap-1 group hover:text-white transition-all duration-300 hover:translate-x-1">
+                  <ChevronRight className="w-3 h-3 opacity-0 -ml-3 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300 text-[#E5B842]" />
+                  <span>Getting Started</span>
+                </a>
+              </li>
+              <li>
+                <a href="/docs#ai-assistant" className="flex items-center gap-1 group hover:text-white transition-all duration-300 hover:translate-x-1">
+                  <ChevronRight className="w-3 h-3 opacity-0 -ml-3 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300 text-[#E5B842]" />
+                  <span>AI Priority Engine</span>
+                </a>
+              </li>
+              <li>
+                <a href="/docs#voice-mode" className="flex items-center gap-1 group hover:text-white transition-all duration-300 hover:translate-x-1">
+                  <ChevronRight className="w-3 h-3 opacity-0 -ml-3 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300 text-[#E5B842]" />
+                  <span>Voice AI Commands</span>
+                </a>
+              </li>
+              <li>
+                <a href="/docs#productivity-features" className="flex items-center gap-1 group hover:text-white transition-all duration-300 hover:translate-x-1">
+                  <ChevronRight className="w-3 h-3 opacity-0 -ml-3 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300 text-[#E5B842]" />
+                  <span>Productivity Features</span>
+                </a>
+              </li>
+              <li>
+                <a href="/docs#faq" className="flex items-center gap-1 group hover:text-white transition-all duration-300 hover:translate-x-1">
+                  <ChevronRight className="w-3 h-3 opacity-0 -ml-3 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300 text-[#E5B842]" />
+                  <span>Frequently Asked Questions</span>
+                </a>
+              </li>
+              <li>
+                <a href="/docs#privacy-security" className="flex items-center gap-1 group hover:text-white transition-all duration-300 hover:translate-x-1">
+                  <ChevronRight className="w-3 h-3 opacity-0 -ml-3 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300 text-[#E5B842]" />
+                  <span>Privacy Safeguards</span>
+                </a>
+              </li>
             </ul>
           </div>
 
@@ -73,7 +137,7 @@ export default function Footer() {
                 <User className="w-4.5 h-4.5 text-white/70 shrink-0 mt-0.5" />
                 <div>
                   <span className="font-semibold text-white/85 text-[15px]">MD Faizaan Raza Khan</span>
-                  <span className="block text-sm font-tech uppercase tracking-wider text-white/70 mt-1">Lead Developer</span>
+                  <span className="block text-sm font-tech uppercase tracking-wider text-[#E5B842] mt-1">Lead Developer</span>
                 </div>
               </div>
               <div className="flex items-start gap-3 pt-2">
@@ -85,8 +149,10 @@ export default function Footer() {
                 </div>
               </div>
               <div className="flex items-center gap-3 pt-4 border-t border-white/5">
-                <Mail className="w-4.5 h-4.5 text-white/70 shrink-0" />
-                <span className="text-sm text-white/70 tracking-wider">faizaan@giet.edu (Developer Contact)</span>
+                <Mail className="w-4.5 h-4.5 text-[#E5B842] shrink-0" />
+                <a href="mailto:faizaan@giet.edu" className="text-sm text-white/70 tracking-wider hover:text-white transition-colors duration-300">
+                  faizaan@giet.edu <span className="text-white/40 text-xs font-tech font-bold uppercase tracking-widest pl-1">(Developer Contact)</span>
+                </a>
               </div>
             </div>
           </div>

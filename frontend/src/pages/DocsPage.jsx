@@ -6,7 +6,23 @@ import DocsContent from '../components/Docs/DocsContent';
 
 export default function DocsPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState('introduction');
+  const [activeSection, setActiveSection] = useState(() => {
+    const hash = window.location.hash.replace('#', '');
+    return hash || 'introduction';
+  });
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '');
+      if (hash) {
+        setActiveSection(hash);
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    // Execute initially if hash is present
+    handleHashChange();
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   useEffect(() => {
     // Initialize theme from localStorage
