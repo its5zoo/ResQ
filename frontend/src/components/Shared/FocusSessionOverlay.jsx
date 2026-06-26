@@ -451,23 +451,7 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
               </p>
             </div>
 
-            {/* Sound Selector */}
-            <div className="space-y-3.5 bg-white/[0.02] border border-white/[0.03] p-5 rounded-3xl">
-              <span className="text-sm font-tech text-white/45 uppercase tracking-[0.15em] font-black block">Ambient Sound Matrix</span>
-              <div className="flex gap-3 pt-1">
-                <button
-                  onClick={() => handleAmbientSoundMatrixToggle('brown_noise')}
-                  className={`flex-1 p-4 rounded-2xl border text-sm font-tech font-bold uppercase tracking-wider flex flex-col items-center gap-2 transition-all duration-300 cursor-pointer ${
-                    ambientSound === 'brown_noise'
-                      ? 'bg-[#E5B842]/15 border-[#E5B842]/40 text-[#E5B842] shadow-[0_0_15px_rgba(229,184,66,0.1)]'
-                      : 'bg-black/40 border-white/5 text-white/70 hover:text-white hover:border-white/15'
-                  }`}
-                >
-                  <Wind className="w-4.5 h-4.5" />
-                  <span>Brown Noise Rumble</span>
-                </button>
-              </div>
-            </div>
+
 
             {/* Backup buttons */}
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
