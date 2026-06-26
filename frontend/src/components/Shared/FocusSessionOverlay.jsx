@@ -520,13 +520,6 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
           </div>
         )}
 
-        {/* HUD bottom context bar */}
-        <div className="mt-16 w-full max-w-3xl border-t border-white/5 pt-6 flex flex-col items-center gap-2 relative z-10">
-          <span className="text-sm font-tech text-white/50 uppercase tracking-[0.3em]">RESQ SHIELD RADAR</span>
-          <p className="text-sm text-white/35 italic text-center max-w-lg leading-relaxed">
-            "Say 'pause', 'resume', 'how much time left', or just <strong className='text-white/50 not-italic'>stop</strong> to end anytime."
-          </p>
-        </div>
       </div>
 
       <style>{`
