@@ -125,6 +125,12 @@ export default function Navbar() {
             >
               Dashboard
             </Link>
+            <Link 
+              to="/docs" 
+              className="relative px-4 py-2 rounded-full text-[13px] lg:text-sm font-semibold tracking-widest uppercase text-white/60 hover:text-white hover:bg-white/5 transition-all duration-300"
+            >
+              Docs
+            </Link>
           </div>
 
           {/* Right Actions */}
@@ -238,6 +244,14 @@ export default function Navbar() {
                 style={{ minHeight: 'auto' }}
               >
                 Dashboard
+              </Link>
+              <Link
+                to="/docs"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center px-4 py-3.5 rounded-xl text-sm font-bold uppercase tracking-wider text-white/60 hover:text-white hover:bg-white/[0.03] border border-transparent transition-all"
+                style={{ minHeight: 'auto' }}
+              >
+                Docs
               </Link>
             </nav>
 
