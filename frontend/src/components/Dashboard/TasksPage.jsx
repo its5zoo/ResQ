@@ -18,7 +18,7 @@ export default function TasksPage({
   tasks, 
   setTasks 
 }) {
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = useState('today');
   const [sortBy, setSortBy] = useState('priorityRank');
   const [loading, setLoading] = useState(true);
   
@@ -135,7 +135,32 @@ export default function TasksPage({
   }, [fetchTasks]);
 
   // Filtering Logic
+  const isTodayOrPast = (dateStr) => {
+    if (!dateStr) return true; // No date means do it today
+    const d = new Date(dateStr);
+    d.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    return d <= today;
+  };
+
+  const isStrictlyToday = (dateStr) => {
+    if (!dateStr) return false;
+    const d = new Date(dateStr);
+    const today = new Date();
+    return d.getDate() === today.getDate() && 
+           d.getMonth() === today.getMonth() && 
+           d.getFullYear() === today.getFullYear();
+  };
+
   const filteredTasks = (tasks || []).filter((t) => {
+    if (filter === 'today') {
+      if (!t.completed) {
+        return isTodayOrPast(t.dueDate);
+      } else {
+        return isStrictlyToday(t.updatedAt || t.createdAt);
+      }
+    }
     if (filter === 'completed') return t.completed;
     if (filter === 'pending') return !t.completed;
     if (filter === 'critical') return !t.completed && t.urgency >= 9;
@@ -144,10 +169,22 @@ export default function TasksPage({
 
   // Sorting Logic
   const sortedTasks = [...filteredTasks].sort((a, b) => {
+    // 1. Always put completed tasks at the very bottom
+    if (a.completed !== b.completed) {
+      return a.completed ? 1 : -1;
+    }
+
+    // 2. Main sort logic for incomplete tasks
     if (sortBy === 'priorityRank') {
       const rankA = a.aiPriorityRank !== undefined && a.aiPriorityRank !== null ? a.aiPriorityRank : 999;
       const rankB = b.aiPriorityRank !== undefined && b.aiPriorityRank !== null ? b.aiPriorityRank : 999;
       if (rankA !== rankB) return rankA - rankB;
+      
+      // If same priority, newest created comes first (top)
+      const dateA = new Date(a.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || 0).getTime();
+      if (dateB !== dateA) return dateB - dateA;
+      
       return b.urgency - a.urgency;
     }
     if (sortBy === 'urgency') return b.urgency - a.urgency;
@@ -215,6 +252,26 @@ export default function TasksPage({
       if (selectedTask?._id === id) setSelectedTask(null);
     } catch (err) {
       console.error('Error deleting task:', err);
+    }
+  };
+
+  const handleClearOldTasks = async () => {
+    if (!window.confirm("Delete all completed tasks older than 7 days?")) return;
+    
+    try {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      const oldTasks = tasks.filter(t => t.completed && new Date(t.updatedAt || t.createdAt) < sevenDaysAgo);
+      
+      for (const t of oldTasks) {
+        await apiTasks.delete(t._id);
+      }
+      
+      setTasks(prev => prev.filter(t => !oldTasks.find(ot => ot._id === t._id)));
+      showToast(`Cleared ${oldTasks.length} old tasks!`);
+    } catch (err) {
+      console.error('Error clearing old tasks:', err);
     }
   };
 
@@ -314,7 +371,7 @@ export default function TasksPage({
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-white/5 pb-4">
         {/* Filters — horizontal scroll on mobile */}
         <div className="flex gap-2 overflow-x-auto scrollbar-none w-full sm:w-auto pb-1 sm:pb-0">
-          {['all', 'pending', 'completed', 'critical'].map((item) => (
+          {['today', 'all', 'pending', 'completed', 'critical'].map((item) => (
             <button
               key={item}
               onClick={() => setFilter(item)}
@@ -330,8 +387,14 @@ export default function TasksPage({
           ))}
         </div>
 
-        {/* Sort */}
+        {/* Sort and Clear */}
         <div className="flex items-center gap-3">
+          <button 
+            onClick={handleClearOldTasks}
+            className="hidden sm:flex px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 hover:border-red-500/40 rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer transition-colors"
+          >
+            Clear Old
+          </button>
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="w-3.5 h-3.5 text-white/70" />
             <span className="text-sm text-white/70 uppercase font-bold">Sort:</span>

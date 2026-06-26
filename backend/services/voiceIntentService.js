@@ -871,7 +871,7 @@ USE THIS DATA to answer questions like:
 - "What's my schedule for today?" → Summarize todayEvents and urgent tasks in a conversational way
 - "Do I have any habits today?" → Check activeHabits and their targetDays vs today's day
 - "How is my goal going?" → Find the goal in Goals and speak the progress
-- "What are my tasks?" → Speak the top 3-5 incomplete tasks naturally
+- "What are my tasks?" or "What do I have to do today?" → CRITICAL: Users use the word "task" to mean anything on their schedule. You MUST look at Today's calendar events, Incomplete tasks, AND Active habits together. If the task list is empty but there are events/habits, tell them about the events/habits instead of saying the day is empty.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🗂️ CONVERSATION MEMORY (LAST 5 ACTIONS)
