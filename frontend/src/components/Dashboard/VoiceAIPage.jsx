@@ -12,6 +12,13 @@ export default function VoiceAIPage({ setCurrentTab }) {
   ]);
   const [inputText, setInputText] = useState('');
   const recognitionRef = useRef(null);
+  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, isProcessing, isListening]);
 
   const sampleQuestions = [
     { q: "What is due today?" },
@@ -198,6 +205,7 @@ export default function VoiceAIPage({ setCurrentTab }) {
             Listening to your voice...
           </div>
         )}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Bottom control controls */}
