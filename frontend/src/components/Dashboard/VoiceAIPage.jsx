@@ -11,7 +11,6 @@ export default function VoiceAIPage({ setCurrentTab }) {
     { role: 'ai', text: "Hello! I am your ResQ AI companion. Ask me to outline your day, list your critical deadlines, or organize calendar blocks for you." }
   ]);
   const [inputText, setInputText] = useState('');
-  const [textOnlyMode, setTextOnlyMode] = useState(false);
   const recognitionRef = useRef(null);
 
   const sampleQuestions = [
@@ -153,30 +152,11 @@ export default function VoiceAIPage({ setCurrentTab }) {
           </h2>
         </div>
         <div className="flex items-center gap-3">
-          {/* Text-Only Toggle */}
-          <button
-            onClick={() => {
-              setTextOnlyMode(!textOnlyMode);
-              if (!textOnlyMode) {
-                // Switching to text-only mode
-                if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-                setIsMuted(true);
-                if (isListening) toggleListening();
-              }
-            }}
-            className={`px-3 py-1.5 rounded-xl border text-xs font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer flex items-center gap-2 ${
-              textOnlyMode ? 'bg-[#E5B842]/10 border-[#E5B842]/30 text-[#E5B842] shadow-[0_0_10px_rgba(229,184,66,0.1)]' : 'bg-[#0B0B0B] border-white/10 text-white/50 hover:text-white hover:border-white/20'
-            }`}
-          >
-            {textOnlyMode ? 'Text Mode ON' : 'Enable Text Mode'}
-          </button>
-          
           {/* Voice Output Mute Toggle */}
           <button 
             onClick={() => {
               if (!isMuted && 'speechSynthesis' in window) window.speechSynthesis.cancel();
               setIsMuted(!isMuted);
-              if (textOnlyMode && isMuted) setTextOnlyMode(false); // Unmuting means leaving text-only mode
             }}
             className={`p-2.5 rounded-xl border transition-all duration-300 cursor-pointer ${
               isMuted ? 'bg-status-red/10 border-status-red/30 text-status-red hover:bg-status-red/20' : 'bg-[#E5B842]/10 border-[#E5B842]/30 text-[#E5B842] hover:bg-[#E5B842]/20'
@@ -239,30 +219,15 @@ export default function VoiceAIPage({ setCurrentTab }) {
 
         {/* Input area */}
         <div className="flex items-center gap-3">
-          {/* Pulsing Voice Mic */}
-          {!textOnlyMode && (
-            <button 
-              onClick={toggleListening}
-              className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border transition-all duration-300 focus:outline-hidden cursor-pointer ${
-                isListening 
-                  ? 'bg-[#E5B842] border-[#E5B842] text-black shadow-lg shadow-[#E5B842]/20 animate-pulse' 
-                  : 'bg-[#0B0B0B] border-white/10 text-white/50 hover:border-[#E5B842]/30 hover:text-white'
-              }`}
-              title="Toggle speech recording"
-            >
-              {isListening ? <Mic className="w-5 h-5 text-black" /> : <MicOff className="w-5 h-5" />}
-            </button>
-          )}
-
           {/* Text message fallback input */}
           <div className="flex-1 relative flex items-center">
             <input 
               type="text"
-              placeholder={textOnlyMode ? "Type your command or question here..." : "Send instruction message..."}
+              placeholder="Type your command or question here..."
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend(inputText)}
-              className={`w-full bg-[#0B0B0B] border ${textOnlyMode ? 'border-[#E5B842]/20 focus:border-[#E5B842]/60 shadow-inner' : 'border-white/10 hover:border-white/20 focus:border-[#E5B842]/40'} rounded-xl pl-4 pr-12 py-3.5 text-sm text-white focus:outline-hidden transition-all duration-300`}
+              className="w-full bg-[#0B0B0B] border border-[#E5B842]/20 hover:border-[#E5B842]/40 focus:border-[#E5B842]/60 shadow-inner rounded-xl pl-4 pr-12 py-3.5 text-sm text-white focus:outline-hidden transition-all duration-300"
             />
             <button 
               onClick={() => handleSend(inputText)}
