@@ -60,14 +60,6 @@ export default function VoiceAIPage({ setCurrentTab }) {
           speakResponse(result.response);
         }
       }
-      
-      // Handle local navigation if needed
-      if (result && result.navigationTarget && setCurrentTab) {
-        // Let user see the message first, then navigate
-        setTimeout(() => {
-          setCurrentTab(result.navigationTarget.replace('/', ''));
-        }, 1500);
-      }
     } catch (error) {
       console.error('Error sending command:', error);
       setIsProcessing(false);
