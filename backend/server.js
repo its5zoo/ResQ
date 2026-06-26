@@ -65,7 +65,14 @@ const server = http.createServer(app);
 handleSocketEvents(server);
 
 // Global Middlewares
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "media-src": ["'self'", "blob:"],
+    },
+  },
+}));
 app.use(globalLimiter);
 
 const allowedOrigins = Array.from(new Set([
