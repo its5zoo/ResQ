@@ -374,11 +374,6 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
               {phase === 'focus' ? 'COGNITIVE SHIELD ACTIVE' : 'RECOVERY BREAK PERIOD'}
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-tech px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/50 uppercase tracking-wider font-semibold">
-              Hands-Free Mode Active
-            </span>
-          </div>
         </div>
 
         {/* Middle Main Content */}
@@ -492,6 +487,28 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
               >
                 <X className="w-3.5 h-3.5" />
                 <span>End Session</span>
+              </button>
+            </div>
+            
+            {/* Time Adjustment Controls */}
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-2">
+              <button
+                onClick={() => {
+                  setRemainingSeconds(prev => prev + 60);
+                  setTotalSeconds(prev => prev + 60);
+                }}
+                className="px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 text-white/70 hover:text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all active:scale-95 flex items-center gap-1"
+              >
+                +1 Min
+              </button>
+              <button
+                onClick={() => {
+                  setRemainingSeconds(prev => Math.max(0, prev - 60));
+                  setTotalSeconds(prev => Math.max(0, prev - 60));
+                }}
+                className="px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 text-white/70 hover:text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all active:scale-95 flex items-center gap-1"
+              >
+                -1 Min
               </button>
             </div>
           </div>
