@@ -376,6 +376,7 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
       setMicState('listening');
       setTranscript('');
       setChoices([]);
+      setConversationThread([]); // Clear conversation history when newly opened
       const welcome = INSTANT_RESPONSES.wake_acknowledged;
       setAiResponse(welcome);
       // DO NOT speak back "Yes? I'm listening" out loud to allow the user to speak immediately without interruption!
@@ -725,6 +726,8 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
 
   // Wake up assistant
   const triggerWakeUp = () => {
+    setConversationThread([]); // Clear chat on every new session
+    setAiResponse(INSTANT_RESPONSES.wake_acknowledged);
     wakeWordEngine.triggerWakeSequence();
   };
 
