@@ -45,8 +45,8 @@ export default function HabitsSection() {
       <div className="container mx-auto px-4 sm:px-6 max-w-7xl relative">
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
 
-          {/* Left Column: Info */}
-          <div className="space-y-8 order-1">
+          {/* Right Column: Info */}
+          <div className="space-y-8 order-1 lg:order-2">
 
             {/* Badge */}
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 habit-text">
@@ -109,8 +109,8 @@ export default function HabitsSection() {
             </div>
           </div>
 
-          {/* Right Column: Animation */}
-          <div className="order-2 relative habit-img">
+          {/* Left Column: Animation */}
+          <div className="order-2 lg:order-1 relative habit-img">
             {/* Glassmorphic glow layer */}
             <div className="absolute inset-0 bg-gradient-to-br from-[#E5B842]/20 to-transparent rounded-3xl blur-2xl opacity-30" />
 
@@ -121,9 +121,9 @@ export default function HabitsSection() {
               </div>
             </div>
 
-            {/* Floating badge — top-left to mirror the Focus section's top-right badge */}
+            {/* Floating badge — top-right to mirror the outside edge */}
             <div
-              className="absolute -top-6 -left-6 bg-[#0B0B0B] border border-white/10 rounded-2xl p-4 shadow-2xl flex items-center gap-4 animate-bounce-slow"
+              className="absolute -top-6 -right-6 bg-[#0B0B0B] border border-white/10 rounded-2xl p-4 shadow-2xl flex items-center gap-4 animate-bounce-slow"
               style={{ animationDelay: '0.8s' }}
             >
               <div className="w-10 h-10 rounded-full bg-[#E5B842]/10 flex items-center justify-center">
