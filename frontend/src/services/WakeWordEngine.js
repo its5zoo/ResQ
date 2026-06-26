@@ -54,9 +54,20 @@ class WakeWordEngine {
       this.resetIdleTimer();
     };
     this.handleVoiceResponseReceived = () => { this.isProcessingBackend = false; this.resetIdleTimer(); };
+    this.handleNotificationsBlock = (e) => {
+      this.isSuspended = e.detail?.blocked ?? false;
+      if (this.isSuspended) {
+        this.stopBackgroundListening();
+        this.stopCommandListening();
+      } else {
+        this.resetToIdle();
+      }
+    };
+    
     window.addEventListener('resq:voice-start', this.handleVoiceStart);
     window.addEventListener('resq:voice-end', this.handleVoiceEnd);
     window.addEventListener('resq:voice-response-received', this.handleVoiceResponseReceived);
+    window.addEventListener('resq:notifications-block', this.handleNotificationsBlock);
 
     // Wake words for fuzzy matching (excluding dangerous substrings like 'he rescue' or 'a resq')
     this.wakeWords = ["rescue", "resq", "hey resq", "hey rescue", "hey res q", "hey resk", "hey risq", "hey risk", "hey wresq", "hey raceq", "hey race q", "hey req", "hey rec", "hey rex", "hey rack", "hair rescue", "air rescue", "okay resq", "ok resq", "hey risk you", "ok rescue", "hey ask you", "hey rest cue"];
@@ -282,7 +293,7 @@ class WakeWordEngine {
       return;
     }
 
-    if (this.isListening || this.isWoken || !this.isTabVisible) return;
+    if (this.isListening || this.isWoken || !this.isTabVisible || this.isSuspended) return;
     
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
 
@@ -464,6 +475,7 @@ class WakeWordEngine {
       console.warn('ResQ: Voice AI blocked — user not authenticated');
       return;
     }
+    if (this.isSuspended) return;
 
     if (this.commandSilenceTimer) clearTimeout(this.commandSilenceTimer);
     this.latestTranscript = '';
