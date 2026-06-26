@@ -96,15 +96,22 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
       }
 
       // General Commands
-      if (transcript.includes('pause session') || transcript.includes('pause')) {
-        setIsPaused(true);
-        speakBack("Session paused.");
-      } else if (transcript.includes('resume session') || transcript.includes('resume')) {
-        setIsPaused(false);
-        speakBack("Resuming session.");
-      } else if (transcript.includes('stop session') || transcript.includes('end session') || transcript.includes('stop focus') || transcript.includes('end focus') || transcript === 'stop') {
+      // Check stop/end FIRST — before pause — so saying "stop" is never ambiguous
+      if (
+        transcript.includes('stop') ||
+        transcript.includes('end session') ||
+        transcript.includes('end focus') ||
+        transcript.includes('finish session') ||
+        transcript.includes('quit session')
+      ) {
         // Immediately end — no confirmation needed for voice command
         handleEndSessionConfirm();
+      } else if (transcript.includes('pause') && !transcript.includes('stop')) {
+        setIsPaused(true);
+        speakBack("Session paused.");
+      } else if (transcript.includes('resume')) {
+        setIsPaused(false);
+        speakBack("Resuming session.");
       } else if (transcript.includes('time left') || transcript.includes('how much time left') || transcript.includes('remaining time')) {
         const mins = Math.floor(remainingSecondsRef.current / 60);
         const secs = remainingSecondsRef.current % 60;
@@ -460,7 +467,7 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
         <div className="mt-16 w-full max-w-3xl border-t border-white/5 pt-6 flex flex-col items-center gap-2 relative z-10">
           <span className="text-sm font-tech text-white/50 uppercase tracking-[0.3em]">RESQ SHIELD RADAR</span>
           <p className="text-sm text-white/35 italic text-center max-w-lg leading-relaxed">
-            "Direct focus commands: say 'pause', 'resume', 'how much time left', or 'stop session' anytime."
+            "Say 'pause', 'resume', 'how much time left', or just <strong className='text-white/50 not-italic'>stop</strong> to end anytime."
           </p>
         </div>
       </div>
