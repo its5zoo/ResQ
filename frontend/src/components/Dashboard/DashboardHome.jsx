@@ -131,6 +131,15 @@ export default function DashboardHome({ setCurrentTab }) {
 
   const pendingTasks = localTasks.filter(t => !t.completed);
   
+  const pendingTasksToday = pendingTasks.filter(t => {
+    if (!t.dueDate) return true;
+    const d = new Date(t.dueDate);
+    const today = new Date();
+    return d.getDate() === today.getDate() && 
+           d.getMonth() === today.getMonth() && 
+           d.getFullYear() === today.getFullYear();
+  });
+  
   const calculateDailyCompletion = () => {
     const todayStr = new Date().toDateString();
     const now = new Date();
@@ -329,7 +338,7 @@ export default function DashboardHome({ setCurrentTab }) {
           <div className="flex justify-between items-start mb-4">
             <div>
               <span className="text-sm font-bold uppercase tracking-wider text-white/70 block mb-1">Tasks Today</span>
-              <span className="text-2xl font-bold text-white">{pendingTasks.length} Pending</span>
+              <span className="text-2xl font-bold text-white">{pendingTasksToday.length} Pending</span>
             </div>
             <Inbox className="w-6 h-6 text-white/50 group-hover:text-white/70 transition-colors" />
           </div>

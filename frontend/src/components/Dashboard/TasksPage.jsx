@@ -135,13 +135,13 @@ export default function TasksPage({
   }, [fetchTasks]);
 
   // Filtering Logic
-  const isTodayOrPast = (dateStr) => {
+  const isTodayOrNoDate = (dateStr) => {
     if (!dateStr) return true; // No date means do it today
     const d = new Date(dateStr);
-    d.setHours(0, 0, 0, 0);
     const today = new Date();
-    today.setHours(23, 59, 59, 999);
-    return d <= today;
+    return d.getDate() === today.getDate() && 
+           d.getMonth() === today.getMonth() && 
+           d.getFullYear() === today.getFullYear();
   };
 
   const isStrictlyToday = (dateStr) => {
@@ -156,7 +156,7 @@ export default function TasksPage({
   const filteredTasks = (tasks || []).filter((t) => {
     if (filter === 'today') {
       if (!t.completed) {
-        return isTodayOrPast(t.dueDate);
+        return isTodayOrNoDate(t.dueDate);
       } else {
         return isStrictlyToday(t.updatedAt || t.createdAt);
       }
