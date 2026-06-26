@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy - ResQ AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #050505;
+      --card-bg: rgba(10, 10, 10, 0.8);
+      --border: rgba(255, 255, 255, 0.08);
+      --accent: #E5B842;
+      --text: #ffffff;
+      --text-muted: rgba(255, 255, 255, 0.6);
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      line-height: 1.6;
+      padding: 40px 20px;
+    }
+
+    /* Grid background pattern */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+      background-size: 40px 40px;
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 50px;
+    }
+
+    .logo {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      font-size: 32px;
+      letter-spacing: -1px;
+      margin-bottom: 8px;
+    }
+
+    .logo span {
+      color: var(--accent);
+      text-shadow: 0 0 10px rgba(229, 184, 66, 0.3);
+    }
+
+    .title {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      font-size: 28px;
+      margin-bottom: 12px;
+      color: #ffffff;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px border var(--border);
+      border-color: var(--border);
+      backdrop-filter: blur(20px);
+      border-radius: 24px;
+      padding: 40px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    h2 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 20px;
+      margin-top: 32px;
+      margin-bottom: 16px;
+      color: #ffffff;
+      border-left: 3px solid var(--accent);
+      padding-left: 12px;
+    }
+
+    h2:first-of-type {
+      margin-top: 0;
+    }
+
+    p {
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      font-size: 15px;
+      font-weight: 300;
+    }
+
+    ul {
+      margin-bottom: 20px;
+      padding-left: 20px;
+      color: var(--text-muted);
+      font-size: 15px;
+      font-weight: 300;
+    }
+
+    li {
+      margin-bottom: 8px;
+    }
+
+    strong {
+      color: #ffffff;
+      font-weight: 600;
+    }
+
+    .contact-box {
+      margin-top: 40px;
+      padding: 24px;
+      background: rgba(229, 184, 66, 0.04);
+      border: 1px solid rgba(229, 184, 66, 0.15);
+      border-radius: 16px;
+    }
+
+    .contact-box p {
+      margin-bottom: 8px;
+    }
+
+    .contact-box p:last-child {
+      margin-bottom: 0;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div class="logo">Res<span>Q</span></div>
+      <h1 class="title">Privacy Policy</h1>
+      <div class="subtitle">Effective Date: June 26, 2026</div>
+    </header>
+
+    <div class="card">
+      <p>This Privacy Policy explains how ResQ AI ("we", "our", or "us") collects, uses, and protects your personal information when you use our productivity shell application at <strong>https://resq-372226338056.asia-south1.run.app</strong>.</p>
+      
+      <p>We are committed to maintaining the confidentiality and security of your personal data. By accessing or using ResQ, you agree to the collection and use of information in accordance with this policy.</p>
+
+      <h2>1. Information We Collect</h2>
+      <p>To provide our services, we collect the following types of information:</p>
+      <ul>
+        <li><strong>Account Information:</strong> When you register on ResQ, we collect your full name, password, and a valid Gmail address (ending in <em>@gmail.com</em>).</li>
+        <li><strong>Google OAuth Data:</strong> If you choose to log in via Google OAuth or link your Google Calendar, we receive your Google profile information (name and email) and secure OAuth tokens (access token and refresh token) to interact with your Google Calendar.</li>
+        <li><strong>Productivity Data:</strong> We store the tasks, calendar events, habits, and strategic goals that you create in the workspace.</li>
+      </ul>
+
+      <h2>2. How We Use Your Data</h2>
+      <p>Your information is used solely to power the productivity features of ResQ, including:</p>
+      <ul>
+        <li>Authenticating your user session and safeguarding your profile data.</li>
+        <li>Synchronizing and displaying your Google Calendar events inside the Unified Stack.</li>
+        <li>Using Google Gemini AI to analyze your tasks, habits, and goals to generate ranked priority lists and strategic action steps.</li>
+        <li>Delivering push notifications and deadline reminders (if enabled).</li>
+      </ul>
+
+      <h2>3. AI Processing & Google Gemini API</h2>
+      <p>ResQ integrates with the <strong>Google Gemini API</strong> to power its intelligent companion features. To perform priority engine scoring and goal breakdown, relevant text context (like task lists or goal descriptions) is sent securely to Google's API.</p>
+      <p><strong>Note:</strong> We do not share your raw Google OAuth tokens or system credentials with the AI model. Google's API usage terms state that data sent via the API is not used to train Google's public AI models.</p>
+
+      <h2>4. Data Sharing & Third Parties</h2>
+      <p>ResQ does <strong>not</strong> sell, rent, or trade your personal data with third-party advertising networks or external organizations. Your data is strictly used inside ResQ to perform the tasks you request. We only share data with service providers necessary to operate the application (such as MongoDB Atlas for secure database storage and Google Gemini for AI analysis).</p>
+
+      <h2>5. Security of Your Data</h2>
+      <p>We implement industry-standard security measures to protect your personal data:</p>
+      <ul>
+        <li>All data in transit is encrypted using HTTPS/TLS.</li>
+        <li>User passwords are hashed using bcrypt with a strong salt factor before storage. We never store plain-text passwords.</li>
+        <li>OAuth tokens are managed securely and used only to query Google API endpoints on your behalf.</li>
+      </ul>
+
+      <h2>6. Google Calendar Scope & API Usage Disclosure</h2>
+      <p>ResQ's use of information received from Google APIs will adhere to the <a href="https://developers.google.com/terms/api-services-user-data-policy" style="color: var(--accent);" target="_blank">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
+
+      <h2>7. Your Rights & Data Deletion</h2>
+      <p>You have full control over your personal data. You can edit, modify, or delete your tasks and habits at any time inside the app. If you wish to permanently delete your user profile and all associated data from our database, you can do so through the Settings menu inside the dashboard.</p>
+
+      <div class="contact-box">
+        <p><strong>Developer Contact Information:</strong></p>
+        <p>Lead Developer: MD Faizaan Raza Khan</p>
+        <p>Institution: GIET University, Gunupur, Odisha, India</p>
+        <p>Email: <a href="mailto:faizaan@giet.edu" style="color: var(--accent); text-decoration: none;">faizaan@giet.edu</a></p>
+      </div>
+    </div>
+
+    <footer>
+      <p>&copy; 2026 ResQ AI. Built with ❤ by 5zoo.</p>
+    </footer>
+  </div>
+
+</body>
+</html>

@@ -4,7 +4,7 @@ import {
   Hourglass, 
   BellRing, 
   Flame, 
-  Sparkles,
+  Disc,
   CheckCircle2,
   Circle,
   Zap
@@ -74,7 +74,7 @@ export default function FeaturesGrid() {
       )
     },
     {
-      icon: <Sparkles className="w-6 h-6 text-white" />,
+      icon: <Disc className="w-6 h-6 text-white" />,
       title: "Autonomous Task Execution",
       desc: "Let your assistant write response drafts, break complex goals into structured sub-steps, create sub-tasks on the fly, and resolve workflows entirely in the background.",
       renderMockup: () => (

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Key, Mail, User, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Disc, Key, Mail, User, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { auth, google as apiGoogle } from '../services/api.js';
 import { useAuthContext } from '../context/AuthContext.jsx';
 
@@ -218,7 +218,7 @@ export default function AuthPage() {
               <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
             ) : (
               <>
-                <Sparkles className="w-4 h-4 animate-pulse" />
+                <Disc className="w-4 h-4 animate-pulse" />
                 {isRegister ? 'Initialize Account' : 'Decrypt Session'}
               </>
             )}
@@ -249,7 +249,7 @@ export default function AuthPage() {
         </form>
 
         {/* Toggle Form Footer */}
-        <div className="mt-8 border-t border-white/5 pt-5 text-center">
+        <div className="mt-8 border-t border-white/5 pt-5 text-center flex flex-col items-center gap-3">
           <p className="text-sm text-white/70">
             {isRegister ? 'Already registered?' : 'New to ResQ?'}
             <button 
@@ -262,6 +262,23 @@ export default function AuthPage() {
               {isRegister ? 'Sign In' : 'Create Account'}
             </button>
           </p>
+          <div className="pt-2 flex items-center justify-center gap-3">
+            <a 
+              href="/privacy.html" 
+              target="_blank" 
+              className="text-xs text-white/30 hover:text-white/60 font-tech uppercase tracking-wider transition-colors no-underline"
+            >
+              Privacy Policy
+            </a>
+            <span className="text-white/10 text-xs">·</span>
+            <a 
+              href="/terms.html" 
+              target="_blank" 
+              className="text-xs text-white/30 hover:text-white/60 font-tech uppercase tracking-wider transition-colors no-underline"
+            >
+              Terms of Operation
+            </a>
+          </div>
         </div>
 
       </div>

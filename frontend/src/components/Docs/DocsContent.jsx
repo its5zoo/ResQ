@@ -1,7 +1,7 @@
 import { useContext, createContext } from 'react';
 import { 
   Info, Lightbulb, AlertTriangle, CheckCircle,
-  Mic, Bot, Zap, Sparkles, Target, Flame, Calendar,
+  Mic, Bot, Zap, Disc, Target, Flame, Calendar,
   CheckSquare, LayoutDashboard, BookOpen, Shield, Bell
 } from 'lucide-react';
 
@@ -143,7 +143,7 @@ export default function DocsContent({ activeSection }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
           <FeatureCard icon={Bot} title="Conversational AI" desc="Talk to your AI assistant in plain English to manage everything — tasks, events, habits, and goals." />
           <FeatureCard icon={Mic} title="Hands-Free Voice Mode" desc="Operate the entire app with your voice. Start focus sessions, create tasks, and check your schedule without touching your device." />
-          <FeatureCard icon={Sparkles} title="AI Priority Stack" desc="Every morning your AI generates a ranked list of what needs your attention most urgently today." />
+          <FeatureCard icon={Disc} title="AI Priority Stack" desc="Every morning your AI generates a ranked list of what needs your attention most urgently today." />
           <FeatureCard icon={Zap} title="Focus Sessions" desc="Start a timed deep work session with AI-powered hands-free controls, real-time timer, and distraction blocking." />
         </div>
       </SectionHeading>
@@ -448,7 +448,7 @@ export default function DocsContent({ activeSection }) {
             'Smart deadline warnings 24 and 48 hours before due dates',
           ].map((item, i) => (
             <li key={i} className="flex items-start gap-3">
-              <Sparkles className="w-4 h-4 text-[#E5B842] mt-0.5 shrink-0" />
+              <Disc className="w-4 h-4 text-[#E5B842] mt-0.5 shrink-0" />
               <span className="text-sm text-white/70">{item}</span>
             </li>
           ))}
@@ -570,7 +570,7 @@ export default function DocsContent({ activeSection }) {
       </SectionHeading>
 
       {/* ── AI Features ── */}
-      <SectionHeading id="ai-features" label="AI Capabilities" icon={Sparkles}>
+      <SectionHeading id="ai-features" label="AI Capabilities" icon={Disc}>
         <P>This section provides a dedicated breakdown of every AI-powered capability in ResQ, explaining the underlying technology and how each feature improves your productivity.</P>
 
         <div className="space-y-4 mb-8">
@@ -618,7 +618,7 @@ export default function DocsContent({ activeSection }) {
           ].map(({ title, desc }) => (
             <div key={title} className="rounded-xl bg-white/[0.02] border border-white/8 p-5">
               <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="w-4 h-4 text-[#E5B842]" />
+                <Disc className="w-4 h-4 text-[#E5B842]" />
                 <p className="text-sm font-bold text-white">{title}</p>
               </div>
               <p className="text-sm text-white/60 leading-relaxed">{desc}</p>
@@ -837,7 +837,7 @@ export default function DocsContent({ activeSection }) {
       {/* Bottom nav hint */}
       <div className="text-center py-12 border-t border-white/5">
         <p className="text-sm text-white/30">ResQ Documentation · v1.0</p>
-        <p className="text-xs text-white/20 mt-1">Built with ❤ by the ResQ team</p>
+        <p className="text-xs text-white/20 mt-1">Built with ❤ by 5zoo</p>
       </div>
 
       </div>

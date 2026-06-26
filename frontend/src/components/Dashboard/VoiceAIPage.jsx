@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Sparkles, Send, Volume2, VolumeX, MessageSquare } from 'lucide-react';
+import { Disc, Send, Volume2, VolumeX, MessageSquare } from 'lucide-react';
 import { voice as apiVoice } from '../../services/api.js';
 import PremiumGuard from '../Shared/PremiumGuard.jsx';
 
@@ -186,7 +186,7 @@ export default function VoiceAIPage({ setCurrentTab }) {
           >
             {msg.role === 'ai' && (
               <div className="flex items-center gap-1.5 mb-1.5 shrink-0">
-                <Sparkles className="w-3.5 h-3.5 text-[#E5B842]" />
+                <Disc className="w-3.5 h-3.5 text-[#E5B842]" />
                 <span className="text-sm font-bold text-white uppercase font-display">ResQ AI</span>
               </div>
             )}

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terms of Operation - ResQ AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #050505;
+      --card-bg: rgba(10, 10, 10, 0.8);
+      --border: rgba(255, 255, 255, 0.08);
+      --accent: #E5B842;
+      --text: #ffffff;
+      --text-muted: rgba(255, 255, 255, 0.6);
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      line-height: 1.6;
+      padding: 40px 20px;
+    }
+
+    /* Grid background pattern */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+      background-size: 40px 40px;
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 50px;
+    }
+
+    .logo {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      font-size: 32px;
+      letter-spacing: -1px;
+      margin-bottom: 8px;
+    }
+
+    .logo span {
+      color: var(--accent);
+      text-shadow: 0 0 10px rgba(229, 184, 66, 0.3);
+    }
+
+    .title {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      font-size: 28px;
+      margin-bottom: 12px;
+      color: #ffffff;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(20px);
+      border-radius: 24px;
+      padding: 40px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    h2 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 20px;
+      margin-top: 32px;
+      margin-bottom: 16px;
+      color: #ffffff;
+      border-left: 3px solid var(--accent);
+      padding-left: 12px;
+    }
+
+    h2:first-of-type {
+      margin-top: 0;
+    }
+
+    p {
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      font-size: 15px;
+      font-weight: 300;
+    }
+
+    ul {
+      margin-bottom: 20px;
+      padding-left: 20px;
+      color: var(--text-muted);
+      font-size: 15px;
+      font-weight: 300;
+    }
+
+    li {
+      margin-bottom: 8px;
+    }
+
+    strong {
+      color: #ffffff;
+      font-weight: 600;
+    }
+
+    .contact-box {
+      margin-top: 40px;
+      padding: 24px;
+      background: rgba(229, 184, 66, 0.04);
+      border: 1px solid rgba(229, 184, 66, 0.15);
+      border-radius: 16px;
+    }
+
+    .contact-box p {
+      margin-bottom: 8px;
+    }
+
+    .contact-box p:last-child {
+      margin-bottom: 0;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div class="logo">Res<span>Q</span></div>
+      <h1 class="title">Terms of Operation</h1>
+      <div class="subtitle">Effective Date: June 26, 2026</div>
+    </header>
+
+    <div class="card">
+      <p>Welcome to ResQ AI. These Terms of Operation ("Terms") govern your access to and use of our productivity shell application located at <strong>https://resq-372226338056.asia-south1.run.app</strong>. By creating an account or using ResQ, you agree to comply with and be bound by these Terms.</p>
+      
+      <h2>1. User Account Registration</h2>
+      <p>To use ResQ, you must register for an account using a valid Google email address (ending in <em>@gmail.com</em>). You are solely responsible for:</p>
+      <ul>
+        <li>Maintaining the confidentiality of your account credentials and password.</li>
+        <li>All activities that occur under your account.</li>
+        <li>Notifying the developer immediately of any unauthorized use or security breaches.</li>
+      </ul>
+
+      <h2>2. Scope of Service</h2>
+      <p>ResQ AI is an intelligent productivity workspace that provides:</p>
+      <ul>
+        <li>AI-assisted daily prioritization engines.</li>
+        <li>Two-way synchronization with your Google Calendar events.</li>
+        <li>Strategic habit tracking and milestone planning modules.</li>
+        <li>Hands-free Voice AI companion features for natural language scheduling.</li>
+      </ul>
+      <p>We reserve the right to modify, suspend, or discontinue any feature of the service at any time with or without notice.</p>
+
+      <h2>3. API Integrations & Account Limits</h2>
+      <p>ResQ integrates with third-party service providers to deliver advanced functionality:</p>
+      <ul>
+        <li><strong>Google Calendar API:</strong> By connecting your calendar, you grant ResQ the secure OAuth permissions to read and write events on your behalf.</li>
+        <li><strong>Google Gemini API:</strong> ResQ passes your natural language instructions and task layouts securely to the Gemini API to analyze priorities, generate momentum tips, and parse commands.</li>
+        <li><strong>Free Plan Limits:</strong> Free users receive a limit of 30 voice commands/AI requests per month. A subscription to the Premium plan unlocks unlimited commands.</li>
+      </ul>
+
+      <h2>4. Prohibited Conduct</h2>
+      <p>By using ResQ AI, you agree not to:</p>
+      <ul>
+        <li>Use the application to perform automated scraping, vulnerability probing, or denial-of-service attacks.</li>
+        <li>Decompile, reverse-engineer, or extract the proprietary styling and internal API mechanics of ResQ AI.</li>
+        <li>Upload, input, or transmit malicious code, viruses, or spam payloads via the task inputs or AI voice channels.</li>
+      </ul>
+
+      <h2>5. Intellectual Property Rights</h2>
+      <p>All brand styling, logos, UI designs, specific custom CSS code, vector shapes, and documentation related to ResQ AI are the exclusive intellectual property of the developers. You may not copy, replicate, or reuse these assets for commercial use without express permission.</p>
+
+      <h2>6. Disclaimer of Warranties</h2>
+      <p>ResQ AI is provided on an "as is" and "as available" basis. We make no warranty that the platform will be 100% error-free, uninterrupted, or that synchronization with third-party APIs (like Google Calendar) will always operate without delays. Use the software at your own discretion.</p>
+
+      <h2>7. Limitation of Liability</h2>
+      <p>In no event shall ResQ AI, its developers, or affiliates be liable for any indirect, incidental, or consequential damages (including data loss, missed deadlines, or calendar synchronization issues) arising from your use of the application.</p>
+
+      <h2>8. Account Termination & Data Deletion</h2>
+      <p>You can stop using the service and delete your account at any time. ResQ AI provides a "Delete Account" button within the Settings menu that permanently purges your user profile, tasks, habits, and Google OAuth tokens from our databases. We also reserve the right to suspend accounts that violate these Terms.</p>
+
+      <div class="contact-box">
+        <p><strong>Developer Contact Information:</strong></p>
+        <p>Lead Developer: MD Faizaan Raza Khan</p>
+        <p>Institution: GIET University, Gunupur, Odisha, India</p>
+        <p>Email: <a href="mailto:faizaan@giet.edu" style="color: var(--accent); text-decoration: none;">faizaan@giet.edu</a></p>
+      </div>
+    </div>
+
+    <footer>
+      <p>&copy; 2026 ResQ AI. Built with ❤ by 5zoo.</p>
+    </footer>
+  </div>
+
+</body>
+</html>

@@ -6,7 +6,6 @@ import {
   SlidersHorizontal, 
   CheckCircle2, 
   Circle, 
-  Sparkles, 
   X,
   PlusCircle,
   ChevronDown

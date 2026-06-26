@@ -97,8 +97,8 @@ export default function Footer() {
         <div className="pt-8 lg:pt-10 flex flex-col sm:flex-row items-center justify-between gap-4 lg:gap-6 text-sm text-white/60 font-light tracking-wider uppercase font-tech text-center">
           <p>&copy; {new Date().getFullYear()} ResQ AI. All rights reserved.</p>
           <div className="flex gap-6 lg:gap-8">
-            <span className="hover:text-white/50 transition-colors cursor-pointer duration-300">Privacy Protocol</span>
-            <span className="hover:text-white/50 transition-colors cursor-pointer duration-300">Terms of Operation</span>
+            <a href="/privacy.html" target="_blank" className="hover:text-white/50 transition-colors cursor-pointer duration-300 no-underline">Privacy Policy</a>
+            <a href="/terms.html" target="_blank" className="hover:text-white/50 transition-colors cursor-pointer duration-300 no-underline">Terms of Operation</a>
           </div>
         </div>
 

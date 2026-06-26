@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Target, Plus, Sparkles, CheckSquare, Calendar, Trash2, X } from 'lucide-react';
+import { Target, Plus, Disc, CheckSquare, Calendar, Trash2, X } from 'lucide-react';
 import { goals as apiGoals } from '../../services/api.js';
 import CustomDatePicker from '../Shared/CustomDatePicker.jsx';
 
@@ -229,7 +229,7 @@ export default function GoalsPage() {
         <div className="space-y-4 pt-4 border-t border-white/5">
           <div className="animate-fade-in-up space-y-3">
             <label className="text-sm font-tech font-bold uppercase tracking-wider text-[#E5B842] block mb-2 flex items-center gap-1.5">
-              <Sparkles className="w-3 h-3" /> Step 2: Define your weekly milestones (AI will polish them)
+              <Disc className="w-3 h-3" /> Step 2: Define your weekly milestones (AI will polish them)
             </label>
               
               <div className="space-y-3">
@@ -405,7 +405,7 @@ export default function GoalsPage() {
                 {goal.milestones && goal.milestones.length > 0 && (
                   <div className="p-4 bg-white/[0.01] border border-[#E5B842]/20 rounded-2xl relative overflow-hidden card-shine-sweep mt-4">
                     <div className="flex items-center gap-1.5 mb-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-[#E5B842]" />
+                      <Disc className="w-3.5 h-3.5 text-[#E5B842]" />
                       <span className="text-sm font-bold text-white uppercase tracking-wider font-display">AI Timeline Breakdown</span>
                     </div>
                     <p className="text-sm text-white/80 font-normal leading-relaxed mt-1.5">

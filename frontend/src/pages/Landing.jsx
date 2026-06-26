@@ -4,6 +4,7 @@ import Hero from '../components/Landing/Hero';
 import FeatureStrip from '../components/Landing/FeatureStrip';
 
 import CoreWorkflowSection from '../components/Landing/CoreWorkflowSection';
+import FocusSessionSection from '../components/Landing/FocusSessionSection';
 import GoalSystemSection from '../components/Landing/GoalSystemSection';
 import CalendarSection from '../components/Landing/CalendarSection';
 import VoiceSection from '../components/Landing/VoiceSection';
@@ -63,6 +64,7 @@ export default function Landing() {
       
       {/* Existing Sections */}
       <CoreWorkflowSection />
+      <FocusSessionSection />
       <MobileSection />
       <CTASection />
       <Footer />

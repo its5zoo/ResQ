@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Sparkles, CheckSquare, Square } from 'lucide-react';
+import { Calendar, Disc, CheckSquare, Square } from 'lucide-react';
 
 export default function GoalsAnimation() {
   const [phase, setPhase] = useState('idle');
@@ -68,7 +68,7 @@ export default function GoalsAnimation() {
         style={{ transform: (phase === 'scrolling' || phase === 'result') ? 'translateY(-100%)' : 'translateY(0)' }}
       >
          <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="w-5 h-5 text-[#E5B842]" />
+            <Disc className="w-5 h-5 text-[#E5B842]" />
             <span className="text-sm font-bold uppercase tracking-wider text-white/80">Define New Goal</span>
          </div>
          
@@ -109,7 +109,7 @@ export default function GoalsAnimation() {
            <div className={`px-6 py-3 rounded-xl border font-bold text-xs tracking-widest uppercase transition-all duration-300 flex items-center gap-2 ${phase === 'submitting' ? 'bg-[#E5B842] text-black border-[#E5B842] scale-95 shadow-[0_0_25px_rgba(229,184,66,0.5)]' : 'bg-[#E5B842]/10 text-[#E5B842] border-[#E5B842]/30'}`}>
               {phase === 'submitting' ? (
                  <>
-                    <Sparkles className="w-4 h-4 animate-spin-slow" />
+                    <Disc className="w-4 h-4 animate-spin-slow" />
                     AI is Polishing...
                  </>
               ) : (
@@ -164,7 +164,7 @@ export default function GoalsAnimation() {
             <div className="mt-6 border border-[#E5B842]/30 bg-[#E5B842]/5 rounded-2xl p-4 shadow-inner relative overflow-hidden">
                <div className="absolute top-0 left-0 bottom-0 w-[3px] bg-[#E5B842]"></div>
                <div className="flex items-center gap-2 mb-2 ml-1">
-                 <Sparkles className="w-3.5 h-3.5 text-[#E5B842]" />
+                 <Disc className="w-3.5 h-3.5 text-[#E5B842]" />
                  <span className="text-[10px] font-black uppercase tracking-widest text-[#E5B842]">AI TIMELINE BREAKDOWN</span>
                </div>
                <p className="text-xs text-white/70 leading-relaxed italic ml-1">
