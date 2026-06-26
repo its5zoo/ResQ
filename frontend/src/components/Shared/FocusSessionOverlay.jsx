@@ -40,8 +40,8 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
     window.dispatchEvent(new CustomEvent('resq:notifications-block', { detail: { blocked: true } }));
 
     // Block global wake word listeners on mount
-    wakeWordEngine.stopBackgroundListener();
-    wakeWordEngine.stopCommandListener();
+    wakeWordEngine.stopBackgroundListening();
+    wakeWordEngine.stopCommandListening();
 
     // Start local SpeechRecognition
     startLocalSpeechListener();
@@ -61,7 +61,7 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
       window.dispatchEvent(new CustomEvent('resq:notifications-block', { detail: { blocked: false } }));
 
       // Restore global wake word listener
-      wakeWordEngine.startBackgroundListener();
+      wakeWordEngine.startBackgroundListening();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
