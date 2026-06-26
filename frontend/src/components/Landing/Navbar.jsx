@@ -29,7 +29,7 @@ export default function Navbar() {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
 
-      const sections = ['features', 'voice', 'mobile'];
+      const sections = ['voice', 'mobile'];
       let currentSection = '';
 
       if (window.scrollY < 200) {
@@ -75,19 +75,22 @@ export default function Navbar() {
   };
 
   const navLinks = [
-    { href: '#features', label: 'Features', section: 'features' },
-    { href: '#voice', label: 'How It Works', section: 'voice' },
+    { href: '#voice', label: 'Features', section: 'voice' },
     { href: '#mobile', label: 'Mobile', section: 'mobile' },
   ];
 
   return (
     <>
-      <nav className={`fixed top-0 left-0 w-full z-[100] transition-all duration-500 ${
+      <nav className={`fixed left-1/2 -translate-x-1/2 z-[100] transition-all duration-500 w-full max-w-7xl px-4 sm:px-6 lg:px-8 ${
         scrolled 
-          ? 'py-3 md:py-5 bg-black/80 backdrop-blur-xl border-b border-white/10 shadow-2xl shadow-black/80' 
-          : 'py-4 md:py-7 bg-transparent border-b border-white/[0.03]'
+          ? 'top-4 md:top-6' 
+          : 'top-0'
       }`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+        <div className={`flex items-center justify-between transition-all duration-500 mx-auto ${
+          scrolled
+            ? 'py-3 px-5 md:px-8 bg-[#0a0a0a]/70 backdrop-blur-xl border border-white/10 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.02)]'
+            : 'py-5 md:py-8 bg-transparent border-b border-transparent'
+        }`}>
           
           {/* ResQ Logo */}
           <Link to="/" className="flex items-center group" style={{ minHeight: 'auto' }}>
@@ -104,20 +107,23 @@ export default function Navbar() {
                 key={section}
                 href={href} 
                 onClick={(e) => handleNavClick(e, section)}
-                className={`text-sm font-semibold tracking-wider uppercase transition-all duration-300 ${
+                className={`relative px-4 py-2 rounded-full text-[13px] lg:text-sm font-semibold tracking-widest uppercase transition-all duration-300 group ${
                   activeSection === section 
-                    ? 'text-[#E5B842] scale-105' 
-                    : 'text-white/50 hover:text-[#E5B842]'
+                    ? 'text-[#E5B842] bg-[#E5B842]/10' 
+                    : 'text-white/60 hover:text-white hover:bg-white/5'
                 }`}
               >
                 {label}
+                {activeSection === section && (
+                  <span className="absolute inset-0 rounded-full border border-[#E5B842]/30 pointer-events-none"></span>
+                )}
               </a>
             ))}
             <Link 
-              to="/dashboard" 
-              className="text-sm font-semibold tracking-wider uppercase text-white/70 hover:text-[#E5B842] transition-colors duration-300"
+              to={isAuthenticated ? "/dashboard" : "/auth"} 
+              className="relative px-4 py-2 rounded-full text-[13px] lg:text-sm font-semibold tracking-widest uppercase text-white/60 hover:text-white hover:bg-white/5 transition-all duration-300"
             >
-              Workspace
+              Dashboard
             </Link>
           </div>
 
@@ -150,17 +156,18 @@ export default function Navbar() {
               <>
                 <button 
                   onClick={() => navigate('/auth')}
-                  className="hidden md:flex px-4 lg:px-5 py-2 lg:py-2.5 rounded-lg text-sm font-semibold tracking-wider uppercase text-white/60 hover:text-[#E5B842] transition-all duration-300 focus:outline-hidden cursor-pointer"
+                  className="hidden md:flex px-4 lg:px-5 py-2 rounded-full text-[13px] lg:text-sm font-semibold tracking-widest uppercase text-white/60 hover:text-white hover:bg-white/5 transition-all duration-300 focus:outline-hidden cursor-pointer"
                   style={{ minHeight: 'auto' }}
                 >
                   Sign In
                 </button>
                 <button 
                   onClick={() => navigate('/auth')}
-                  className="hidden md:flex px-4 lg:px-6 py-2 lg:py-3 rounded-lg text-sm font-semibold tracking-wider uppercase bg-transparent text-white border border-white/40 hover:border-[#E5B842] hover:text-[#E5B842] transition-all duration-500 hover:-translate-y-0.5 active:translate-y-0 focus:outline-hidden cursor-pointer"
+                  className="hidden md:flex relative group px-6 lg:px-8 py-2.5 rounded-full text-[13px] lg:text-sm font-bold tracking-widest uppercase bg-white text-black transition-all duration-500 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.4)] focus:outline-hidden cursor-pointer overflow-hidden"
                   style={{ minHeight: 'auto' }}
                 >
-                  Get Started
+                  <span className="relative z-10">Get Started</span>
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-r from-gray-100 to-gray-300 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 </button>
               </>
             )}
@@ -225,12 +232,12 @@ export default function Navbar() {
                 </a>
               ))}
               <Link
-                to="/dashboard"
+                to={isAuthenticated ? "/dashboard" : "/auth"}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="flex items-center px-4 py-3.5 rounded-xl text-sm font-bold uppercase tracking-wider text-white/60 hover:text-white hover:bg-white/[0.03] border border-transparent transition-all"
                 style={{ minHeight: 'auto' }}
               >
-                Workspace
+                Dashboard
               </Link>
             </nav>
 

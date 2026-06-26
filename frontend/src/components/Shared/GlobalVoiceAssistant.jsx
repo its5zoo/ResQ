@@ -97,11 +97,13 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
   const navigate = propNavigate || routerNavigate;
   const [isWoken, setIsWoken] = useState(false);
   const [transcript, setTranscript] = useState('');
-  const [aiResponse, setAiResponse] = useState('How can I help you today? Try saying "Hey ResQ" or click one of the quick scenarios.');
+  const [aiResponse, setAiResponse] = useState('How can I help you today? Try saying "Hey ResQ" or click the mic button.');
   const [speechSupported] = useState(!!(window.SpeechRecognition || window.webkitSpeechRecognition));
-  const [micState, setMicState] = useState('idle'); // 'idle' | 'listening' | 'processing' | 'speaking'
+  const [micState, setMicState] = useState('idle');
   const [choices, setChoices] = useState([]);
   const [lastResult, setLastResult] = useState(null);
+  const [conversationThread, setConversationThread] = useState([]); // [{role:'user'|'ai', text:string}]
+  const threadEndRef = useRef(null);
 
   // Proactive Alerts State
   const [proactivePulseType, setProactivePulseType] = useState(null); // 'meeting' | 'deadline' | 'focus' | null
@@ -383,6 +385,11 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
       const { transcript } = e.detail;
       setTranscript(transcript);
 
+      // Add user message to conversation thread immediately
+      if (transcript && !pendingDeadlineTaskIdRef.current && !awaitingIdleFocusConfirmationRef.current) {
+        setConversationThread(prev => [...prev, { role: 'user', text: transcript }].slice(-10));
+      }
+
       // Check if we are awaiting confirmation for a deadline alert
       if (pendingDeadlineTaskIdRef.current) {
         const clean = transcript.toLowerCase();
@@ -462,8 +469,17 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
       };
     }
 
+    const handleTextCommand = (e) => {
+      const { text } = e.detail;
+      if (!text) return;
+      setIsWoken(true);
+      setMicState('processing');
+      sendTranscriptToBackend(text);
+    };
+
     window.addEventListener('resq:awakened', handleAwakened);
     window.addEventListener('resq:command', handleCommand);
+    window.addEventListener('resq:send-text-command', handleTextCommand);
     window.addEventListener('resq:close', handleClose);
     window.addEventListener('resq:interim-transcript', handleInterimTranscript);
     window.addEventListener('resq:start-focus', handleStartFocus);
@@ -476,6 +492,7 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
     return () => {
       window.removeEventListener('resq:awakened', handleAwakened);
       window.removeEventListener('resq:command', handleCommand);
+      window.removeEventListener('resq:send-text-command', handleTextCommand);
       window.removeEventListener('resq:close', handleClose);
       window.removeEventListener('resq:interim-transcript', handleInterimTranscript);
       window.removeEventListener('resq:start-focus', handleStartFocus);
@@ -487,6 +504,13 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Auto-scroll conversation thread to bottom when new messages arrive
+  useEffect(() => {
+    if (threadEndRef.current) {
+      threadEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [conversationThread]);
 
   // Socket listener for voice:response and proactive alerts
   useEffect(() => {
@@ -579,6 +603,11 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
 
     setLastResult(result);
     setAiResponse(result.response);
+    
+    // Add AI response to conversation thread
+    if (result.response) {
+      setConversationThread(prev => [...prev, { role: 'ai', text: result.response }].slice(-10));
+    }
     
     // Delegate all speech and visual actions to VoiceActionExecutor
     await executorRef.current.execute(result);
@@ -706,6 +735,7 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
     setMicState('idle');
     setTranscript('');
     setChoices([]);
+    setConversationThread([]);
   };
 
   // Focus Session Helpers
@@ -964,32 +994,84 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
                 </p>
               </div>
 
-              {/* AI Response Box */}
-              <div className={`transition-all duration-500 transform ${aiResponse ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0 pointer-events-none'}`}>
-                <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5 relative overflow-hidden">
-                  <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#00F0FF]/30 to-transparent"></div>
-                  <div className="flex items-start gap-4">
-                    <div className="w-8 h-8 rounded-xl bg-[#00F0FF]/10 border border-[#00F0FF]/20 flex items-center justify-center shrink-0 mt-0.5">
-                      <Sparkles className="w-4 h-4 text-[#00F0FF]" />
+              {/* Conversation Thread — scrollable chat history */}
+              {conversationThread.length > 0 && (
+                <div className="mb-4 max-h-[220px] overflow-y-auto flex flex-col gap-2 pr-1 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                  {conversationThread.map((msg, i) => (
+                    <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}>
+                      {msg.role === 'ai' && (
+                        <div className="w-6 h-6 rounded-lg bg-[#00F0FF]/10 border border-[#00F0FF]/20 flex items-center justify-center shrink-0 mr-2 mt-0.5">
+                          <Sparkles className="w-3 h-3 text-[#00F0FF]" />
+                        </div>
+                      )}
+                      <div className={`max-w-[80%] px-3 py-2 rounded-2xl text-sm leading-relaxed font-sans ${
+                        msg.role === 'user'
+                          ? 'bg-white/8 border border-white/10 text-white/80 rounded-tr-sm'
+                          : 'bg-[#00F0FF]/6 border border-[#00F0FF]/15 text-white/85 rounded-tl-sm'
+                      }`}>
+                        {msg.text}
+                      </div>
                     </div>
-                    <p className="text-white/85 text-sm leading-relaxed font-sans font-medium tracking-wide flex-1">{aiResponse}</p>
-                  </div>
-                  {actionMeta && (
-                    <div className="flex items-center gap-2 mt-4 pt-4 border-t border-white/5">
-                      <actionMeta.icon className={`w-3.5 h-3.5 ${actionMeta.color}`} />
-                      <span className="text-white/40 text-xs font-tech uppercase tracking-wider">Action:</span>
-                      <span className="text-white/70 text-xs font-tech font-bold uppercase tracking-wider">{actionMeta.label}</span>
-                    </div>
-                  )}
+                  ))}
+                  <div ref={threadEndRef} />
                 </div>
+              )}
+
+              {/* Latest AI Response (always visible) */}
+              {conversationThread.length === 0 && (
+                <div className={`transition-all duration-500 transform mb-4 ${aiResponse ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0 pointer-events-none'}`}>
+                  <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#00F0FF]/30 to-transparent"></div>
+                    <div className="flex items-start gap-4">
+                      <div className="w-8 h-8 rounded-xl bg-[#00F0FF]/10 border border-[#00F0FF]/20 flex items-center justify-center shrink-0 mt-0.5">
+                        <Sparkles className="w-4 h-4 text-[#00F0FF]" />
+                      </div>
+                      <p className="text-white/85 text-sm leading-relaxed font-sans font-medium tracking-wide flex-1">{aiResponse}</p>
+                    </div>
+                    {actionMeta && (
+                      <div className="flex items-center gap-2 mt-4 pt-4 border-t border-white/5">
+                        <actionMeta.icon className={`w-3.5 h-3.5 ${actionMeta.color}`} />
+                        <span className="text-white/40 text-xs font-tech uppercase tracking-wider">Action:</span>
+                        <span className="text-white/70 text-xs font-tech font-bold uppercase tracking-wider">{actionMeta.label}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Action meta badge (when thread is active) */}
+              {conversationThread.length > 0 && actionMeta && (
+                <div className="flex items-center gap-2 mb-3 px-1">
+                  <actionMeta.icon className={`w-3.5 h-3.5 ${actionMeta.color}`} />
+                  <span className="text-white/40 text-xs font-tech uppercase tracking-wider">Last action:</span>
+                  <span className="text-white/70 text-xs font-tech font-bold uppercase tracking-wider">{actionMeta.label}</span>
+                </div>
+              )}
+
+              {/* Text input fallback for typing (mobile/accessibility) */}
+              <div className="flex gap-2 mt-1">
+                <input
+                  type="text"
+                  placeholder="Type a message..."
+                  className="flex-1 bg-white/[0.04] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white/80 placeholder-white/20 outline-none focus:border-[#00F0FF]/40 focus:bg-white/[0.06] transition-all font-sans"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && e.target.value.trim()) {
+                      const text = e.target.value.trim();
+                      e.target.value = '';
+                      setConversationThread(prev => [...prev, { role: 'user', text }].slice(-10));
+                      window.dispatchEvent(new CustomEvent('resq:send-text-command', { detail: { text } }));
+                    }
+                  }}
+                />
               </div>
 
               {/* Bottom hint */}
-              <div className="flex items-center justify-center gap-4 mt-5 text-[10px] font-tech text-white/20 uppercase tracking-widest">
+              <div className="flex items-center justify-center gap-4 mt-4 text-[10px] font-tech text-white/20 uppercase tracking-widest">
                 <span>Alt + V to toggle</span>
                 <span>·</span>
                 <span>Tap outside to close</span>
               </div>
+
 
             </div>
           </div>

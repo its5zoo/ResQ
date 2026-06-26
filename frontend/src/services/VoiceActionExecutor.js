@@ -226,6 +226,67 @@ export class VoiceActionExecutor {
         break;
       }
 
+      case 'rename_task': {
+        try {
+          window.dispatchEvent(new CustomEvent('resq:refetch-tasks'));
+          if (typeof this.navigationCallback === 'function') {
+            this.navigationCallback('tasks');
+          }
+        } catch (e) {
+          console.error('[VoiceActionExecutor] rename_task UI update failed:', e);
+        }
+        break;
+      }
+
+      case 'update_habit': {
+        try {
+          window.dispatchEvent(new CustomEvent('resq:refetch-habits'));
+          if (typeof this.navigationCallback === 'function') {
+            this.navigationCallback('habits');
+          }
+        } catch (e) {
+          console.error('[VoiceActionExecutor] update_habit UI update failed:', e);
+        }
+        break;
+      }
+
+      case 'read_tasks': {
+        // Navigate to tasks so user can see it while AI speaks
+        try {
+          if (typeof this.navigationCallback === 'function') {
+            this.navigationCallback('tasks');
+          }
+        } catch (e) { /* ignore */ }
+        break;
+      }
+
+      case 'read_habits': {
+        try {
+          if (typeof this.navigationCallback === 'function') {
+            this.navigationCallback('habits');
+          }
+        } catch (e) { /* ignore */ }
+        break;
+      }
+
+      case 'read_goals': {
+        try {
+          if (typeof this.navigationCallback === 'function') {
+            this.navigationCallback('goals');
+          }
+        } catch (e) { /* ignore */ }
+        break;
+      }
+
+      case 'read_calendar': {
+        try {
+          if (typeof this.navigationCallback === 'function') {
+            this.navigationCallback('calendar');
+          }
+        } catch (e) { /* ignore */ }
+        break;
+      }
+
       case 'navigate': {
         const target = uiAction?.payload?.target || extractedData?.target;
         if (target) {

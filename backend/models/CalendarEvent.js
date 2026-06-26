@@ -41,6 +41,10 @@ const calendarEventSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  isAllDay: {
+    type: Boolean,
+    default: false
+  },
   notificationsEnabled: {
     type: Boolean,
     default: true

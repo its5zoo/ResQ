@@ -485,22 +485,36 @@ class WakeWordEngine {
       };
 
       recognition.onresult = (event) => {
-        // User Barge-In: If the user speaks while AI is talking, we ONLY cancel the AI's speech 
-        // if they use a wake word or explicit interruption word. This prevents the AI from cutting itself off due to echoes.
+        // User Barge-In: If user speaks while AI is still speaking, wait for the natural pause.
+        // After they start speaking and natural pause detected (via silence timer below), we'll process.
+        // We only cancel AI speech immediately if user uses a direct interruption phrase.
         if (this.isAiSpeaking) {
           const currentTranscript = event.results[event.resultIndex][0].transcript.trim().toLowerCase();
           
           if (currentTranscript.length > 2) {
-             const bargeInWords = [...this.wakeWords, "stop", "cancel", "wait", "hold on", "shut up", "quiet"];
-             const isBargeIn = bargeInWords.some(w => currentTranscript.includes(w));
+             const hardBargeInWords = [...this.wakeWords, "stop", "wait", "hold on", "shut up", "ruk", "bas"];
+             const isHardBargeIn = hardBargeInWords.some(w => currentTranscript.includes(w));
 
-             if (isBargeIn) {
-               console.log('[WakeWordEngine] User barged in explicitly! Canceling AI speech.');
+             if (isHardBargeIn) {
+               console.log('[WakeWordEngine] Explicit barge-in! Canceling AI speech immediately.');
                voicePersonality.cancel();
                this.isAiSpeaking = false;
+               this.latestTranscript = currentTranscript;
              } else {
-               // Ignore anything else as potential echo or background noise
-               return; 
+               // Natural barge-in: user started talking — store what they said but wait for AI to pause naturally
+               // The silence timer below will process after they finish speaking
+               this.latestTranscript = currentTranscript;
+               // Cancel AI speech after a short delay if user is still speaking (500ms grace)
+               if (!this._bargeInTimer) {
+                 this._bargeInTimer = setTimeout(() => {
+                   if (this.latestTranscript && this.isAiSpeaking) {
+                     console.log('[WakeWordEngine] Natural barge-in: user is speaking, stopping AI.');
+                     voicePersonality.cancel();
+                     this.isAiSpeaking = false;
+                   }
+                   this._bargeInTimer = null;
+                 }, 500);
+               }
              }
           } else {
              return; // Ignore very short random noises
@@ -534,17 +548,22 @@ class WakeWordEngine {
         }
 
         if (this.commandSilenceTimer) clearTimeout(this.commandSilenceTimer);
+        if (this._bargeInTimer) { clearTimeout(this._bargeInTimer); this._bargeInTimer = null; }
 
         if (latest.trim()) {
+          // Adaptive silence timer: short responses get 1.5s pause, longer ones get 2.5s
+          const wordCount = latest.trim().split(/\s+/).length;
+          const silenceMs = wordCount <= 3 ? 1500 : wordCount <= 8 ? 2000 : 2500;
+          
           this.commandSilenceTimer = setTimeout(() => {
             // Double-check AI isn't speaking or in cooldown before submitting
             if (this.isAiSpeaking || this.postSpeechCooldown) return;
-            console.log('[WakeWordEngine] 2s speech silence detected, sending turn to backend.');
+            console.log(`[WakeWordEngine] ${silenceMs}ms natural pause detected, sending turn to backend.`);
             if (this.latestTranscript.trim()) {
               this.finalizeConversationTurn(this.latestTranscript);
               this.latestTranscript = '';
             }
-          }, 2000);
+          }, silenceMs);
         }
       };
 

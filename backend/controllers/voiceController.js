@@ -107,6 +107,28 @@ export const executeVoiceCommand = async (userId, transcript, timezoneContext = 
       await reprioritizeTasksForUser(userId);
       taskModified = true;
     }
+    else if (intent === 'rename_task') {
+      const titleSearch = payload.title;
+      const newTitle = payload.newTitle;
+      if (titleSearch && newTitle) {
+        await Task.findOneAndUpdate({ title: new RegExp(titleSearch, 'i'), userId }, { title: newTitle });
+      }
+      await reprioritizeTasksForUser(userId);
+      taskModified = true;
+    }
+    else if (intent === 'read_tasks') {
+      // Read-only: the voice response is already composed by Gemini using the context snapshot
+      // No DB writes needed
+    }
+    else if (intent === 'read_habits') {
+      // Read-only
+    }
+    else if (intent === 'read_goals') {
+      // Read-only
+    }
+    else if (intent === 'read_calendar') {
+      // Read-only
+    }
     else if (intent === 'schedule_event') {
       const start = payload.startTime ? new Date(payload.startTime) : new Date();
       const duration = payload.durationMinutes || 45;
@@ -120,7 +142,8 @@ export const executeVoiceCommand = async (userId, transcript, timezoneContext = 
         type: payload.type || 'ai_block',
         layer: 'default',
         notes: payload.notes || 'Scheduled via ResQ Voice Assistant',
-        aiGenerated: true
+        aiGenerated: true,
+        isAllDay: payload.isAllDay || false
       });
       const savedEvent = await newEvent.save();
       createdEvents.push(savedEvent);
@@ -218,6 +241,17 @@ export const executeVoiceCommand = async (userId, transcript, timezoneContext = 
         await Habit.findOneAndDelete({ _id: habitId, userId });
       } else if (payload.name) {
         await Habit.findOneAndDelete({ name: new RegExp(payload.name, 'i'), userId });
+      }
+      habitsModified = true;
+    }
+    else if (intent === 'update_habit') {
+      const habitId = payload.habitId;
+      const updateData = {};
+      if (payload.targetDays) updateData.targetDays = payload.targetDays;
+      if (payload.name && !habitId) {
+        await Habit.findOneAndUpdate({ name: new RegExp(payload.name, 'i'), userId }, updateData);
+      } else if (habitId) {
+        await Habit.findOneAndUpdate({ _id: habitId, userId }, updateData);
       }
       habitsModified = true;
     }

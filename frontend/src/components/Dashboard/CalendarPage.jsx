@@ -572,16 +572,40 @@ export default function CalendarPage({ tasks }) {
                              
                              if (!isForDay) {
                                // Placeholder for missing habit on this day to maintain grid alignment
-                               return <div key={`empty-${habit._id}`} className="h-[76px] w-full invisible"></div>;
+                               return <div key={`empty-${habit._id}`} className="h-[60px] w-full invisible"></div>;
                              }
 
                              return (
-                               <div key={habit._id} className="h-[76px] w-full rounded-xl border border-purple-500/30 bg-purple-500/10 hover:border-purple-500/50 text-purple-400 p-3 shadow-[0_0_12px_rgba(168,85,247,0.15)] transition-all duration-300 relative overflow-hidden flex items-start gap-2 select-none hover:scale-[1.02]">
-                                 <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.8)]"></div>
-                                 <div className="flex-1 min-w-0 pl-1.5 h-full flex flex-col justify-center">
-                                    <h5 className="text-[10px] font-bold uppercase leading-tight tracking-wide break-words text-white line-clamp-3">
-                                      {habit.name}
-                                    </h5>
+                               <div 
+                                 key={habit._id} 
+                                 className="relative w-full group"
+                                 onContextMenu={(e) => { if ('ontouchstart' in window) e.preventDefault(); }}
+                               >
+                                 <div className="h-[60px] w-full rounded-xl border border-purple-500/30 bg-purple-500/10 group-hover:border-purple-500/50 text-purple-400 p-2.5 shadow-[0_0_12px_rgba(168,85,247,0.15)] transition-all duration-300 relative overflow-hidden flex flex-col justify-center select-none group-hover:scale-[1.02]">
+                                   <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.8)]"></div>
+                                   <div className="pl-1.5 flex flex-col">
+                                      <div className="flex items-center gap-1.5 mb-1 opacity-70">
+                                        <Activity className="w-3 h-3 shrink-0" />
+                                        <span className="text-[9px] font-bold tracking-widest uppercase">HABIT</span>
+                                      </div>
+                                      <h5 className="text-[10px] font-bold uppercase leading-tight tracking-wide break-words text-white line-clamp-1">
+                                        {habit.name}
+                                      </h5>
+                                   </div>
+                                 </div>
+                                 
+                                 {/* Custom Premium Tooltip */}
+                                 <div className="absolute z-[200] left-1/2 -translate-x-1/2 bottom-[110%] mb-1 w-max max-w-[220px] opacity-0 invisible group-hover:opacity-100 group-hover:visible group-active:opacity-100 group-active:visible transition-all duration-300 pointer-events-none scale-95 group-hover:scale-100 group-active:scale-100">
+                                   <div className="bg-[#0f0f13]/95 backdrop-blur-xl border border-purple-500/30 rounded-xl p-3 shadow-[0_10px_40px_rgba(0,0,0,0.9),0_0_20px_rgba(168,85,247,0.15)] relative">
+                                      <div className="flex items-center gap-1.5 mb-2 pb-2 border-b border-white/10">
+                                         <Activity className="w-3.5 h-3.5 text-purple-400" />
+                                         <span className="text-[9px] font-bold tracking-widest uppercase text-purple-400">Habit Details</span>
+                                      </div>
+                                      <div className="text-[11px] font-bold text-white/90 leading-relaxed whitespace-pre-wrap break-words">
+                                         {habit.name}
+                                      </div>
+                                      <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-[1px] w-2.5 h-2.5 bg-[#0f0f13] border-b border-r border-purple-500/30 rotate-45"></div>
+                                   </div>
                                  </div>
                                </div>
                              );
@@ -599,39 +623,67 @@ export default function CalendarPage({ tasks }) {
                                if (!isAiBlock && item.type === 'deadline' && !layerFilters.deadline) return null;
                                if (!isAiBlock && item.type !== 'deadline' && !layerFilters.user_block) return null;
 
+                               const tc = isAiBlock ? "text-[#E5B842]" : item.type === 'deadline' ? "text-[#FF5F5F]" : "text-[#4A9EFF]";
+                               const bc = isAiBlock ? "border-[#E5B842]/30" : item.type === 'deadline' ? "border-[#FF5F5F]/30" : "border-[#4A9EFF]/30";
+                               const eventLabel = isAiBlock ? 'AI Scheduled' : item.type === 'deadline' ? 'Deadline' : 'Synced Event';
+
                                return (
                                  <div 
                                     key={item._id} 
-                                    onClick={() => {
-                                      setModalData({
-                                        _id: item._id,
-                                        title: item.title,
-                                        type: item.type,
-                                        startTime: new Date(item.startTime),
-                                        duration: (new Date(item.endTime).getTime() - new Date(item.startTime).getTime()) / 60000,
-                                        notes: item.notes || '',
-                                        notificationsEnabled: item.notificationsEnabled !== false
-                                      });
-                                      setIsModalOpen(true);
-                                    }} 
-                                    className={`w-full rounded-xl border transition-all duration-300 flex flex-col p-3 relative overflow-hidden select-none hover:shadow-xl hover:scale-[1.02] cursor-pointer ${
-                                    isAiBlock
-                                      ? 'bg-[#E5B842]/10 border-[#E5B842]/25 hover:border-[#E5B842]/45 text-[#E5B842] shadow-[0_0_12px_rgba(229,184,66,0.06)]'
-                                      : item.type === 'deadline'
-                                        ? 'bg-[#FF5F5F]/10 border-[#FF5F5F]/20 hover:border-[#FF5F5F]/40 text-[#FF5F5F] shadow-[0_4px_12px_rgba(255,95,95,0.06)]'
-                                        : 'bg-[#4A9EFF]/10 border-[#4A9EFF]/20 hover:border-[#4A9EFF]/40 text-[#4A9EFF] shadow-[0_4px_12px_rgba(74,158,255,0.06)]'
-                                  } ${item._id === highlightedEventId ? 'animate-event-pulse' : ''}`}>
-                                    <div className={`absolute left-0 top-0 bottom-0 w-[4px] ${isAiBlock ? 'bg-gradient-to-b from-[#E5B842] to-[#FFF2CC]' : item.type === 'deadline' ? 'bg-[#FF5F5F]' : 'bg-[#4A9EFF]'}`}></div>
-                                    <div className="pl-1">
-                                      <div className="flex items-center gap-1.5 mb-1.5 opacity-70">
-                                        <Clock className="w-3 h-3" />
-                                        <span className="text-[10px] font-bold tracking-wider">{new Date(item.startTime).toLocaleTimeString('en-US', {hour: 'numeric', minute:'2-digit', hour12: true})}</span>
+                                    className="relative w-full group"
+                                    onContextMenu={(e) => { if ('ontouchstart' in window) e.preventDefault(); }}
+                                 >
+                                   <div 
+                                      onClick={() => {
+                                        setModalData({
+                                          _id: item._id,
+                                          title: item.title,
+                                          type: item.type,
+                                          startTime: new Date(item.startTime),
+                                          duration: (new Date(item.endTime).getTime() - new Date(item.startTime).getTime()) / 60000,
+                                          notes: item.notes || '',
+                                          notificationsEnabled: item.notificationsEnabled !== false
+                                        });
+                                        setIsModalOpen(true);
+                                      }} 
+                                      className={`w-full rounded-xl border transition-all duration-300 flex flex-col p-3 relative overflow-hidden select-none hover:shadow-xl hover:scale-[1.02] cursor-pointer ${
+                                      isAiBlock
+                                        ? 'bg-[#E5B842]/10 border-[#E5B842]/25 group-hover:border-[#E5B842]/45 text-[#E5B842] shadow-[0_0_12px_rgba(229,184,66,0.06)]'
+                                        : item.type === 'deadline'
+                                          ? 'bg-[#FF5F5F]/10 border-[#FF5F5F]/20 group-hover:border-[#FF5F5F]/40 text-[#FF5F5F] shadow-[0_4px_12px_rgba(255,95,95,0.06)]'
+                                          : 'bg-[#4A9EFF]/10 border-[#4A9EFF]/20 group-hover:border-[#4A9EFF]/40 text-[#4A9EFF] shadow-[0_4px_12px_rgba(74,158,255,0.06)]'
+                                    } ${item._id === highlightedEventId ? 'animate-event-pulse' : ''}`}>
+                                      <div className={`absolute left-0 top-0 bottom-0 w-[4px] ${isAiBlock ? 'bg-gradient-to-b from-[#E5B842] to-[#FFF2CC]' : item.type === 'deadline' ? 'bg-[#FF5F5F]' : 'bg-[#4A9EFF]'}`}></div>
+                                      <div className="pl-1">
+                                        <div className="flex items-center gap-1.5 mb-1.5 opacity-70">
+                                          <Clock className="w-3 h-3" />
+                                          <span className="text-[10px] font-bold tracking-wider">{item.isAllDay ? 'ALL DAY' : new Date(item.startTime).toLocaleTimeString('en-US', {hour: 'numeric', minute:'2-digit', hour12: true})}</span>
+                                        </div>
+                                        <h5 className="text-[10px] font-bold uppercase leading-tight tracking-wide mb-1 break-words">{item.title}</h5>
+                                        <span className="text-[10px] opacity-60 font-semibold uppercase tracking-wider block">
+                                          {isAiBlock ? (item.taskId && (localTasks.find(t => t._id === item.taskId)?.urgency >= 8) ? '🔥 Priority Focus' : '') : item.type === 'deadline' ? '⚠️ Deadline' : '👤 Synced Event'}
+                                        </span>
                                       </div>
-                                      <h5 className="text-[10px] font-bold uppercase leading-tight tracking-wide mb-1 break-words">{item.title}</h5>
-                                      <span className="text-[10px] opacity-60 font-semibold uppercase tracking-wider block">
-                                        {isAiBlock ? (item.taskId && (localTasks.find(t => t._id === item.taskId)?.urgency >= 8) ? '🔥 Priority Focus' : '') : item.type === 'deadline' ? '⚠️ Deadline' : '👤 Synced Event'}
-                                      </span>
-                                    </div>
+                                   </div>
+
+                                   {/* Custom Premium Tooltip */}
+                                   <div className="absolute z-[200] left-1/2 -translate-x-1/2 bottom-[110%] mb-1 w-max max-w-[220px] opacity-0 invisible group-hover:opacity-100 group-hover:visible group-active:opacity-100 group-active:visible transition-all duration-300 pointer-events-none scale-95 group-hover:scale-100 group-active:scale-100">
+                                     <div className={`bg-[#0f0f13]/95 backdrop-blur-xl border ${bc} rounded-xl p-3 shadow-[0_10px_40px_rgba(0,0,0,0.9),0_0_20px_rgba(0,0,0,0.3)] relative`}>
+                                        <div className="flex items-center gap-1.5 mb-2 pb-2 border-b border-white/10">
+                                           <Clock className={`w-3.5 h-3.5 ${tc}`} />
+                                           <span className={`text-[9px] font-bold tracking-widest uppercase ${tc}`}>{eventLabel}</span>
+                                        </div>
+                                        <div className="text-[11px] font-bold text-white/90 leading-relaxed whitespace-pre-wrap break-words">
+                                           {item.title}
+                                        </div>
+                                        {item.notes && (
+                                          <div className="mt-2 pt-2 border-t border-white/5 text-[9px] text-white/60 leading-relaxed">
+                                            {item.notes}
+                                          </div>
+                                        )}
+                                        <div className={`absolute top-full left-1/2 -translate-x-1/2 -mt-[1px] w-2.5 h-2.5 bg-[#0f0f13] border-b border-r ${bc} rotate-45`}></div>
+                                     </div>
+                                   </div>
                                  </div>
                                );
                            })}
