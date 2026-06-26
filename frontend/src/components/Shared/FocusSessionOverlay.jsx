@@ -50,7 +50,11 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
       activeRef.current = false;
       
       if (recognitionRef.current) {
-        try { recognitionRef.current.abort(); } catch { /* ignore */ }
+        if (typeof recognitionRef.current._stopCleanup === 'function') {
+          recognitionRef.current._stopCleanup();
+        } else {
+          try { recognitionRef.current.abort(); } catch { /* ignore */ }
+        }
       }
 
       // Unblock notifications
@@ -62,97 +66,131 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 2. Local speech command listener (always listening, no wake word)
+  // 2. Local speech command listener (always listening, no wake word needed)
   function startLocalSpeechListener() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) return;
 
+    let isListening = false;
+    let restartTimeout = null;
+    let commandCooldown = false; // prevent rapid re-triggering
+
     const recog = new SpeechRecognition();
-    recog.continuous = true;
+    recog.continuous = false; // use false + restart for better reliability
     recog.interimResults = false;
     recog.lang = 'en-US';
+    recog.maxAlternatives = 3; // capture alternative transcriptions too
+
+    const startRecog = () => {
+      if (!activeRef.current || isListening) return;
+      try {
+        recog.start();
+        isListening = true;
+      } catch { /* ignore if already started */ }
+    };
 
     recog.onresult = (e) => {
-      if (!activeRef.current) return;
-      const transcript = e.results[e.results.length - 1][0].transcript.trim().toLowerCase();
-      console.log('[Focus Speech] Command Captured:', transcript);
+      if (!activeRef.current || commandCooldown) return;
 
-      // Awaiting End confirmation
-      if (showEndConfirmationRef.current) {
-        if (
-          transcript.includes('yes') || 
-          transcript.includes('yeah') || 
-          transcript.includes('confirm') || 
-          transcript.includes('do it') || 
-          transcript.includes('stop') || 
-          transcript.includes('end')
-        ) {
-          handleEndSessionConfirm();
-        } else if (transcript.includes('no') || transcript.includes('cancel')) {
-          setShowEndConfirmation(false);
-          speakBack("Confirmation cancelled. Resuming focus.");
+      // Collect all alternatives for best match
+      const alternatives = [];
+      for (let i = 0; i < e.results.length; i++) {
+        for (let j = 0; j < e.results[i].length; j++) {
+          alternatives.push(e.results[i][j].transcript.trim().toLowerCase());
         }
-        return;
       }
+      const transcript = alternatives[0] || '';
+      console.log('[Focus Speech] Heard:', alternatives);
 
-      // General Commands
-      // Check stop/end FIRST — before pause — so saying "stop" is never ambiguous
-      if (
-        transcript.includes('stop') ||
-        transcript.includes('end session') ||
-        transcript.includes('end focus') ||
-        transcript.includes('finish session') ||
-        transcript.includes('quit session')
-      ) {
-        // Immediately end — no confirmation needed for voice command
+      // Helper: check if any alternative matches keywords
+      const matches = (keywords) => alternatives.some(alt => keywords.some(kw => alt.includes(kw)));
+
+      // ─── STOP / END ────────────────────────────────────────────────
+      const stopKeywords = [
+        'stop', 'stp', 'stopp', 'stap', // typo variants speech recog may produce
+        'end', 'end session', 'end focus',
+        'finish', 'finish session', 'done', 'quit', 'exit',
+        'cancel session', 'terminate', 'halt',
+        'band karo', 'ruk', 'ruko', 'band kar'
+      ];
+
+      // ─── PAUSE ────────────────────────────────────────────────────
+      const pauseKeywords = [
+        'pause', 'paws', 'pauz', // speech recog variants
+        'pause session', 'hold', 'hold on',
+        'wait', 'take a break', 'ruk ja', 'rok'
+      ];
+
+      // ─── RESUME / PLAY ────────────────────────────────────────────
+      const resumeKeywords = [
+        'resume', 'rezume', 'resome', // speech recog variants
+        'resume session', 'continue', 'start again',
+        'play', 'go', 'unpause', 'carry on',
+        'shuru', 'chalu', 'dobara shuru'
+      ];
+
+      if (matches(stopKeywords)) {
+        commandCooldown = true;
         handleEndSessionConfirm();
-      } else if (transcript.includes('pause') && !transcript.includes('stop')) {
+      } else if (matches(pauseKeywords)) {
+        commandCooldown = true;
         setIsPaused(true);
-        speakBack("Session paused.");
-      } else if (transcript.includes('resume')) {
+        speakBack('Session paused.');
+        setTimeout(() => { commandCooldown = false; }, 2000);
+      } else if (matches(resumeKeywords)) {
+        commandCooldown = true;
         setIsPaused(false);
-        speakBack("Resuming session.");
-      } else if (transcript.includes('time left') || transcript.includes('how much time left') || transcript.includes('remaining time')) {
+        speakBack('Resuming session.');
+        setTimeout(() => { commandCooldown = false; }, 2000);
+      } else if (matches(['time left', 'how much time', 'remaining', 'kitna time', 'time bata', 'how long'])) {
+        commandCooldown = true;
         const mins = Math.floor(remainingSecondsRef.current / 60);
         const secs = remainingSecondsRef.current % 60;
-        let speakText = `You have ${mins} minutes and ${secs} seconds remaining in this ${phaseRef.current} phase.`;
-        if (mins === 0) {
-          speakText = `You have ${secs} seconds remaining in this ${phaseRef.current} phase.`;
-        }
+        const speakText = mins > 0
+          ? `${mins} minutes and ${secs} seconds remaining.`
+          : `${secs} seconds remaining.`;
         speakBack(speakText);
-      } else if (transcript.includes('skip break') || transcript.includes('skip rest')) {
-        if (phaseRef.current === 'break') {
-          handleSkipBreak();
-        } else {
-          speakBack("You can only skip break during a break phase.");
-        }
+        setTimeout(() => { commandCooldown = false; }, 3000);
       }
     };
 
+    recog.onstart = () => { isListening = true; };
+
     recog.onend = () => {
+      isListening = false;
       if (activeRef.current) {
-        try { recog.start(); } catch { /* ignore */ }
+        // Restart with small delay to avoid rapid cycling
+        restartTimeout = setTimeout(startRecog, 300);
+      }
+    };
+
+    recog.onerror = (e) => {
+      isListening = false;
+      console.warn('[Focus Speech] Error:', e.error);
+      if (activeRef.current && e.error !== 'not-allowed' && e.error !== 'service-not-allowed') {
+        restartTimeout = setTimeout(startRecog, 800);
       }
     };
 
     recognitionRef.current = recog;
-    try { recog.start(); } catch { /* ignore */ }
+    recognitionRef.current._stopCleanup = () => {
+      clearTimeout(restartTimeout);
+      isListening = false;
+      try { recog.abort(); } catch { /* ignore */ }
+    };
+
+    startRecog();
   }
 
-  // Speaks feedback and pauses SpeechRecognition to prevent looping
+  // Simple TTS feedback — does NOT abort recognition (recognition auto-restarts via onend)
   function speakBack(text) {
-    if (recognitionRef.current) {
-      try { recognitionRef.current.abort(); } catch { /* ignore */ }
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.rate = 1.0;
+      utter.pitch = 1.0;
+      window.speechSynthesis.speak(utter);
     }
-
-    voicePersonality.speak(text, {
-      priority: true,
-      onEnd: () => {
-        if (activeRef.current && recognitionRef.current) {
-          try { recognitionRef.current.start(); } catch { /* ignore */ }
-        }
-      }
-    });
   }
 
   // 3. Count Down Timer Loop
