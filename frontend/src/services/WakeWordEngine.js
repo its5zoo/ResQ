@@ -568,9 +568,8 @@ class WakeWordEngine {
       };
 
       recognition.onerror = (event) => {
-        console.warn('[WakeWordEngine] Command listener error:', event.error);
-        if (event.error === 'aborted' || event.error === 'no-speech') {
-           // We're in continuous mode, don't crash, just let the idle timer handle closing
+        if (event.error !== 'aborted' && event.error !== 'no-speech') {
+          console.warn('[WakeWordEngine] Command listener error:', event.error);
         }
       };
 
