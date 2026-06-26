@@ -9,6 +9,7 @@ import CalendarPage from '../components/Dashboard/CalendarPage';
 import GoalsPage from '../components/Dashboard/GoalsPage';
 import HabitsPage from '../components/Dashboard/HabitsPage';
 import VoiceAIPage from '../components/Dashboard/VoiceAIPage';
+import FocusSessionPage from '../components/Dashboard/FocusSessionPage';
 import SettingsPage from '../components/Dashboard/SettingsPage';
 import NotificationsPage from '../components/Dashboard/NotificationsPage';
 import SubscriptionPage from '../components/Dashboard/SubscriptionPage';
@@ -19,7 +20,8 @@ import {
   Settings, 
   X, 
   LogOut,
-  ChevronRight
+  ChevronRight,
+  Zap
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../context/AuthContext.jsx';
@@ -200,6 +202,8 @@ export default function Dashboard({ currentTab: propTab, setCurrentTab: propSetT
         return <HabitsPage />;
       case 'voice':
         return <VoiceAIPage setCurrentTab={setCurrentTab} />;
+      case 'focus':
+        return <FocusSessionPage />;
       case 'notifications':
         return <NotificationsPage />;
       case 'settings':
@@ -212,7 +216,8 @@ export default function Dashboard({ currentTab: propTab, setCurrentTab: propSetT
   };
 
   const moreMenuItems = [
-    { id: 'voice', label: 'Voice AI', icon: Mic },
+    { id: 'focus', label: 'Focus Session', icon: Zap },
+    { id: 'voice', label: 'Command & Ask', icon: Mic },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];

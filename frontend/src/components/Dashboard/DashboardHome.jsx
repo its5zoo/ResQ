@@ -618,33 +618,6 @@ export default function DashboardHome({ setCurrentTab }) {
             </div>
           </div>
 
-          {/* Focus Session Info Card */}
-          <div className="p-5 lg:p-6 bg-[#090909] border border-white/[0.04] rounded-3xl layered-shadow-lg relative overflow-hidden group">
-            <div className="absolute -top-12 -right-12 w-32 h-32 bg-[#E5B842]/10 blur-3xl rounded-full pointer-events-none transition-all duration-700 group-hover:bg-[#E5B842]/20"></div>
-            
-            <h4 className="text-sm font-bold uppercase tracking-wider text-[#E5B842] mb-3 flex items-center gap-2">
-              <Zap className="w-4 h-4" /> Deep Work Mode
-            </h4>
-            
-            <p className="text-sm text-white/70 mb-5 leading-relaxed">
-              Use <strong className="text-white/90 font-medium">Cognitive Shield</strong> to block distractions. Notifications are muted and ambient sounds enhance concentration.
-            </p>
-            
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 text-xs text-white/60">
-                <div className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center shrink-0">
-                  <Mic className="w-3.5 h-3.5 text-white/50" />
-                </div>
-                <span>Say <em className="text-white/80">"Start a 30-min focus session"</em></span>
-              </div>
-              <div className="flex items-center gap-3 text-xs text-white/60">
-                <div className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center shrink-0">
-                  <MousePointerClick className="w-3.5 h-3.5 text-white/50" />
-                </div>
-                <span>Or click <strong className="text-white/80">Focus</strong> on any task</span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

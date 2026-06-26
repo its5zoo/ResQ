@@ -32,6 +32,7 @@ export default function Sidebar({ currentTab, setCurrentTab }) {
     { id: 'goals', name: 'Goals', icon: <Target className="w-4 h-4" /> },
     { id: 'habits', name: 'Habits', icon: <Flame className="w-4 h-4" /> },
     { id: 'voice', name: 'Command & Ask', icon: <Bot className="w-4 h-4" /> },
+    { id: 'focus', name: 'Focus Session', icon: <Zap className="w-4 h-4" /> },
     { id: 'notifications', name: 'Notifications', icon: <Bell className="w-4 h-4" /> },
   ];
 
