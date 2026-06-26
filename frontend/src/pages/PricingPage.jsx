@@ -4,7 +4,7 @@ import { useAuthContext } from '../context/AuthContext';
 import { subscription as subscriptionApi } from '../services/api';
 import {
   Check, X, Crown, Zap, Star, Shield, ArrowLeft,
-  Disc, Mic, BarChart3, Brain, Clock, MessageSquare,
+  Mic, BarChart3, Brain, Clock, MessageSquare,
   Target, Infinity as InfinityIcon, Phone, Mail, AlertCircle, Loader2, CheckCircle2
 } from 'lucide-react';
 
@@ -578,7 +578,7 @@ export default function PricingPage() {
               { icon: Clock, label: 'AI Timeline Generator', color: 'text-orange-400', bg: 'bg-orange-400/10' },
               { icon: Target, label: 'Unlimited Goals', color: 'text-green-400', bg: 'bg-green-400/10' },
               { icon: BarChart3, label: 'Advanced Analytics', color: 'text-cyan-400', bg: 'bg-cyan-400/10' },
-              { icon: Disc, label: 'Smart Insights', color: 'text-[#E5B842]', bg: 'bg-[#E5B842]/10' },
+              { icon: Brain, label: 'Smart Insights', color: 'text-[#E5B842]', bg: 'bg-[#E5B842]/10' },
               { icon: InfinityIcon, label: 'Future AI Upgrades', color: 'text-white', bg: 'bg-white/10' },
             ].map(({ icon: Icon, label, color, bg }) => (
               <div key={label} className="flex items-center gap-3 p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-white/10 transition-colors">

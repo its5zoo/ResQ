@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Disc, CheckSquare, Square } from 'lucide-react';
+import { Calendar, Brain, CheckSquare, Square } from 'lucide-react';
 
 export default function GoalsAnimation() {
   const [phase, setPhase] = useState('idle');
@@ -68,7 +68,7 @@ export default function GoalsAnimation() {
         style={{ transform: (phase === 'scrolling' || phase === 'result') ? 'translateY(-100%)' : 'translateY(0)' }}
       >
          <div className="flex items-center gap-2 mb-2">
-            <Disc className="w-5 h-5 text-[#E5B842]" />
+            <Brain className="w-5 h-5 text-[#E5B842]" />
             <span className="text-sm font-bold uppercase tracking-wider text-white/80">Define New Goal</span>
          </div>
          
@@ -109,7 +109,7 @@ export default function GoalsAnimation() {
            <div className={`px-6 py-3 rounded-xl border font-bold text-xs tracking-widest uppercase transition-all duration-300 flex items-center gap-2 ${phase === 'submitting' ? 'bg-[#E5B842] text-black border-[#E5B842] scale-95 shadow-[0_0_25px_rgba(229,184,66,0.5)]' : 'bg-[#E5B842]/10 text-[#E5B842] border-[#E5B842]/30'}`}>
               {phase === 'submitting' ? (
                  <>
-                    <Disc className="w-4 h-4 animate-spin-slow" />
+                    <Brain className="w-4 h-4 animate-spin-slow" />
                     AI is Polishing...
                  </>
               ) : (
@@ -129,8 +129,8 @@ export default function GoalsAnimation() {
                <div className="px-3 py-1 bg-[#E5B842]/10 border border-[#E5B842]/20 rounded-full text-[#E5B842] text-[10px] font-black uppercase tracking-widest">
                  PERSONAL
                </div>
-               <div className="w-10 h-10 rounded-full border-2 border-[#E5B842]/30 flex items-center justify-center relative shadow-[0_0_15px_rgba(229,184,66,0.15)]">
-                 <span className="text-xs font-bold text-[#E5B842]">25%</span>
+               <div className="w-10 h-10 rounded-xl bg-[#E5B842]/10 border border-[#E5B842]/20 flex items-center justify-center shrink-0">
+                 <Brain className="w-5 h-5 text-[#E5B842]" />
                </div>
             </div>
             
@@ -164,7 +164,9 @@ export default function GoalsAnimation() {
             <div className="mt-6 border border-[#E5B842]/30 bg-[#E5B842]/5 rounded-2xl p-4 shadow-inner relative overflow-hidden">
                <div className="absolute top-0 left-0 bottom-0 w-[3px] bg-[#E5B842]"></div>
                <div className="flex items-center gap-2 mb-2 ml-1">
-                 <Disc className="w-3.5 h-3.5 text-[#E5B842]" />
+                 <div className="w-7 h-7 rounded-lg bg-[#E5B842]/10 border border-[#E5B842]/20 flex items-center justify-center shrink-0">
+                    <Brain className="w-3.5 h-3.5 text-[#E5B842]" />
+                 </div>
                  <span className="text-[10px] font-black uppercase tracking-widest text-[#E5B842]">AI TIMELINE BREAKDOWN</span>
                </div>
                <p className="text-xs text-white/70 leading-relaxed italic ml-1">

@@ -1,4 +1,4 @@
-import { Smartphone, Bell, Flame, Award, Inbox, TrendingUp, AlertTriangle, Disc, Calendar, CheckSquare, Target, MoreHorizontal, LayoutGrid, Zap } from 'lucide-react';
+import { Smartphone, Bell, Flame, Award, Inbox, TrendingUp, AlertTriangle, Brain, Calendar, CheckSquare, Target, MoreHorizontal, LayoutGrid, Zap } from 'lucide-react';
 
 export default function MobileSection() {
   return (
@@ -70,7 +70,7 @@ export default function MobileSection() {
                 {/* AI Priority Advisor */}
                 <div className="bg-white rounded-3xl p-4 border border-slate-200/60 shadow-sm mt-1">
                   <div className="flex items-center gap-2 mb-3">
-                    <Disc className="w-4 h-4 text-[#E5B842]" />
+                    <Brain className="w-4 h-4 text-[#E5B842]" />
                     <span className="text-xs font-bold uppercase tracking-wider text-slate-900">AI Priority Advisor</span>
                   </div>
                   <p className="text-[11px] leading-relaxed text-slate-600 font-medium mb-4">

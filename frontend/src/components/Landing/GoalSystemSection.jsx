@@ -1,4 +1,4 @@
-import { Flag, Milestone, Disc } from 'lucide-react';
+import { Flag, Milestone, Brain } from 'lucide-react';
 import { useRef, useEffect } from 'react';
 import gsap from 'gsap';
 import GoalsAnimation from './GoalsAnimation';
@@ -51,7 +51,7 @@ export default function GoalSystemSection() {
             {/* Floating indicator */}
             <div className="absolute -top-6 -right-6 bg-[#0B0B0B] border border-white/10 rounded-2xl p-4 shadow-2xl flex items-center gap-4 animate-bounce-slow" style={{ animationDelay: '1s' }}>
               <div className="w-10 h-10 rounded-full bg-[#E5B842]/10 flex items-center justify-center">
-                <Disc className="w-5 h-5 text-[#E5B842]" />
+                <Brain className="w-5 h-5 text-[#E5B842]" />
               </div>
               <div>
                 <p className="text-sm font-bold text-[#E5B842] uppercase tracking-widest mb-0.5">AI Polished</p>

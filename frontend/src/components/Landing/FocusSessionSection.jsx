@@ -1,4 +1,4 @@
-import { BellOff, ShieldAlert, Disc, Zap, VolumeX, EyeOff } from 'lucide-react';
+import { BellOff, ShieldAlert, Zap, VolumeX, EyeOff } from 'lucide-react';
 import { useRef, useEffect } from 'react';
 import gsap from 'gsap';
 import FocusSessionAnimation from './FocusSessionAnimation';

@@ -1,10 +1,10 @@
-import { Disc, CalendarDays, AlertTriangle } from 'lucide-react';
+import { Brain, CalendarDays, AlertTriangle } from 'lucide-react';
 
 export default function ChronosLayersSection() {
   const layers = [
     {
       id: "ai-block",
-      icon: <Disc className="w-5 h-5 text-[#E5B842]" />,
+      icon: <Brain className="w-5 h-5 text-[#E5B842]" />,
       title: "AI Block",
       badgeText: "🤖 Focus Shield Active",
       badgeClass: "bg-[#E5B842]/15 border-[#E5B842]/30 text-[#E5B842] font-semibold",

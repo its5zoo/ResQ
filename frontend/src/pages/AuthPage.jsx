@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Disc, Key, Mail, User, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Brain, Key, Mail, User, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { auth, google as apiGoogle } from '../services/api.js';
 import { useAuthContext } from '../context/AuthContext.jsx';
 
@@ -218,7 +218,7 @@ export default function AuthPage() {
               <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
             ) : (
               <>
-                <Disc className="w-4 h-4 animate-pulse" />
+                <Brain className="w-4 h-4 animate-pulse" />
                 {isRegister ? 'Initialize Account' : 'Decrypt Session'}
               </>
             )}

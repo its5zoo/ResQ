@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Check, Disc, Trash2 } from 'lucide-react';
+import { Plus, Check, Brain, Trash2 } from 'lucide-react';
 import { habits as apiHabits } from '../../services/api.js';
 
 export default function HabitsPage() {
@@ -286,7 +286,7 @@ export default function HabitsPage() {
                 {(habit.aiInsight || habit.aiTip) && (
                   <div className="lg:col-span-12 mt-4 p-4 bg-[#E5B842]/5 border border-[#E5B842]/20 rounded-2xl space-y-2 animate-fade-in">
                     <div className="flex items-center gap-1.5 text-sm font-bold text-[#E5B842] uppercase tracking-wider">
-                      <Disc className="w-3.5 h-3.5" /> AI Momentum Analysis
+                      <Brain className="w-3.5 h-3.5" /> AI Momentum Analysis
                     </div>
                     {habit.aiInsight && (
                       <p className="text-sm text-white/80 leading-relaxed font-normal">

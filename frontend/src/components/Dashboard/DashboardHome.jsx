@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { 
-  Disc, 
+  Brain, 
   Cpu, 
   Flame, 
   AlertTriangle, 
@@ -330,7 +330,7 @@ export default function DashboardHome({ setCurrentTab }) {
       {toast && (
         <div className="fixed bottom-20 lg:bottom-6 left-4 right-4 lg:left-auto lg:right-6 z-50 max-w-sm lg:max-w-sm mx-auto lg:mx-0 p-4 lg:p-5 bg-[#0a0a0a] border border-[#E5B842]/30 rounded-2xl shadow-[0_4px_30px_rgba(229,184,66,0.15)] flex items-start gap-3 lg:gap-4 animate-slide-in font-sans">
           <div className="w-8 h-8 rounded-full bg-[#E5B842]/10 border border-[#E5B842]/20 flex items-center justify-center shrink-0">
-            <Disc className="w-4 h-4 text-[#E5B842] animate-pulse" />
+            <Brain className="w-4 h-4 text-[#E5B842] animate-pulse" />
           </div>
           <div className="flex-1 min-w-0">
             <h5 className="text-sm font-bold text-white uppercase tracking-wider">{toast.title || 'New System Alert'}</h5>
@@ -430,7 +430,7 @@ export default function DashboardHome({ setCurrentTab }) {
             </div>
 
             <div className="flex items-center gap-2 mb-5">
-              <Disc className="w-4 h-4 text-[#E5B842]" />
+              <Brain className="w-4 h-4 text-[#E5B842]" />
               <span className="text-sm font-bold text-white uppercase tracking-wider font-display">AI Priority Advisor</span>
             </div>
 
@@ -513,7 +513,7 @@ export default function DashboardHome({ setCurrentTab }) {
                             {item.title}
                           </span>
                           <span className="text-xs text-[#E5B842]/80 mt-1 leading-snug">
-                            <Disc className="w-3 h-3 inline mr-1 -mt-0.5" />
+                            <Brain className="w-3 h-3 inline mr-1 -mt-0.5" />
                             {item.reason}
                           </span>
                         </div>

@@ -4,7 +4,7 @@ import {
   ChevronLeft, 
   ChevronRight, 
   Plus, 
-  Disc, 
+  Brain, 
   Clock, 
   Check, 
   Trash2, 
@@ -473,7 +473,7 @@ export default function CalendarPage({ tasks }) {
       <div className="sticky -top-6 bg-[#080808] z-30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4 lg:pb-6 pt-4 lg:pt-6 -mt-2 lg:-mt-6">
         <div>
           <span className="text-xs lg:text-sm font-tech font-bold tracking-[0.3em] text-[#E5B842] block mb-1.5 lg:mb-2 uppercase flex items-center gap-2">
-            <Disc className="w-3.5 h-3.5" /> AI Time Management
+            <Brain className="w-3.5 h-3.5" /> AI Time Management
           </span>
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-display font-black tracking-tight text-white leading-none">
             Chronos Auto-Pilot

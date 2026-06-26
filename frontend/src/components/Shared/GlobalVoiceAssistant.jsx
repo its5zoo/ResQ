@@ -2,7 +2,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { 
-  Mic, MicOff, X, Disc, AlertTriangle, CalendarDays, RefreshCw,
+  Mic, MicOff, X, Brain, AlertTriangle, CalendarDays, RefreshCw,
   Flame, CheckSquare, Trash2,
   Lock
 } from 'lucide-react';
@@ -36,7 +36,7 @@ const getIntentActionMeta = (intent) => {
     case 'get_free_time':
       return { label: 'Checked Availability', icon: RefreshCw, color: 'text-cyan-400' };
     case 'get_daily_summary':
-      return { label: 'Briefing Loaded', icon: Disc, color: 'text-purple-400' };
+      return { label: 'Briefing Loaded', icon: Brain, color: 'text-purple-400' };
     default:
       return null;
   }
@@ -1012,7 +1012,7 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
                     <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}>
                       {msg.role === 'ai' && (
                         <div className="w-6 h-6 rounded-lg bg-[#00F0FF]/10 border border-[#00F0FF]/20 flex items-center justify-center shrink-0 mr-2 mt-0.5">
-                          <Disc className="w-3 h-3 text-[#00F0FF]" />
+                          <Brain className="w-3 h-3 text-[#00F0FF]" />
                         </div>
                       )}
                       <div className={`max-w-[80%] px-3 py-2 rounded-2xl text-sm leading-relaxed font-sans ${
@@ -1035,7 +1035,7 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
                     <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#00F0FF]/30 to-transparent"></div>
                     <div className="flex items-start gap-4">
                       <div className="w-8 h-8 rounded-xl bg-[#00F0FF]/10 border border-[#00F0FF]/20 flex items-center justify-center shrink-0 mt-0.5">
-                        <Disc className="w-4 h-4 text-[#00F0FF]" />
+                        <Brain className="w-4 h-4 text-[#00F0FF]" />
                       </div>
                       <p className="text-white/85 text-sm leading-relaxed font-sans font-medium tracking-wide flex-1">{aiResponse}</p>
                     </div>
@@ -1110,7 +1110,7 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
               <X className="w-4 h-4" />
             </button>
             <div className="w-14 h-14 rounded-full bg-[var(--orb-gold)]/10 border border-[var(--orb-gold)]/20 flex items-center justify-center mx-auto">
-              <Disc className="w-7 h-7 text-[var(--orb-gold)] animate-pulse" />
+              <Brain className="w-7 h-7 text-[var(--orb-gold)] animate-pulse" />
             </div>
             <div className="space-y-2">
               <h3 className="text-white text-lg font-display font-black uppercase tracking-wide">Upgrade to Premium</h3>

@@ -1,6 +1,6 @@
 import { 
   BookOpen, Rocket, LayoutDashboard, CheckSquare, Calendar, 
-  Flame, Target, Bot, Mic, Bell, Zap, Disc, 
+  Flame, Target, Bot, Mic, Bell, Zap, Brain, 
   Lightbulb, HelpCircle, AlertTriangle, Shield, ChevronRight
 } from 'lucide-react';
 
@@ -16,7 +16,7 @@ const sections = [
   { id: 'voice-mode', label: 'Voice Mode', icon: Mic },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'productivity-features', label: 'Productivity Features', icon: Zap },
-  { id: 'ai-features', label: 'AI Features', icon: Disc },
+  { id: 'ai-features', label: 'AI Features', icon: Brain },
   { id: 'best-practices', label: 'Best Practices', icon: Lightbulb },
   { id: 'faq', label: 'FAQ', icon: HelpCircle },
   { id: 'troubleshooting', label: 'Troubleshooting', icon: AlertTriangle },

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Flame, Calendar, Disc, CheckCircle2 } from 'lucide-react';
+import { Flame, Calendar, Brain, CheckCircle2 } from 'lucide-react';
 import { notifications as apiNotifications } from '../../services/api.js';
 import { useSocket } from '../../services/socket.js';
 
@@ -125,7 +125,7 @@ export default function NotificationsPage() {
           <>
             {notifications.map((item) => {
               const IconComponent = item.type === 'alert' 
-                ? Disc 
+                ? Brain 
                 : item.type === 'achievement' 
                   ? Flame 
                   : Calendar;

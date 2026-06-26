@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Mic, Disc, X, CheckCircle2, Calendar, Target } from 'lucide-react';
+import { Mic, Brain, X, CheckCircle2, Calendar, Target } from 'lucide-react';
 
 export default function VoiceSection() {
   const [micState, setMicState] = useState('idle');
@@ -158,7 +158,7 @@ export default function VoiceSection() {
                   <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#00F0FF]/30 to-transparent"></div>
                   <div className="flex items-start gap-3">
                     <div className="w-7 h-7 rounded-lg bg-[#00F0FF]/10 border border-[#00F0FF]/20 flex items-center justify-center shrink-0 mt-0.5">
-                      <Disc className="w-3.5 h-3.5 text-[#00F0FF]" />
+                      <Brain className="w-3.5 h-3.5 text-[#00F0FF]" />
                     </div>
                     <p className="text-white/85 text-sm leading-relaxed font-sans font-medium tracking-wide flex-1">{aiResponse || "..."}</p>
                   </div>
