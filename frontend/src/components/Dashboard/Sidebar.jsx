@@ -12,7 +12,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Crown,
-  Zap
+  Zap,
+  Bot
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../../context/AuthContext.jsx';
@@ -30,7 +31,7 @@ export default function Sidebar({ currentTab, setCurrentTab }) {
     { id: 'calendar', name: 'Calendar', icon: <Calendar className="w-4 h-4" /> },
     { id: 'goals', name: 'Goals', icon: <Target className="w-4 h-4" /> },
     { id: 'habits', name: 'Habits', icon: <Flame className="w-4 h-4" /> },
-    { id: 'voice', name: 'Voice AI', icon: <Mic className="w-4 h-4" /> },
+    { id: 'voice', name: 'Command & Ask', icon: <Bot className="w-4 h-4" /> },
     { id: 'notifications', name: 'Notifications', icon: <Bell className="w-4 h-4" /> },
   ];
 

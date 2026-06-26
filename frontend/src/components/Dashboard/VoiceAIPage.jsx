@@ -11,6 +11,7 @@ export default function VoiceAIPage({ setCurrentTab }) {
     { role: 'ai', text: "Hello! I am your ResQ AI companion. Ask me to outline your day, list your critical deadlines, or organize calendar blocks for you." }
   ]);
   const [inputText, setInputText] = useState('');
+  const [textOnlyMode, setTextOnlyMode] = useState(false);
   const recognitionRef = useRef(null);
 
   const sampleQuestions = [
@@ -144,25 +145,47 @@ export default function VoiceAIPage({ setCurrentTab }) {
     <div className="animate-fade-in flex flex-col h-full min-h-[75vh] lg:min-h-[82vh] font-sans">
       
       {/* Top Header */}
-      <div className="border-b border-white/5 pb-4 lg:pb-6 flex items-center justify-between mb-5 lg:mb-8 shrink-0">
+      <div className="border-b border-white/5 pb-4 lg:pb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 lg:mb-8 shrink-0">
         <div>
-          <span className="text-xs lg:text-sm font-tech font-bold tracking-[0.3em] text-[#E5B842] block mb-1.5 lg:mb-2">AUDIO SHIELD</span>
+          <span className="text-xs lg:text-sm font-tech font-bold tracking-[0.3em] text-[#E5B842] block mb-1.5 lg:mb-2 uppercase">COMMAND & ASK</span>
           <h2 className="text-2xl lg:text-3xl font-display font-black tracking-tight text-white leading-none">
-            Hands-Free Voice Assistant
+            AI Companion
           </h2>
         </div>
-        <button 
-          onClick={() => {
-            if (!isMuted && 'speechSynthesis' in window) window.speechSynthesis.cancel();
-            setIsMuted(!isMuted);
-          }}
-          className={`p-3 rounded-xl border transition-all duration-300 cursor-pointer ${
-            isMuted ? 'bg-status-red/10 border-status-red/30 text-status-red hover:bg-status-red/20' : 'bg-[#E5B842]/10 border-[#E5B842]/30 text-[#E5B842] hover:bg-[#E5B842]/20'
-          }`}
-          title={isMuted ? "Unmute AI Voice" : "Mute AI Voice"}
-        >
-          {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Text-Only Toggle */}
+          <button
+            onClick={() => {
+              setTextOnlyMode(!textOnlyMode);
+              if (!textOnlyMode) {
+                // Switching to text-only mode
+                if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+                setIsMuted(true);
+                if (isListening) toggleListening();
+              }
+            }}
+            className={`px-3 py-1.5 rounded-xl border text-xs font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer flex items-center gap-2 ${
+              textOnlyMode ? 'bg-[#E5B842]/10 border-[#E5B842]/30 text-[#E5B842] shadow-[0_0_10px_rgba(229,184,66,0.1)]' : 'bg-[#0B0B0B] border-white/10 text-white/50 hover:text-white hover:border-white/20'
+            }`}
+          >
+            {textOnlyMode ? 'Text Mode ON' : 'Enable Text Mode'}
+          </button>
+          
+          {/* Voice Output Mute Toggle */}
+          <button 
+            onClick={() => {
+              if (!isMuted && 'speechSynthesis' in window) window.speechSynthesis.cancel();
+              setIsMuted(!isMuted);
+              if (textOnlyMode && isMuted) setTextOnlyMode(false); // Unmuting means leaving text-only mode
+            }}
+            className={`p-2.5 rounded-xl border transition-all duration-300 cursor-pointer ${
+              isMuted ? 'bg-status-red/10 border-status-red/30 text-status-red hover:bg-status-red/20' : 'bg-[#E5B842]/10 border-[#E5B842]/30 text-[#E5B842] hover:bg-[#E5B842]/20'
+            }`}
+            title={isMuted ? "Unmute AI Voice" : "Mute AI Voice"}
+          >
+            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          </button>
+        </div>
       </div>
 
       {/* Main chat window */}
@@ -179,7 +202,7 @@ export default function VoiceAIPage({ setCurrentTab }) {
             {msg.role === 'ai' && (
               <div className="flex items-center gap-1.5 mb-1.5 shrink-0">
                 <Sparkles className="w-3.5 h-3.5 text-[#E5B842]" />
-                <span className="text-sm font-bold text-white uppercase font-display">Guardian AI</span>
+                <span className="text-sm font-bold text-white uppercase font-display">ResQ AI</span>
               </div>
             )}
             <p>{msg.text}</p>
@@ -217,27 +240,29 @@ export default function VoiceAIPage({ setCurrentTab }) {
         {/* Input area */}
         <div className="flex items-center gap-3">
           {/* Pulsing Voice Mic */}
-          <button 
-            onClick={toggleListening}
-            className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border transition-all duration-300 focus:outline-hidden cursor-pointer ${
-              isListening 
-                ? 'bg-[#E5B842] border-[#E5B842] text-black shadow-lg shadow-[#E5B842]/20 animate-pulse' 
-                : 'bg-[#0B0B0B] border-white/10 text-white/50 hover:border-[#E5B842]/30 hover:text-white'
-            }`}
-            title="Toggle speech recording"
-          >
-            {isListening ? <Mic className="w-5 h-5 text-black" /> : <MicOff className="w-5 h-5" />}
-          </button>
+          {!textOnlyMode && (
+            <button 
+              onClick={toggleListening}
+              className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border transition-all duration-300 focus:outline-hidden cursor-pointer ${
+                isListening 
+                  ? 'bg-[#E5B842] border-[#E5B842] text-black shadow-lg shadow-[#E5B842]/20 animate-pulse' 
+                  : 'bg-[#0B0B0B] border-white/10 text-white/50 hover:border-[#E5B842]/30 hover:text-white'
+              }`}
+              title="Toggle speech recording"
+            >
+              {isListening ? <Mic className="w-5 h-5 text-black" /> : <MicOff className="w-5 h-5" />}
+            </button>
+          )}
 
           {/* Text message fallback input */}
           <div className="flex-1 relative flex items-center">
             <input 
               type="text"
-              placeholder="Send instruction message..."
+              placeholder={textOnlyMode ? "Type your command or question here..." : "Send instruction message..."}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend(inputText)}
-              className="w-full bg-[#0B0B0B] border border-white/10 hover:border-white/20 focus:border-[#E5B842]/40 rounded-xl pl-4 pr-12 py-3.5 text-sm text-white focus:outline-hidden transition-all duration-300"
+              className={`w-full bg-[#0B0B0B] border ${textOnlyMode ? 'border-[#E5B842]/20 focus:border-[#E5B842]/60 shadow-inner' : 'border-white/10 hover:border-white/20 focus:border-[#E5B842]/40'} rounded-xl pl-4 pr-12 py-3.5 text-sm text-white focus:outline-hidden transition-all duration-300`}
             />
             <button 
               onClick={() => handleSend(inputText)}
