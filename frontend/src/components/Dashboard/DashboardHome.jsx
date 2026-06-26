@@ -257,6 +257,18 @@ export default function DashboardHome({ setCurrentTab }) {
           if (end < now) return false;
         }
       }
+      
+      // Filter out tasks that have passed (as per user request: only upcoming tasks/habits after current time)
+      if (item.type === 'task') {
+        const localTask = localTasks.find(t => t._id === item.id);
+        if (localTask && localTask.dueDate) {
+          const due = new Date(localTask.dueDate);
+          // Only filter out if it was due TODAY but the time has passed.
+          // (If it was due yesterday, maybe they still want to see it? Or filter all past?)
+          // User said "jo abi ke time ke baad hai vo aan chaiye" -> strictly upcoming.
+          if (due < now) return false;
+        }
+      }
       return true;
     })
     .map(item => {
