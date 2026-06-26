@@ -434,15 +434,13 @@ export const synthesizeSpeech = async (req, res) => {
       return res.status(response.status).json({ message: 'ElevenLabs API Error', error: errText });
     }
 
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    
     res.set({
       'Content-Type': 'audio/mpeg',
-      'Content-Length': buffer.length
+      'Transfer-Encoding': 'chunked'
     });
-    
-    res.end(buffer);
+
+    const { Readable } = await import('stream');
+    Readable.fromWeb(response.body).pipe(res);
 
   } catch (error) {
     console.error('Error synthesizing speech:', error);
