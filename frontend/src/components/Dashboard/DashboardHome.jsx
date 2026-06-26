@@ -231,7 +231,7 @@ export default function DashboardHome({ setCurrentTab }) {
 
   // Format events to display cleanly, filter for upcoming today, and sort chronologically
   const formattedEvents = [...localEvents]
-    .filter(e => new Date(e.endTime) > now && new Date(e.startTime) <= endOfToday)
+    .filter(e => new Date(e.startTime) >= now && new Date(e.startTime) <= endOfToday)
     .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
     .map(e => {
       const start = new Date(e.startTime);
