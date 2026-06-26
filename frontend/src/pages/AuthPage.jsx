@@ -62,12 +62,26 @@ export default function AuthPage() {
     setLoading(true);
  
     try {
+      const trimmedEmail = email.trim().toLowerCase();
+      if (!trimmedEmail.endsWith('@gmail.com')) {
+        throw new Error('Only valid @gmail.com email addresses are allowed.');
+      }
+
+      const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+      if (!gmailRegex.test(trimmedEmail)) {
+        throw new Error('Please enter a valid @gmail.com email address.');
+      }
+
+      if (password.length < 6) {
+        throw new Error('Password must be at least 6 characters long.');
+      }
+
       let data;
       if (isRegister) {
         if (!name.trim()) throw new Error('Name is required');
-        data = await auth.register(name, email, password);
+        data = await auth.register(name, trimmedEmail, password);
       } else {
-        data = await auth.login(email, password);
+        data = await auth.login(trimmedEmail, password);
       }
 
       // Store JWT token and default profile config
@@ -146,7 +160,7 @@ export default function AuthPage() {
               <div className="relative">
                 <input 
                   type="text"
-                  placeholder="Faizaan Khan"
+                  placeholder="Enter Full Name"
                   required
                   value={name}
                   onChange={e => setName(e.target.value)}
@@ -162,7 +176,7 @@ export default function AuthPage() {
             <div className="relative">
               <input 
                 type="email"
-                placeholder="developer@resq.ai"
+                placeholder="Enter Email Address"
                 required
                 value={email}
                 onChange={e => setEmail(e.target.value)}
@@ -177,7 +191,7 @@ export default function AuthPage() {
             <div className="relative">
               <input 
                 type={showPassword ? 'text' : 'password'}
-                placeholder="••••••••"
+                placeholder="Enter Password"
                 required
                 value={password}
                 onChange={e => setPassword(e.target.value)}

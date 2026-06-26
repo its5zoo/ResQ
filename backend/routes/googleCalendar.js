@@ -65,6 +65,14 @@ router.get('/callback', async (req, res) => {
       return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/dashboard?tab=settings&sync=error`);
     }
 
+    // Enforce Gmail-only restriction
+    if (!googleEmail.toLowerCase().endsWith('@gmail.com')) {
+      if (state === 'login') {
+        return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/auth?error=Only+valid+@gmail.com+accounts+are+allowed`);
+      }
+      return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/dashboard?tab=settings&sync=invalid_gmail`);
+    }
+
     if (state === 'login') {
       // 1. Google Login Flow
       let user = await User.findOne({ email: googleEmail.toLowerCase() });
