@@ -486,7 +486,7 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
               <button
                 onClick={() => {
                   setShowEndConfirmation(true);
-                  speakBack("Are you sure you want to end the session? Just say yes or click End.");
+                  // Removed speakBack to make manual clicks silent
                 }}
                 className="px-5 py-3 bg-[#EF4444]/10 border border-[#EF4444]/20 hover:bg-[#EF4444] hover:text-white hover:border-transparent text-[#EF4444] text-sm font-bold uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center gap-1.5 cursor-pointer active:scale-95"
               >
@@ -499,21 +499,20 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
 
         {/* Confirmation Slide-Over banner */}
         {showEndConfirmation && (
-          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-[#0C0C0E] border border-[#EF4444]/30 px-8 py-5 rounded-2xl flex items-center gap-6 shadow-2xl relative z-20 animate-fade-in-up">
-            <span className="text-sm font-bold text-white/80">Are you sure? Say "yes" or click End to confirm.</span>
-            <div className="flex gap-2">
+          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-black/40 backdrop-blur-xl border border-white/10 px-8 py-5 rounded-3xl flex items-center gap-8 shadow-[0_0_40px_rgba(239,68,68,0.15)] relative z-20 animate-fade-in-up">
+            <span className="text-base font-medium text-white tracking-wide">You want to end task?</span>
+            <div className="flex gap-3">
               <button 
                 onClick={handleEndSessionConfirm}
-                className="px-4 py-2 bg-[#EF4444] text-white hover:brightness-110 text-sm font-bold uppercase tracking-wider rounded-xl cursor-pointer"
+                className="px-6 py-2.5 bg-[#EF4444] text-white hover:bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)] text-xs font-bold uppercase tracking-widest rounded-xl cursor-pointer transition-all active:scale-95"
               >
                 End
               </button>
               <button 
                 onClick={() => {
                   setShowEndConfirmation(false);
-                  speakBack("Confirmation cancelled. Resuming focus.");
                 }}
-                className="px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 text-white/70 text-sm font-bold uppercase tracking-wider rounded-xl cursor-pointer"
+                className="px-6 py-2.5 bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-white/70 text-xs font-bold uppercase tracking-widest rounded-xl cursor-pointer transition-all active:scale-95"
               >
                 Cancel
               </button>
