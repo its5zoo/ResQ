@@ -6,7 +6,7 @@ import PremiumGuard from '../Shared/PremiumGuard.jsx';
 export default function VoiceAIPage({ setCurrentTab }) {
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
   const [messages, setMessages] = useState([
     { role: 'ai', text: "Hello! I am your ResQ AI companion. Ask me to outline your day, list your critical deadlines, or organize calendar blocks for you." }
   ]);
@@ -43,20 +43,6 @@ export default function VoiceAIPage({ setCurrentTab }) {
     window.speechSynthesis.speak(utterance);
   };
 
-  useEffect(() => {
-    const handleVoiceResponse = (e) => {
-      const result = e.detail;
-      if (result && result.response) {
-        setIsProcessing(false);
-        setMessages(prev => [...prev, { role: 'ai', text: result.response }]);
-        // GlobalVoiceAssistant handles speaking the response, so we don't call speakResponse here
-      }
-    };
-    
-    window.addEventListener('resq:voice-response-received', handleVoiceResponse);
-    return () => window.removeEventListener('resq:voice-response-received', handleVoiceResponse);
-  }, []);
-
   const handleSend = async (textVal) => {
     if (!textVal.trim() || isProcessing) return;
     
@@ -65,8 +51,28 @@ export default function VoiceAIPage({ setCurrentTab }) {
     setInputText('');
     setIsProcessing(true);
 
-    // Dispatch event to GlobalVoiceAssistant
-    window.dispatchEvent(new CustomEvent('resq:send-text-command', { detail: { text: textVal } }));
+    try {
+      const result = await apiVoice.sendCommand(textVal);
+      setIsProcessing(false);
+      if (result && result.response) {
+        setMessages(prev => [...prev, { role: 'ai', text: result.response }]);
+        if (!isMuted) {
+          speakResponse(result.response);
+        }
+      }
+      
+      // Handle local navigation if needed
+      if (result && result.navigationTarget && setCurrentTab) {
+        // Let user see the message first, then navigate
+        setTimeout(() => {
+          setCurrentTab(result.navigationTarget.replace('/', ''));
+        }, 1500);
+      }
+    } catch (error) {
+      console.error('Error sending command:', error);
+      setIsProcessing(false);
+      setMessages(prev => [...prev, { role: 'ai', text: "I'm having trouble connecting to the server. Please try again." }]);
+    }
   };
 
   const startLocalRecognition = () => {
