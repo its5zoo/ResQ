@@ -105,6 +105,20 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
       // Helper: check if any alternative matches keywords
       const matches = (keywords) => alternatives.some(alt => keywords.some(kw => alt.includes(kw)));
 
+      // ─── AWAITING CONFIRMATION ────────────────────────────────────
+      if (showEndConfirmationRef.current) {
+        if (matches(['yes', 'yeah', 'yep', 'confirm', 'do it', 'end', 'stop', 'quit', 'haa', 'ha'])) {
+          commandCooldown = true;
+          handleEndSessionConfirm();
+        } else if (matches(['no', 'cancel', 'nah', 'wait', 'nevermind', 'nahi'])) {
+          commandCooldown = true;
+          setShowEndConfirmation(false);
+          speakBack('Confirmation cancelled. Resuming focus.');
+          setTimeout(() => { commandCooldown = false; }, 2000);
+        }
+        return; // Don't process other commands while waiting for confirmation
+      }
+
       // ─── STOP / END ────────────────────────────────────────────────
       const stopKeywords = [
         'stop', 'stp', 'stopp', 'stap', // typo variants speech recog may produce
@@ -466,7 +480,7 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
               <button
                 onClick={() => {
                   setShowEndConfirmation(true);
-                  speakBack("Are you sure you want to end the session? Just say stop session or click End.");
+                  speakBack("Are you sure you want to end the session? Just say yes or click End.");
                 }}
                 className="px-5 py-3 bg-[#EF4444]/10 border border-[#EF4444]/20 hover:bg-[#EF4444] hover:text-white hover:border-transparent text-[#EF4444] text-sm font-bold uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center gap-1.5 cursor-pointer active:scale-95"
               >
