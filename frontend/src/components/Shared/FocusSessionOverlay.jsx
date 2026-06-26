@@ -30,8 +30,15 @@ export default function FocusSessionOverlay({ taskName, duration, userName, onCl
 
   // 1. Play ascending chime on start
   useEffect(() => {
-    playAscendingChime();
-    speakBack(`Starting focus session for: ${taskName}. Twenty-five minutes on the clock.`);
+    // Cancel any ongoing TTS from GlobalVoiceAssistant before playing chime
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    // Small delay so the GlobalVoiceAssistant's voice finishes gracefully, then chime plays
+    setTimeout(() => {
+      playAscendingChime();
+    }, 300);
+    // Note: GlobalVoiceAssistant already announces the session start — no duplicate TTS here
 
     // Block global wake word listeners on mount
     wakeWordEngine.stopBackgroundListener();
