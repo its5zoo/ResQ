@@ -171,10 +171,10 @@ export default function VoiceAIPage({ setCurrentTab }) {
         {messages.map((msg, idx) => (
           <div 
             key={idx} 
-            className={`max-w-xl p-4 rounded-2xl border leading-relaxed text-sm font-normal ${
+            className={`shrink-0 w-fit max-w-xl p-4 md:p-5 rounded-2xl border leading-relaxed text-sm md:text-base font-normal shadow-sm ${
               msg.role === 'ai' 
-                ? 'bg-white/[0.01] border-[#E5B842]/20 text-white self-start relative overflow-hidden card-shine-sweep' 
-                : 'bg-black/40 border border-white/[0.03] text-white/85 ml-auto'
+                ? 'bg-white/[0.02] border-[#E5B842]/20 text-white self-start relative overflow-hidden card-shine-sweep' 
+                : 'bg-black/60 border border-white/[0.05] text-white/90 self-end ml-auto'
             }`}
           >
             {msg.role === 'ai' && (
@@ -188,13 +188,13 @@ export default function VoiceAIPage({ setCurrentTab }) {
         ))}
 
         {isProcessing && (
-          <div className="max-w-xs p-4 rounded-2xl bg-white/[0.01] border border-[#E5B842]/20 text-white/70 text-sm font-medium animate-pulse font-display relative overflow-hidden card-shine-sweep">
+          <div className="shrink-0 w-fit max-w-xs p-4 rounded-2xl bg-white/[0.02] border border-[#E5B842]/20 text-white/70 text-sm font-medium animate-pulse font-display relative overflow-hidden card-shine-sweep">
             Companion is formulating response...
           </div>
         )}
         
         {isListening && !isProcessing && (
-          <div className="max-w-xs p-4 rounded-2xl bg-[#E5B842]/10 border border-[#E5B842]/30 text-[#E5B842] text-sm font-medium animate-pulse font-display relative overflow-hidden">
+          <div className="shrink-0 w-fit max-w-xs p-4 rounded-2xl bg-[#E5B842]/10 border border-[#E5B842]/30 text-[#E5B842] text-sm font-medium animate-pulse font-display relative overflow-hidden">
             Listening to your voice...
           </div>
         )}
