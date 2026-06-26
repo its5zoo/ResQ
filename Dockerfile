@@ -5,16 +5,17 @@ FROM node:20-alpine AS frontend-builder
 
 WORKDIR /app/frontend
 
-# Copy dependency definition files first (layer cache optimization)
-COPY frontend/package*.json ./
-
 # Skip Chromium/Puppeteer download (not needed in production build)
 ENV PUPPETEER_SKIP_DOWNLOAD=true
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV CI=true
 
-# Install ALL dependencies (devDeps needed for vite build)
-RUN npm ci
+# Copy dependency definition files first (layer cache optimization)
+COPY frontend/package*.json ./
+
+# Install all dependencies needed for the build
+# Using --legacy-peer-deps to handle any peer dep conflicts
+RUN npm install --legacy-peer-deps
 
 # Copy frontend source files
 COPY frontend/ ./
@@ -41,7 +42,7 @@ WORKDIR /app/backend
 COPY backend/package*.json ./
 
 # Install only production dependencies (no devDeps like nodemon)
-RUN npm ci --omit=dev
+RUN npm install --omit=dev --legacy-peer-deps
 
 # ==========================================
 # Stage 3: Final Production Runner
