@@ -12,27 +12,40 @@
 
 ---
 
-**ResQ** is a full-stack, proactive AI productivity companion powered by **Google Gemini** that runs a continuous intelligence loop. It analyzes your workload every 5 minutes and takes *meaningful action before deadlines are missed*, shifting productivity from passive, forgotten lists to active, conversational execution.
+## 📌 Problem Statement
+
+> *"Build an AI-powered productivity companion that proactively assists users in planning, prioritizing, and completing tasks before deadlines are missed. The solution should move beyond traditional reminders and focus on helping users take meaningful action."*
+
+### Why Traditional Apps Fail:
+- **Passive Repositories:** Traditional to-do apps store tasks like graveyard files, expecting users to manually check and execute them. They never help you *execute* the work.
+- **Snoozed Alerts:** Push notifications act as static alerts. Because they are easily dismissed, users ignore them and return to the same disorganized routines.
+- **Disconnected Context:** Calendar apps show what's scheduled, not what actually matters *right now* based on current deadlines, goals, and habits.
+- **Fragmented Workspaces:** There is no unified system connecting the dots between your tasks, calendar events, habits, and long-term goals in real-time.
 
 ---
 
-## ✨ Features
+## 💡 Our Solution
 
-- **🗣️ Agentic Voice Companion** — Use hands-free voice commands via `"Hey ResQ"`. Gemini parses intent and executes direct database actions (create task, schedule event, complete habit, change theme, start focus session) using `@google/generative-ai`.
-- **🔄 Multi-Turn Clarification Loops** — Intelligent, human-like interviewer loops. If a request is vague (e.g., *"Create a presentation"*), ResQ asks follow-up questions to gather details (destination, dates, type) and retains context across multiple turns.
-- **⚡ Cross-Domain Priority Engine** — A single, consolidated Gemini prompt ranks the top 4 urgent actions across all domains (tasks, calendar, habits, goals) simultaneously.
-- **📅 Bidirectional Google Calendar Sync** — Syncs calendar events via OAuth2 and `googleapis`. Includes real-time conflict resolution and a 5-factor scoring scheduler to auto-fill focus time blocks.
-- **🛡️ Focus Session & Cognitive Shield** — Deep work overlay that mutes browser notifications, blocks distractions, and enforces time limits.
-- **📈 Proactive Cron Alerts** — Monitors workload every 5 minutes to trigger push notifications, emails, and spoken alerts for upcoming deadlines (2 hours prior), meetings (15 mins prior), and incomplete habits (at 8 PM).
-- **💳 Payment & Trial Gating** — Secure credit trial tracking (email + phone unique indicators to prevent abuse) and subscription plans verified via Razorpay HMAC signature.
+**ResQ** is a full-stack, proactive AI productivity companion powered by **Google Gemini** that runs a continuous intelligence loop. Instead of waiting for you to open the app, **ResQ comes to you**. It runs automated background scanners and coordinates real-time synchronization to ensure you stay ahead of your schedule.
+
+```
+Every 5 minutes → Cron scans all users:
+  ├── Tasks due within 2 hours      → Urgent alert (WebPush + Email + Voice)
+  ├── Meetings starting in 15 min   → Pre-meeting context alert
+  ├── Habits unfinished at 8 PM     → Consistency streak push reminder
+  ├── Goals < 20% near deadline     → Milestone velocity alert
+  └── Morning login after 6 AM      → Gemini-generated spoken daily briefing
+```
+
+ResQ acts as an **agentic partner** rather than a passive notebook. It leverages Gemini to interpret spoken language, ask clarification questions when instructions are vague, auto-resolve calendar conflicts, and dynamically manage focus blocks.
 
 ---
 
-## 🏗️ Architecture
+## 🎨 System Diagrams
 
-ResQ is built using a clean **layered MVC (Model-View-Controller)** pattern. The backend handles request routing, business logic, cron tasks, and AI integrations, while the frontend provides a responsive glassmorphic dashboard interface communicating via REST APIs and WebSockets.
+### A. System Architecture Diagram
+The MVC architecture splits responsibilities cleanly between the frontend user interface, the Express backend routing layer, local scheduled services, and third-party AI APIs.
 
-### System Architecture Diagram
 ```mermaid
 graph TD
     User([User]) <-->|Voice / UI| FE[React Frontend]
@@ -47,17 +60,9 @@ graph TD
     BE -->|Alerts & Emails| Resend[Resend API]
 ```
 
----
+### B. End-to-End Data Flow
+This diagram details the sequence of data transit, starting from user speech input, parsing through NLU nodes, and triggering notifications, voice feedback, and database mutations.
 
-## 🔄 How It Works
-
-1. **Trigger / Action:** The user interacts with the UI or speaks the wake word `"Hey ResQ"` to capture a voice command.
-2. **NLU Processing:** The command is sent to the Express backend. Gemini resolves intent and extracts parameters (dates, times, urgency).
-3. **Looping Clarification:** If critical details are missing, the backend retains context, returns `needs_clarification`, and the voice engine interviews the user.
-4. **State Update:** Once resolved, database mutations are committed, and the backend pushes real-time updates to the UI via Socket.io.
-5. **Proactive Scanning:** Every 5 minutes, a cron scanner parses deadlines and initiates alerts across push, email, and TTS channels.
-
-### Data Flow Diagram
 ```mermaid
 flowchart LR
     Input[Voice / UI Input] --> Auth[JWT Authentication]
@@ -73,9 +78,8 @@ flowchart LR
     ElevenLabsTTS -->|Audio Output| UserSpeaker([User Speaker])
 ```
 
----
-
-## 🗺️ Feature Map
+### C. Feature Map
+A comprehensive mindmap grouping ResQ's key feature offerings by operational domain.
 
 ```mermaid
 mindmap
@@ -109,29 +113,9 @@ mindmap
       Feature Gating
 ```
 
----
+### D. Tech Stack Architecture
+The vertical structure of technologies, showing how frameworks map from the customer viewport down to serverless hosting and third-party service instances.
 
-## 🛠️ Tech Stack
-
-### Technology Inventory
-
-| Layer | Technology | Purpose | Version |
-| :--- | :--- | :--- | :--- |
-| **Frontend** | React | Component-based UI library | `^19.2.6` |
-| **Frontend** | Vite | Rapid bundler & development server | `^8.0.12` |
-| **Frontend** | GSAP / Framer Motion | Smooth dashboard transitions & micro-animations | `^3.15.0` / `^12.42.0` |
-| **Backend** | Node.js / Express | Server platform and REST routing API | `20+` / `^4.19.2` |
-| **Backend** | Socket.IO | Bi-directional websocket connection for alerts | `^4.7.5` |
-| **Backend** | Node-cron | Scheduled database scanners (5-minute interval) | `^4.5.0` |
-| **Database** | MongoDB / Mongoose | Database hosting & object modeling | `Atlas` / `^8.4.1` |
-| **AI Integration**| Google Gemini | Core NLU, prioritization, and scheduling logic | `gemini-2.5-flash` |
-| **Voice / Sync** | Web Speech API | Client-side Speech-To-Text (STT) parsing | *Native* |
-| **Voice / Sync** | ElevenLabs API | High-fidelity Text-To-Speech (TTS) engine | *REST API* |
-| **Integrations** | Google Calendar API | Calendar event synchronizations (OAuth2) | `v3` / `^173.0.0` |
-| **Payments** | Razorpay SDK | Order processing & signature checks | `^2.9.6` |
-| **Mailing** | Resend / Nodemailer | Automated transactional email triggers | `^6.14.0` / `^9.0.1` |
-
-### Tech Stack Layers
 ```mermaid
 graph TD
     subgraph Frontend Layer
@@ -166,6 +150,171 @@ graph TD
     Express --> Razorpay
     Express --> Resend
 ```
+
+### E. Sequence Diagram (Continuous Conversation Loop)
+This details the multi-turn conversational loop, illustrating how ResQ maintains state and asks clarifying questions during ambiguous requests.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant WWE as WakeWordEngine
+    participant UI as GlobalVoiceAssistant UI
+    participant BE as Express Backend
+    participant Gemini as Gemini AI Service
+    participant TTS as ElevenLabs TTS
+
+    User->>WWE: Speaks "Hey ResQ"
+    Note over WWE: Detects Wake Word
+    WWE->>User: Play Wake Chime
+    WWE->>UI: Update MicState to "Listening"
+    User->>WWE: Speaks "I have a meeting tomorrow"
+    WWE->>BE: Send Transcript via WebSockets
+    Note over BE: JWT Verification
+    BE->>Gemini: Request Intent & Context Analysis
+    Note over Gemini: Analyzes transcript against user calendar context
+    Gemini-->>BE: Returns needs_clarification {"clarificationQuestion": "What time is the meeting?"}
+    BE->>UI: Emit "voice:response" (needs_clarification)
+    UI->>TTS: Request voice synthesis
+    TTS-->>UI: Returns Audio Stream
+    UI->>User: Speaks "What time is the meeting?"
+    UI->>WWE: Set MicState to "Listening" (Continuous conversational loop)
+    User->>WWE: Speaks "at 3 PM"
+    WWE->>BE: Send Transcript "at 3 PM" + history context
+    BE->>Gemini: Re-query Gemini with history & user answer
+    Gemini-->>BE: Returns intent schedule_event {"startTime": "15:00", "title": "Meeting"}
+    BE->>BE: Create CalendarEvent in MongoDB
+    BE->>UI: Emit "voice:response" (schedule_event success)
+    UI->>User: Speaks "Got it. I've scheduled your Meeting tomorrow at 3 P.M."
+    Note over UI: UI automatically updates calendar tab to show new slot
+```
+
+### F. Entity Relationship Diagram
+Our MongoDB schema design showing standard data relationships, foreign key bindings, and indexes.
+
+```mermaid
+erDiagram
+    USER ||--o{ TASK : manages
+    USER ||--o{ CALENDAR_EVENT : schedules
+    USER ||--o{ HABIT : tracks
+    USER ||--o{ GOAL : owns
+    USER ||--o{ PAYMENT : makes
+    USER ||--o| TRIAL_TRACKING : verifies
+
+    TASK ||--o{ CALENDAR_EVENT : links_to
+    GOAL ||--o{ MILESTONE : contains
+
+    USER {
+        string id PK
+        string name
+        string email
+        string password
+        object googleTokens
+        object subscription
+        object settings
+    }
+    TASK {
+        string id PK
+        string userId FK
+        string title
+        int urgency
+        date dueDate
+        int estimatedMinutes
+        int aiPriorityRank
+    }
+    CALENDAR_EVENT {
+        string id PK
+        string userId FK
+        string taskId FK
+        date startTime
+        date endTime
+        string type
+        string googleEventId
+        boolean aiGenerated
+    }
+    HABIT {
+        string id PK
+        string userId FK
+        string name
+        array targetDays
+        int streak
+        array completions
+    }
+    GOAL {
+        string id PK
+        string userId FK
+        string title
+        date targetDate
+        int progress
+        array keyResults
+    }
+```
+
+---
+
+## 🛠️ How It Works (Internal Mechanics)
+
+### 1. The 10 Gemini AI Prompts & Pipelines
+ResQ operates 10 distinct, customized prompt instructions through `@google/generative-ai` to ensure contextual relevance:
+
+| Pipeline | Model Call | Input Parameters | Output Format (JSON Mode) | Purpose |
+| :--- | :--- | :--- | :--- | :--- |
+| `generateDailySummary` | `gemini-2.5-flash` | User profile, tasks, habits, calendar, and goals | `{ "briefingText": string }` | Generates a conversational morning briefing. |
+| `generateTaskPriority` | `gemini-2.5-flash` | List of active user tasks | `[{ "id": string, "rank": number, "reason": string }]` | Ranks and comments on daily priorities. |
+| `generateAutoSchedule` | `gemini-2.5-flash` | Tasks, Calendar Events, Sleep/Wake hours | `[{ "taskId": string, "start": date, "end": date }]` | Creates focus blocks without overlaps. |
+| `generateHabitInsight` | `gemini-2.5-flash` | Individual habit log and 30-day streak statistics | `{ "insight": string, "coachingTip": string }` | Analyzes performance patterns. |
+| `generateGoalBreakdown` | `gemini-2.5-flash` | Goal description, target dates | `[{ "milestone": string, "week": number, "hours": number }]` | Decomposes goals into milestones. |
+| `cleanManualMilestones` | `gemini-2.5-flash` | Text block inputs of user milestones | `[{ "milestone": string, "week": number, "effort": number }]` | Cleans unstructured text to valid JSON schemas. |
+| `handleVoiceCommand` | `gemini-2.5-flash` | Audio transcript, active tab, timezone, histories | `{ "intent": string, "actionPayload": object }` | Core conversational natural language unit. |
+| `generateNotification` | `gemini-2.5-flash` | Target alert context (e.g. deadline risk) | `{ "title": string, "message": string }` | Drafts personalized and compelling alerts. |
+| `generateGlobalPriority`| `gemini-2.5-flash` | Combined array of all four modules | `[{ "item": string, "urgency": number, "reason": string }]` | Ranks top 4 high-priority items globally. |
+| `inferTaskUrgency` | `gemini-2.5-flash` | Task name, due date, estimated effort | `{ "urgencyScore": number }` | Automatically calculates urgency 1–10. |
+
+### 2. Smart Auto-Scheduler Slot Algorithm
+When scheduling focus blocks automatically, ResQ evaluates available slots using a weighted scoring model:
+$$\text{Score} = (W_w \cdot \text{WorkHours}) + (W_b \cdot \text{BufferDistance}) + (W_p \cdot \text{PeakProductivity}) - (W_c \cdot \text{ConflictPenalty})$$
+- **Work Hours:** Ensures events fall within user-configured working hours.
+- **Buffer Distance:** Calculates proximity to existing meetings to prevent back-to-back fatigue.
+- **Peak Productivity:** Uses user bio-profile preference (Morning vs Night person) to rank optimal hours.
+- **Conflict Penalty:** Subtracts score if it overlaps with Google Calendar events.
+
+### 3. Voice Companion & Conversation Loop
+The wake word engine runs continuously in the browser using the Web Speech API.
+1. **Fuzzy Recognition:** The engine listens for audio. When words matching "ResQ" or "Rescue" are recognized, it plays a chime.
+2. **Context Preservation:** If user input is incomplete, the backend stores the pending command in a TTL cache.
+3. **Safety Release Locks:** Added safety timeout boundaries (12s in wake-word detection, 15s in fallback speech-synthesis) to guarantee the microphone is never locked in a perpetual state due to browser engine freezes.
+
+---
+
+## ✨ Core Features
+
+- **🗣️ Agentic Voice Companion** — Use hands-free voice commands via `"Hey ResQ"`. Gemini parses intent and executes direct database actions (create task, schedule event, complete habit, change theme, start focus session) using `@google/generative-ai`.
+- **🔄 Multi-Turn Clarification Loops** — Intelligent, human-like interviewer loops. If a request is vague (e.g., *"Create a presentation"*), ResQ asks follow-up questions to gather details (destination, dates, type) and retains context across multiple turns.
+- **⚡ Cross-Domain Priority Engine** — A single, consolidated Gemini prompt ranks the top 4 urgent actions across all domains (tasks, calendar, habits, goals) simultaneously.
+- **📅 Bidirectional Google Calendar Sync** — Syncs calendar events via OAuth2 and `googleapis`. Includes real-time conflict resolution and a 5-factor scoring scheduler to auto-fill focus time blocks.
+- **🛡️ Focus Session & Cognitive Shield** — Deep work overlay that mutes browser notifications, blocks distractions, and enforces time limits.
+- **📈 Proactive Cron Alerts** — Monitors workload every 5 minutes to trigger push notifications, emails, and spoken alerts for upcoming deadlines (2 hours prior), meetings (15 mins prior), and incomplete habits (at 8 PM).
+- **💳 Payment & Trial Gating** — Secure credit trial tracking (email + phone unique indicators to prevent abuse) and subscription plans verified via Razorpay HMAC signature.
+
+---
+
+## 🛠️ Tech Stack & Inventory
+
+| Layer | Technology | Purpose | Version |
+| :--- | :--- | :--- | :--- |
+| **Frontend** | React | Component-based UI library | `^19.2.6` |
+| **Frontend** | Vite | Rapid bundler & development server | `^8.0.12` |
+| **Frontend** | GSAP / Framer Motion | Smooth dashboard transitions & micro-animations | `^3.15.0` / `^12.42.0` |
+| **Backend** | Node.js / Express | Server platform and REST routing API | `20+` / `^4.19.2` |
+| **Backend** | Socket.IO | Bi-directional websocket connection for alerts | `^4.7.5` |
+| **Backend** | Node-cron | Scheduled database scanners (5-minute interval) | `^4.5.0` |
+| **Database** | MongoDB / Mongoose | Database hosting & object modeling | `Atlas` / `^8.4.1` |
+| **AI Integration**| Google Gemini | Core NLU, prioritization, and scheduling logic | `gemini-2.5-flash` |
+| **Voice / Sync** | Web Speech API | Client-side Speech-To-Text (STT) parsing | *Native* |
+| **Voice / Sync** | ElevenLabs API | High-fidelity Text-To-Speech (TTS) engine | *REST API* |
+| **Integrations** | Google Calendar API | Calendar event synchronizations (OAuth2) | `v3` / `^173.0.0` |
+| **Payments** | Razorpay SDK | Order processing & signature checks | `^2.9.6` |
+| **Mailing** | Resend / Nodemailer | Automated transactional email triggers | `^6.14.0` / `^9.0.1` |
 
 ---
 
@@ -295,68 +444,6 @@ graph TD
 | **GET / POST** | `/api/tasks` | Fetch or create user tasks | `Authorization: Bearer <Token>` |
 | **POST** | `/api/tasks/prioritize` | Trigger Gemini task priority sorting | `Authorization: Bearer <Token>` |
 | **POST** | `/api/tasks/auto-schedule`| Auto-schedule focus slots on calendar | `Authorization: Bearer <Token>` |
-
----
-
-## 🗄️ Database Schema
-
-```mermaid
-erDiagram
-    USER ||--o{ TASK : manages
-    USER ||--o{ CALENDAR_EVENT : schedules
-    USER ||--o{ HABIT : tracks
-    USER ||--o{ GOAL : owns
-    USER ||--o{ PAYMENT : makes
-    USER ||--o| TRIAL_TRACKING : verifies
-
-    TASK ||--o{ CALENDAR_EVENT : links_to
-    GOAL ||--o{ MILESTONE : contains
-
-    USER {
-        string id PK
-        string name
-        string email
-        string password
-        object googleTokens
-        object subscription
-        object settings
-    }
-    TASK {
-        string id PK
-        string userId FK
-        string title
-        int urgency
-        date dueDate
-        int estimatedMinutes
-        int aiPriorityRank
-    }
-    CALENDAR_EVENT {
-        string id PK
-        string userId FK
-        string taskId FK
-        date startTime
-        date endTime
-        string type
-        string googleEventId
-        boolean aiGenerated
-    }
-    HABIT {
-        string id PK
-        string userId FK
-        string name
-        array targetDays
-        int streak
-        array completions
-    }
-    GOAL {
-        string id PK
-        string userId FK
-        string title
-        date targetDate
-        int progress
-        array keyResults
-    }
-```
 
 ---
 
