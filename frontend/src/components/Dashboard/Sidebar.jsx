@@ -13,9 +13,7 @@ import {
   ChevronRight,
   Crown,
   Zap,
-  Bot,
-  BookOpen,
-  Shield
+  Bot
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../../context/AuthContext.jsx';
@@ -29,14 +27,12 @@ export default function Sidebar({ currentTab, setCurrentTab }) {
 
   const menuItems = [
     { id: 'dashboard', name: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
-    { id: 'shield', name: 'ResQ Shield', icon: <Shield className="w-4 h-4" /> },
     { id: 'tasks', name: 'My Tasks', icon: <CheckSquare className="w-4 h-4" /> },
     { id: 'calendar', name: 'Calendar', icon: <Calendar className="w-4 h-4" /> },
     { id: 'goals', name: 'Goals', icon: <Target className="w-4 h-4" /> },
     { id: 'habits', name: 'Habits', icon: <Flame className="w-4 h-4" /> },
     { id: 'voice', name: 'Command & Ask', icon: <Bot className="w-4 h-4" /> },
     { id: 'focus', name: 'Focus Session', icon: <Zap className="w-4 h-4" /> },
-    { id: 'plans', name: 'My Plans', icon: <BookOpen className="w-4 h-4" /> },
     { id: 'notifications', name: 'Notifications', icon: <Bell className="w-4 h-4" /> },
   ];
 

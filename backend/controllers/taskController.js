@@ -1,7 +1,6 @@
 import Task from '../models/Task.js';
 import { generateTaskPriority } from '../services/geminiService.js';
 import { io } from '../socket/socketHandler.js';
-import { getProcrastinationInterception } from '../services/procrastinationService.js';
 
 export const reprioritizeTasksForUser = async (userId) => {
   try {
@@ -96,16 +95,6 @@ export const updateTask = async (req, res) => {
       const dueDateChanged = req.body.dueDate !== undefined && req.body.dueDate !== task.dueDate;
       const completedChanged = req.body.completed !== undefined && req.body.completed !== task.completed;
 
-      // Track if task is postponed (dueDate moved later)
-      let isPushedLater = false;
-      if (dueDateChanged) {
-        const oldDueDate = new Date(task.dueDate).getTime();
-        const newDueDate = new Date(req.body.dueDate).getTime();
-        if (newDueDate > oldDueDate) {
-          isPushedLater = true;
-        }
-      }
-
       task.title = req.body.title !== undefined ? req.body.title : task.title;
       task.description = req.body.description !== undefined ? req.body.description : task.description;
       task.urgency = req.body.urgency !== undefined ? req.body.urgency : task.urgency;
@@ -117,33 +106,12 @@ export const updateTask = async (req, res) => {
       task.aiPriorityRank = req.body.aiPriorityRank !== undefined ? req.body.aiPriorityRank : task.aiPriorityRank;
       task.aiReason = req.body.aiReason !== undefined ? req.body.aiReason : task.aiReason;
 
-      if (isPushedLater) {
-        task.dismissCount = (task.dismissCount || 0) + 1;
-      }
-      if (completedChanged && task.completed) {
-        task.dismissCount = 0; // Reset if completed
-      }
-
       const updatedTask = await task.save();
-
-      // Check if procrastination should be intercepted (dismissCount >= 3)
-      let procrastinationInterception = null;
-      if (isPushedLater && updatedTask.dismissCount >= 3) {
-        procrastinationInterception = await getProcrastinationInterception(updatedTask);
-      }
 
       // Trigger automatic reprioritization if key fields changed
       if (urgencyChanged || dueDateChanged || completedChanged) {
         await reprioritizeTasksForUser(req.user._id);
         const refetchedTask = await Task.findById(updatedTask._id);
-        
-        const responseData = refetchedTask.toObject();
-        if (procrastinationInterception) {
-          return res.json({
-            ...responseData,
-            procrastinationInterception
-          });
-        }
         return res.json(refetchedTask);
       }
 
@@ -154,13 +122,6 @@ export const updateTask = async (req, res) => {
         io.to(room).emit('tasks:updated', updatedTasks);
       }
 
-      const responseData = updatedTask.toObject();
-      if (procrastinationInterception) {
-        return res.json({
-          ...responseData,
-          procrastinationInterception
-        });
-      }
       res.json(updatedTask);
     } else {
       res.status(404).json({ message: 'Task not found or unauthorized' });

@@ -3,6 +3,7 @@ import CalendarEvent from '../models/CalendarEvent.js';
 import Habit from '../models/Habit.js';
 import Goal from '../models/Goal.js';
 import User from '../models/User.js';
+import Plan from '../models/Plan.js';
 import { queryGemini } from './geminiService.js';
 
 // In-memory cache for pending clarifications keyed by userId
@@ -390,12 +391,21 @@ Give them a 2-3 sentence strategic advice on how to start this right now. Be dir
 
   // 6. Needs Clarification Caching
   if (resultObj.intent === 'needs_clarification') {
+    const existingPending = pendingCommands.get(userId.toString());
+    const history = existingPending?.clarificationHistory || [];
+    
+    if (resultObj.clarificationQuestion) {
+      history.push({ role: 'assistant', text: resultObj.clarificationQuestion });
+    }
+
     pendingCommands.set(userId.toString(), {
-      originalTranscript: transcript,
+      originalTranscript: existingPending ? existingPending.originalTranscript : transcript,
       context: userContext,
       extractedData: resultObj.extractedData,
       originalIntent: resultObj.suggestAlternative ? 'schedule_event' : resultObj.intent,
-      alternativeSlot: resultObj.suggestAlternative ? new Date(resultObj.suggestAlternative) : null
+      alternativeSlot: resultObj.suggestAlternative ? new Date(resultObj.suggestAlternative) : null,
+      clarificationQuestion: resultObj.clarificationQuestion,
+      clarificationHistory: history
     });
     if (resultObj.clarificationQuestion) {
       resultObj.voiceResponse = resultObj.clarificationQuestion;
@@ -954,7 +964,7 @@ const getLocalFallbackResult = (transcript, context) => {
     extractedData: {},
     missingFields: [],
     clarificationQuestion: null,
-    voiceResponse: "I can't do that, but I'm built to help you with tasks, your calendar, habits, goals, and staying focused. What would you like to tackle?",
+    voiceResponse: "I'm sorry, I didn't quite catch what you want me to do with that. Could you rephrase as a task, plan, or event?",
     uiAction: null,
     navigationTarget: null,
     suggestAlternative: null
@@ -989,6 +999,7 @@ export const processVoiceCommand = async (transcript, userId, timezoneContext = 
 
   const habits = await Habit.find({ userId });
   const goals = await Goal.find({ userId });
+  const activePlans = await Plan.find({ userId, status: 'active' });
 
   // 2. Fetch free slots today
   const freeSlots = await getFreeSlotsForDay(userId, new Date());
@@ -1030,6 +1041,7 @@ export const processVoiceCommand = async (transcript, userId, timezoneContext = 
     tomorrowEvents,
     habits,
     goals,
+    activePlans,
     freeSlots,
     currentTime: nowUtc.toISOString(),
     localTime: localTimeStr,
@@ -1044,12 +1056,19 @@ export const processVoiceCommand = async (transcript, userId, timezoneContext = 
   const urgentTasks = incompleteTasks.filter(t => t.urgency >= 8);
   const upcomingGoals = goals.slice(0, 5);
   const activeHabits = habits.slice(0, 8);
+  const planSummaries = activePlans.map(p => ({
+    title: p.topic,
+    completedDays: p.completedDays,
+    totalDays: p.durationDays,
+    progress: `${p.completedDays} of ${p.durationDays} days completed`
+  }));
   const todaySummary = {
     events: todayEvents.map(e => ({ title: e.title, time: new Date(e.startTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }), type: e.type })),
     incompleteTasks: incompleteTasks.slice(0, 6).map(t => ({ _id: t._id, title: t.title, urgency: t.urgency, dueDate: t.dueDate })),
     urgentTasks: urgentTasks.map(t => ({ _id: t._id, title: t.title, urgency: t.urgency })),
     habits: activeHabits.map(h => ({ _id: h._id, name: h.name, targetDays: h.targetDays, streak: h.streak })),
     goals: upcomingGoals.map(g => ({ _id: g._id, title: g.title, progress: g.progress, targetDate: g.targetDate })),
+    plans: planSummaries,
     tomorrowEvents: tomorrowEvents.map(e => ({ title: e.title, time: new Date(e.startTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }), type: e.type })),
     freeSlots: freeSlots.slice(0, 4).map(s => ({ from: s.start, to: s.end, durationMinutes: s.durationMinutes }))
   };
@@ -1079,6 +1098,7 @@ Incomplete tasks (prioritized): ${JSON.stringify(todaySummary.incompleteTasks)}
 Urgent tasks (urgency >= 8): ${JSON.stringify(todaySummary.urgentTasks)}
 Active habits: ${JSON.stringify(todaySummary.habits)}
 Goals: ${JSON.stringify(todaySummary.goals)}
+Active Plans: ${JSON.stringify(todaySummary.plans)}
 Free time slots today: ${JSON.stringify(todaySummary.freeSlots)}
 
 USE THIS DATA to answer questions like:
@@ -1086,7 +1106,13 @@ USE THIS DATA to answer questions like:
 - "What's my schedule for today?" → Summarize todayEvents and urgent tasks in a conversational way
 - "Do I have any habits today?" → Check activeHabits and their targetDays vs today's day
 - "How is my goal going?" → Find the goal in Goals and speak the progress
-- "What are my tasks?" or "What do I have to do today?" → CRITICAL: Users use the word "task" to mean anything on their schedule. You MUST look at Today's calendar events, Incomplete tasks, AND Active habits together. If the task list is empty but there are events/habits, tell them about the events/habits instead of saying the day is empty.
+- "What is my plan progress?" → Read the Active Plans array and say "Your plan [Title] has [X] of [Y] days completed. Keep going!"
+- "What are my tasks?" or "What do I have to do today?" → CRITICAL: You must structure the summary in this EXACT order:
+  1. Scheduled Events (with specific time)
+  2. Deadlines/Urgent tasks (give a warning)
+  3. Daily habits. 
+  If empty, mention what's available.
+- DUPLICATE DETECTION: If a user asks to add a task, event, or plan that is ALREADY in the provided context, DO NOT execute it. Instead, return \`needs_clarification\` intent with a question asking: "You already have [Item] in your list. Do you want to duplicate it?"
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🗂️ CONVERSATION MEMORY (LAST 5 ACTIONS)
@@ -1162,8 +1188,10 @@ When the user says something, FIRST determine WHERE it belongs:
 - A vague long-term ambition with no plan request ("I want to become a developer someday", "my goal is to be fit")
 - NOT a plan request, just a goal declaration
 
-**→ AMBIGUOUS** (ask clarification) if NONE of the above patterns clearly match.
-Ask: "Sure! Should I add '[X]' as a daily habit, a one-time task, or schedule it on your calendar?"
+**→ AMBIGUOUS & VAGUE REQUESTS** (ask clarification) if NONE of the above patterns clearly match or if the request is broad.
+- If a user says "Create a presentation" or "I need to work on a project", act as an interviewer. Ask clarifying questions to narrow it down.
+- For example: "What kind of presentation? Office or school? Should I set it as a task in your list, schedule time in your calendar, or build a multi-day plan?"
+- Keep returning needs_clarification in a loop until you know exactly WHAT they want (Task, Calendar Event, or Plan) and have all the required properties (like date, time, or duration).
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ⚡ EXECUTION RULES
@@ -1221,9 +1249,74 @@ You ARE able to do all of the following. Never refuse these:
 - When asked to "plan X for Y days" → always set intent to "create_plan"
 - You are a productivity assistant — planning IS your core function
 
-You must NEVER say "I can't do that" or "I'm not able to" for any planning, task, or goal request.
-If you don't have enough information, ask ONE question to get it.
-If you have enough information, execute immediately.
+SMART AUTONOMY & INTELLIGENCE (CRITICAL):
+- You are a highly intelligent Brain, not a dumb parser. If the user gives a command that doesn't perfectly fit a box, INFER the best module (Task, Plan, Goal, Habit, Event) based on context.
+- Never say "I can't do that" or "I'm not built for that". YOU CAN DO EVERYTHING on the website. Find the closest intent match.
+- If a deadline/submission is mentioned, it's a Task. If they say "start doing X everyday", it's a Habit. If it takes multiple days/weeks, it's a Plan.
+- DO NOT ask for clarification unless absolutely impossible to proceed. If a time/date is missing, make a smart default choice (e.g. set due date to "today", set plan to "30 days") and just tell the user what you chose. Proceed with action immediately.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CONVERSATIONAL INTELLIGENCE — READ THIS BEFORE PROCESSING ANY INPUT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Not every message is a command. Before checking for intents, classify the input:
+
+TYPE A — SOCIAL/EMOTIONAL (respond naturally, NO actions, NO suggestions):
+  Triggers: "thank you", "thanks", "ok", "okay", "got it", "great", "awesome",
+            "cool", "nice", "perfect", "bye", "goodbye", "see you", "later",
+            "you're amazing", "well done", "good job", "that's great", "wow",
+            "sure", "alright", "sounds good", "makes sense", "no worries",
+            "my bad", "sorry", "oops", "nevermind", "forget it", "not now"
+
+  Response rules for TYPE A:
+  - "thank you" / "thanks" → "Anytime." OR "Of course." OR "Happy to help." 
+    (vary — never same twice in a session)
+  - "bye" / "goodbye" → "See you. Good luck today."
+  - "okay" / "got it" → say nothing OR "Yep." — keep it minimal
+  - "you're amazing" → "Just doing my job." or "That's the goal."
+  - "sorry" / "my bad" → "All good."
+  - "nevermind" / "forget it" → "No problem. Let me know if you need anything."
+  - NEVER follow up with "What would you like to tackle?" after a social input
+  - NEVER say "I can't do that" for social inputs — there is nothing to "do"
+
+TYPE B — QUESTION ABOUT RESQ (answer directly, no action execution):
+  Triggers: "what can you do", "how do you work", "what are you", "are you AI",
+            "who made you", "do you remember", "can you help with X"
+  
+  Response: Answer briefly and naturally. One to two sentences. 
+  Never read out a feature list. Never say "I'm built to help with tasks, calendar..."
+  Instead: "Yeah, I handle tasks, plans, reminders — basically your productivity layer. What do you need?"
+
+TYPE C — FILLER / THINKING OUT LOUD (acknowledge, wait for real input):
+  Triggers: "hmm", "uhh", "let me think", "wait", "one second", "hold on"
+  
+  Response: Say nothing OR "Take your time." — never prompt them with suggestions
+
+TYPE D — ACTUAL COMMAND (normal processing):
+  Anything that implies: create, update, delete, schedule, plan, remind, show, 
+  search, complete, check, find, help me with a task/goal/habit/plan
+  → Process normally through intent detection and action execution
+
+GOLDEN RULE:
+  If a human would not find your response weird to hear from another human —
+  it is acceptable. If a human would think "why is this person being so robotic" —
+  rewrite the response.
+
+PHRASE BLACKLIST — NEVER USE THESE:
+  ✗ "I can't do that"
+  ✗ "I'm not able to"  
+  ✗ "I'm built to help with tasks, your calendar, habits, goals"
+  ✗ "What would you like to tackle?"  (after social input)
+  ✗ "Of course!" (too sycophantic)
+  ✗ "Certainly!"
+  ✗ "Great question!"
+  ✗ "I understand your request"
+  ✗ "As an AI assistant"
+  ✗ "How can I assist you today?"
+
+VARY YOUR RESPONSES:
+  Same phrase twice in a session = robotic. 
+  For "thank you" — rotate: "Anytime." / "Sure." / "Of course." / "Happy to." 
+  Never the same acknowledgment twice.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 INTENT MAPPING RULES — apply these first before anything else:
@@ -1233,6 +1326,8 @@ INTENT MAPPING RULES — apply these first before anything else:
 - "help me learn X" or "I want to learn X" → intent: "create_plan"
 - "create a goal" or "I want to achieve X" → intent: "create_goal"
 - "add a task" or "remind me to X" → intent: "create_task"
+- "I have to X", "I need to X", "I must X", "I've got to X" → intent: "create_task" (implied obligation)
+- "I have a deadline for X", "X is due", "submit X" → intent: "create_task" (implied deadline)
 - "what should I do" or "what's my priority" → intent: "prioritize_work"
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1270,7 +1365,7 @@ INTENT MAPPING RULES — apply these first before anything else:
 - change_theme: { theme: 'dark'|'light'|'matrix' }
 - casual_chat: {} — for greetings, jokes, general questions
 - out_of_scope: {} — for external actions (buying, emailing, browsing)
-- needs_clarification: {} — when critical info is missing or confidence < 0.7
+- needs_clarification: {} — USE THIS when critical info is missing or the request is ambiguous (e.g., "create a presentation"). CRITICAL: Act as an interviewer. Ask SMARTLY and NATURALLY in 'voiceResponse'. NEVER repeat the exact same question structure. Use varied, conversational phrasing like a human would. If it takes multiple turns to figure out if it's a Task, Calendar Event, or Plan, keep returning needs_clarification until you have all the required details (e.g., date, type, destination).
 - permission_denied: {} — for blocked security actions
 - close_intent: { isSleep: true } — to close/sleep the assistant
 
@@ -1292,7 +1387,7 @@ Return ONLY valid JSON. No markdown wrappers, no extra text.
 `;
 
   try {
-    const userPrompt = `User said: '${transcript}'\n\nToday's date: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}\nToday's calendar: ${JSON.stringify(todaySummary.events)}\nTomorrow's calendar: ${JSON.stringify(todaySummary.tomorrowEvents)}\nMy incomplete tasks: ${JSON.stringify(todaySummary.incompleteTasks)}\nMy habits: ${JSON.stringify(todaySummary.habits)}\nMy goals: ${JSON.stringify(todaySummary.goals)}\nFree time today: ${JSON.stringify(todaySummary.freeSlots)}`;
+    const userPrompt = `User said: '${transcript}'\n\nToday's date: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}\nToday's calendar: ${JSON.stringify(todaySummary.events)}\nTomorrow's calendar: ${JSON.stringify(todaySummary.tomorrowEvents)}\nMy incomplete tasks: ${JSON.stringify(todaySummary.incompleteTasks)}\nMy habits: ${JSON.stringify(todaySummary.habits)}\nMy goals: ${JSON.stringify(todaySummary.goals)}\nMy active plans: ${JSON.stringify(todaySummary.plans)}\nFree time today: ${JSON.stringify(todaySummary.freeSlots)}`;
     
     let history = conversationHistories.get(userId.toString()) || [];
     if (history.length === 0) {
@@ -1369,8 +1464,8 @@ export const resolveClarification = async (userId, followUpTranscript, timezoneC
     return processVoiceCommand(followUpTranscript, userId, timezoneContext);
   }
 
-  // Clear pendingCommand cache
-  pendingCommands.delete(cacheKey);
+  // Remove cache deletion to support true looping - controller deletes it on success
+  // pendingCommands.delete(cacheKey);
 
   const cleanFollowUp = followUpTranscript.toLowerCase();
 
@@ -1726,7 +1821,26 @@ export const resolveClarification = async (userId, followUpTranscript, timezoneC
   }
 
   // General clarification re-run using the full master prompt context
-  const mergedTranscript = `Regarding my previous request "${pending.originalTranscript}", my answer/clarification is: "${followUpTranscript}"`;
+  
+  // Append current user response to history
+  if (pending.clarificationHistory) {
+    pending.clarificationHistory.push({ role: 'user', text: followUpTranscript });
+  }
+
+  let historyText = `[ORIGINAL REQUEST: "${pending.originalTranscript}"]\n`;
+  if (pending.clarificationHistory && pending.clarificationHistory.length > 0) {
+    historyText += pending.clarificationHistory.map(h => 
+      `[${h.role.toUpperCase()}: "${h.text}"]`
+    ).join('\n') + '\n';
+  } else {
+    historyText += `[YOU ASKED: "${pending.clarificationQuestion}"]\n[USER CLARIFIED: "${followUpTranscript}"]\n`;
+  }
+
+  const mergedTranscript = `${historyText}
+CRITICAL INSTRUCTION FOR THIS TURN: 
+1. Do NOT ask the same clarification question again. Look at the history.
+2. If the user provided context that implies a different intent (e.g., they didn't give a time, but mentioned a deadline, submission, or general work), dynamically switch the intent (e.g., to create_task instead of schedule_event) and fulfill the request immediately. Let it be a task with a default due date instead of demanding a time block. Let yourself think contextually rather than being rigid.
+3. If they asked to "create a presentation" or something similarly ambiguous, and they haven't clarified WHAT type of item to create, keep asking (return needs_clarification) until you know whether it's a Task, Calendar Event, or Plan, and gather the necessary fields.`;
   console.log('[voiceIntentService] Falling back to processVoiceCommand with merged transcript:', mergedTranscript);
   return processVoiceCommand(mergedTranscript, userId, timezoneContext);
 };

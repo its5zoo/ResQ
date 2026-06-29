@@ -5,8 +5,6 @@ import Dashboard from './pages/Dashboard';
 import AuthPage from './pages/AuthPage';
 import PricingPage from './pages/PricingPage';
 import DocsPage from './pages/DocsPage';
-import PlanPage from './pages/PlanPage';
-import AdminPage from './pages/AdminPage';
 import GlobalVoiceAssistant from './components/Shared/GlobalVoiceAssistant';
 import { wakeWordEngine } from './services/WakeWordEngine';
 import { useAuthContext } from './context/AuthContext';
@@ -52,8 +50,6 @@ function AppContent() {
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/pricing" element={<PricingPage />} />
         <Route path="/docs" element={<DocsPage />} />
-        <Route path="/plans/:planId" element={isAuthenticated ? <PlanPage /> : <Navigate to="/auth" replace />} />
-        <Route path="/admin" element={isAuthenticated ? <AdminPage /> : <Navigate to="/auth" replace />} />
       </Routes>
       {isAuthenticated && user && (
         <GlobalVoiceAssistant 

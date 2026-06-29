@@ -3,6 +3,7 @@ import { API_BASE_URL as API_URL } from '../config/apiConfig.js';
 class VoicePersonality {
   constructor() {
     this.currentAudio = null;
+    this.abortController = null;
   }
 
   async speak(text, options = {}) {
@@ -21,10 +22,16 @@ class VoicePersonality {
       this.currentAudio = null;
     }
 
+    if (this.abortController) {
+      this.abortController.abort();
+    }
+    this.abortController = new AbortController();
+
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_URL}/voice/tts`, {
         method: 'POST',
+        signal: this.abortController.signal,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -60,27 +67,50 @@ class VoicePersonality {
         return;
       }
     } catch (error) {
+      if (error.name === 'AbortError') return; // Silently ignore aborted requests
       console.warn('[VoicePersonality] ElevenLabs failed, falling back to TTS', error);
     }
 
     // Only reach here if ElevenLabs failed or unavailable
+    let safetyTimeout = null;
+    const clearSafety = () => {
+      if (safetyTimeout) {
+        clearTimeout(safetyTimeout);
+        safetyTimeout = null;
+      }
+    };
+
+    safetyTimeout = setTimeout(() => {
+      console.warn('[VoicePersonality] Speech synthesis timeout reached — releasing state.');
+      if ('speechSynthesis' in window) {
+        try { window.speechSynthesis.cancel(); } catch {}
+      }
+      window.dispatchEvent(new CustomEvent('resq:voice-end'));
+      if (options.onEnd) {
+        try { options.onEnd(); } catch {}
+      }
+    }, Math.max(8000, text.length * 120));
+
     if ('speechSynthesis' in window) {
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.rate = 0.95;
       utterance.pitch = 1.0;
       
       utterance.onend = () => {
+        clearSafety();
         window.dispatchEvent(new CustomEvent('resq:voice-end'));
         if (options.onEnd) try { options.onEnd(); } catch {}
       };
       
       utterance.onerror = () => {
+        clearSafety();
         window.dispatchEvent(new CustomEvent('resq:voice-end'));
         if (options.onEnd) try { options.onEnd(); } catch {}
       };
       
       window.speechSynthesis.speak(utterance);
     } else {
+      clearSafety();
       window.dispatchEvent(new CustomEvent('resq:voice-end'));
       if (options.onEnd) try { options.onEnd(); } catch {}
     }

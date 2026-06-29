@@ -8,9 +8,7 @@ import {
   Circle, 
   X,
   PlusCircle,
-  ChevronDown,
-  Calendar,
-  AlertTriangle
+  ChevronDown
 } from 'lucide-react';
 import { tasks as apiTasks } from '../../services/api.js';
 import CustomDatePicker from '../Shared/CustomDatePicker.jsx';
@@ -35,28 +33,6 @@ export default function TasksPage({
   const [highlightedTaskId, setHighlightedTaskId] = useState(null);
   const [completedAnimationTaskId, setCompletedAnimationTaskId] = useState(null);
   const [highlightedDeadlines, setHighlightedDeadlines] = useState(false);
-  
-  // Procrastination Interception States
-  const [reschedulingTask, setReschedulingTask] = useState(null);
-  const [rescheduleDate, setRescheduleDate] = useState('');
-  const [activeInterception, setActiveInterception] = useState(null);
-  const [timerSeconds, setTimerSeconds] = useState(300);
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
-  const [blockerSelected, setBlockerSelected] = useState(null);
-  const [blockerStep, setBlockerStep] = useState(1);
-
-  // Strategy A Countdown Timer Effect
-  useEffect(() => {
-    let interval = null;
-    if (isTimerRunning && timerSeconds > 0) {
-      interval = setInterval(() => {
-        setTimerSeconds(s => s - 1);
-      }, 1000);
-    } else if (timerSeconds === 0) {
-      setIsTimerRunning(false);
-    }
-    return () => clearInterval(interval);
-  }, [isTimerRunning, timerSeconds]);
   
   // Task Creation States
   const [title, setTitle] = useState('');
@@ -152,29 +128,16 @@ export default function TasksPage({
       }, 4000);
     };
 
-    const handleFilterTasks = (e) => {
-      const { filter: newFilter, sortBy: newSortBy } = e.detail || {};
-      if (newFilter) setFilter(newFilter);
-      if (newSortBy) setSortBy(newSortBy);
-      
-      // Optional: Visual confirmation toast
-      const filterName = newFilter === 'today' ? 'Today' : newFilter === 'upcoming' ? 'Upcoming' : newFilter === 'completed' ? 'Completed' : 'All';
-      const sortName = newSortBy === 'priorityRank' ? 'Priority' : newSortBy === 'dueDate' ? 'Due Date' : 'Recent';
-      showToast(`Showing ${filterName} tasks sorted by ${sortName}`, 'success');
-    };
-
     window.addEventListener('resq:refetch-tasks', handleRefetch);
     window.addEventListener('resq:highlight-task', handleHighlightTask);
     window.addEventListener('resq:task-completed-animation', handleCompletedAnimation);
     window.addEventListener('resq:highlight-deadlines', handleHighlightDeadlines);
-    window.addEventListener('resq:filter-tasks', handleFilterTasks);
 
     return () => {
       window.removeEventListener('resq:refetch-tasks', handleRefetch);
       window.removeEventListener('resq:highlight-task', handleHighlightTask);
       window.removeEventListener('resq:task-completed-animation', handleCompletedAnimation);
       window.removeEventListener('resq:highlight-deadlines', handleHighlightDeadlines);
-      window.removeEventListener('resq:filter-tasks', handleFilterTasks);
     };
   }, [fetchTasks]);
 
@@ -352,87 +315,6 @@ export default function TasksPage({
     } catch (err) {
       console.error('Error toggling subtask:', err);
     }
-  };
-  
-  // Reschedule & Procrastination Action Handlers
-  const handleOpenReschedule = (e, task) => {
-    e.stopPropagation();
-    setReschedulingTask(task);
-    setRescheduleDate(new Date(task.dueDate).toISOString().slice(0, 10));
-  };
-
-  const handleRescheduleSubmit = async (e) => {
-    e.preventDefault();
-    if (!reschedulingTask) return;
-
-    try {
-      const response = await apiTasks.update(reschedulingTask._id, { dueDate: new Date(rescheduleDate) });
-      
-      // Update task list locally. Check if response is the task directly or wrapped
-      const updatedTaskObj = response.procrastinationInterception ? response : response;
-      setTasks(prev => prev.map(t => t._id === reschedulingTask._id ? (response.procrastinationInterception ? response : response) : t));
-      
-      setReschedulingTask(null);
-
-      // Check if procrastination interception is triggered
-      if (response.procrastinationInterception) {
-        const strategy = response.procrastinationInterception;
-        setActiveInterception({
-          ...strategy,
-          task: response
-        });
-        // If Strategy A (Micro Action), start the 5 minute timer
-        if (strategy.strategy === 'A') {
-          setTimerSeconds(300);
-          setIsTimerRunning(true);
-        } else {
-          setIsTimerRunning(false);
-        }
-        setBlockerSelected(null);
-        setBlockerStep(1);
-      } else {
-        showToast("Task rescheduled successfully!");
-      }
-    } catch (err) {
-      console.error('Error rescheduling task:', err);
-      showToast("Failed to reschedule task.", 'error');
-    }
-  };
-
-  const handleMicroActionComplete = async () => {
-    if (!activeInterception?.task) return;
-    await handleToggleTask(activeInterception.task._id);
-    setActiveInterception(null);
-    setIsTimerRunning(false);
-    showToast("Incredible! You crushed the friction and finished the task.");
-  };
-
-  const handleAddBlockerSubtasks = async () => {
-    if (!activeInterception?.task) return;
-    const subtasks = [
-      { title: 'Open the workspace and focus environment', completed: false },
-      { title: 'Write down exactly one single line of draft/code', completed: false },
-      { title: 'Read the instructions or requirements page for 2 minutes', completed: false }
-    ];
-    try {
-      const updated = await apiTasks.update(activeInterception.task._id, { subtasks });
-      setTasks(prev => prev.map(t => t._id === activeInterception.task._id ? updated : t));
-      showToast("3 starter subtasks added to help you break the ice!");
-      setActiveInterception(null);
-    } catch (err) {
-      console.error('Error adding subtasks:', err);
-    }
-  };
-
-  const handleCommitNow = () => {
-    setActiveInterception(prev => ({
-      ...prev,
-      strategy: 'A',
-      message: "Great choice! Let's build momentum now.",
-      action: "Spend just 5 minutes of focused work on this task."
-    }));
-    setTimerSeconds(300);
-    setIsTimerRunning(true);
   };
 
   return (
@@ -628,14 +510,6 @@ export default function TasksPage({
 
 
                     <button 
-                      onClick={(e) => handleOpenReschedule(e, task)}
-                      title="Reschedule / Snooze Task"
-                      className="text-white/50 hover:text-[#E5B842] transition-colors cursor-pointer"
-                    >
-                      <Calendar className="w-4 h-4" />
-                    </button>
-
-                    <button 
                       onClick={() => handleDeleteTask(task._id)}
                       className="text-white/50 hover:text-red-500 transition-colors cursor-pointer"
                     >
@@ -669,183 +543,6 @@ export default function TasksPage({
         </div>
       )}
 
-      {/* Reschedule Datepicker Modal */}
-      {reschedulingTask && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#090909] border border-white/10 rounded-3xl p-6 w-full max-w-md shadow-2xl relative">
-            <button 
-              onClick={() => setReschedulingTask(null)}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/5 border border-white/10 text-white/50 flex items-center justify-center hover:text-white transition-colors cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-            
-            <span className="text-[10px] font-tech font-bold tracking-[0.2em] text-[#E5B842] uppercase block mb-1">POSTPONE DEADLINE</span>
-            <h3 className="text-lg font-display font-black text-white mb-4">Reschedule Task</h3>
-            
-            <p className="text-sm text-white/60 mb-5 leading-normal">
-              Rescheduling "{reschedulingTask.title}". Pushing tasks later multiple times triggers procrastination safety interventions.
-            </p>
-            
-            <form onSubmit={handleRescheduleSubmit} className="space-y-4">
-              <div className="relative">
-                <input 
-                  type="date"
-                  value={rescheduleDate}
-                  onChange={(e) => setRescheduleDate(e.target.value)}
-                  className="w-full bg-[#050505] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#E5B842]/40 focus:outline-hidden transition-all"
-                  required
-                />
-              </div>
-              
-              <button 
-                type="submit"
-                className="w-full py-3 bg-[#E5B842] text-black hover:bg-[#F5C75D] text-sm font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer animate-fade-in"
-              >
-                Save New Deadline
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Procrastination Interception Overlay Modal */}
-      {activeInterception && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in select-none">
-          <div className="bg-[#050505] border-2 border-[#E5B842]/40 rounded-[2rem] p-8 w-full max-w-lg shadow-[0_0_50px_rgba(229,184,66,0.15)] relative overflow-hidden text-center flex flex-col gap-5">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-[#E5B842]/5 rounded-full blur-[60px] pointer-events-none" />
-
-            {/* Alert Header Icon */}
-            <div className="w-14 h-14 rounded-2xl bg-[#E5B842]/10 border border-[#E5B842]/30 flex items-center justify-center mx-auto mb-1 animate-pulse">
-              <AlertTriangle className="w-7 h-7 text-[#E5B842]" />
-            </div>
-
-            <div>
-              <span className="text-[10px] font-tech font-bold tracking-[0.25em] text-[#E5B842] uppercase block mb-1">
-                {activeInterception.strategy === 'A' ? 'Strategy A — Micro Action' 
-                 : activeInterception.strategy === 'B' ? 'Strategy B — Blocker Probe' 
-                 : 'Strategy C — Emotional Anchor'}
-              </span>
-              <h3 className="text-xl font-display font-black text-white">Procrastination Intercepted!</h3>
-              <p className="text-xs text-white/40 mt-1 font-tech">Task avoided {activeInterception.task?.dismissCount || 3}x in 2 hours</p>
-            </div>
-
-            {/* Empathy coaching message */}
-            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4">
-              <p className="text-sm font-medium text-white/80 leading-relaxed">
-                "{activeInterception.message}"
-              </p>
-            </div>
-
-            {/* Prompt action details */}
-            <div className="p-4 bg-[#E5B842]/5 border border-[#E5B842]/20 rounded-2xl">
-              <p className="text-xs text-[#E5B842]/80 uppercase tracking-widest font-tech font-bold mb-1">Suggested Intervention:</p>
-              <p className="text-sm font-semibold text-white/90 leading-relaxed">{activeInterception.action}</p>
-            </div>
-
-            {/* STRATEGY SPECIFIC RENDERERS */}
-            
-            {/* Strategy A: Countdown timer */}
-            {activeInterception.strategy === 'A' && (
-              <div className="py-4">
-                <div className="w-28 h-28 rounded-full border-4 border-dashed border-[#E5B842]/30 flex flex-col items-center justify-center mx-auto mb-2">
-                  <span className="text-2xl font-tech font-bold text-[#E5B842]">
-                    {Math.floor(timerSeconds / 60)}:{(timerSeconds % 60).toString().padStart(2, '0')}
-                  </span>
-                </div>
-                <p className="text-[10px] text-white/40 font-tech">DO NOT THINK. JUST FOCUS FOR 5 MINUTES.</p>
-              </div>
-            )}
-
-            {/* Strategy B: Blocker Checklist */}
-            {activeInterception.strategy === 'B' && blockerStep === 1 && (
-              <div className="grid grid-cols-2 gap-3 py-2">
-                {[
-                  { value: 'clarity', label: 'Lack of Clarity', color: 'border-blue-500/20 text-blue-400 bg-blue-500/5 hover:bg-blue-500/10' },
-                  { value: 'energy', label: 'Fatigue / Low Energy', color: 'border-red-500/20 text-red-400 bg-red-500/5 hover:bg-red-500/10' },
-                  { value: 'motivation', label: 'Low Motivation', color: 'border-purple-500/20 text-purple-400 bg-purple-500/5 hover:bg-purple-500/10' },
-                  { value: 'tools', label: 'Setup Blocked', color: 'border-amber-500/20 text-amber-400 bg-amber-500/5 hover:bg-amber-500/10' }
-                ].map(opt => (
-                  <button
-                    key={opt.value}
-                    onClick={() => {
-                      setBlockerSelected(opt.value);
-                      setBlockerStep(2);
-                    }}
-                    className={`p-3 rounded-xl border text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${opt.color}`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {activeInterception.strategy === 'B' && blockerStep === 2 && (
-              <div className="bg-[#090909] border border-white/5 p-4 rounded-xl space-y-4">
-                <p className="text-xs text-white/70 leading-relaxed font-sans font-medium text-left">
-                  {blockerSelected === 'clarity' && "Blocker: Clarity. Let's break this task into 3 easy, bite-sized starting steps to remove ambiguity. No thinking needed."}
-                  {blockerSelected === 'energy' && "Blocker: Fatigue. Since your energy is low, do not attempt to finish the whole task. Just work for 2 minutes to show up, then stop if you wish."}
-                  {blockerSelected === 'motivation' && "Blocker: Motivation. Remember: Action precedes motivation. Let's do a micro-step to kickstart the dopamine loop."}
-                  {blockerSelected === 'tools' && "Blocker: Setup. Let's make the subtasks just about opening the tools, logging in, or creating the folder/document."}
-                </p>
-                <button
-                  onClick={handleAddBlockerSubtasks}
-                  className="w-full py-2.5 bg-blue-500 text-white hover:bg-blue-600 text-xs font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer"
-                >
-                  Create 3 Easy Subtasks & Close
-                </button>
-              </div>
-            )}
-
-            {/* BUTTON CONTROLS */}
-            <div className="flex gap-3 mt-4">
-              {activeInterception.strategy === 'A' ? (
-                <>
-                  <button 
-                    onClick={handleMicroActionComplete}
-                    className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer"
-                  >
-                    Done (I completed it!)
-                  </button>
-                  <button 
-                    onClick={handleCloseInterception}
-                    className="px-5 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 text-xs font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer"
-                  >
-                    Skip
-                  </button>
-                </>
-              ) : activeInterception.strategy === 'C' ? (
-                <>
-                  <button 
-                    onClick={handleCommitNow}
-                    className="flex-1 py-3 bg-[#E5B842] text-black hover:bg-[#F5C75D] text-xs font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer"
-                  >
-                    Commit to 5 min action now
-                  </button>
-                  <button 
-                    onClick={handleCloseInterception}
-                    className="px-5 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 text-xs font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer"
-                  >
-                    Close
-                  </button>
-                </>
-              ) : (
-                /* Strategy B Skip/Close */
-                blockerStep === 1 && (
-                  <button 
-                    onClick={handleCloseInterception}
-                    className="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 text-xs font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer"
-                  >
-                    Close Interception
-                  </button>
-                )
-              )}
-            </div>
-
-          </div>
-        </div>
-      )}
-
     </div>
   );
-};
+}

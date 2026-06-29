@@ -29,6 +29,7 @@ class WakeWordEngine {
     this.idleConversationTimer = null;
     this.isAiSpeaking = false;
     this.isProcessingBackend = false;
+    this.voiceSafetyReleaseTimer = null;
 
     this.handleVoiceStart = () => {
       this.isAiSpeaking = true;
@@ -39,22 +40,32 @@ class WakeWordEngine {
         this.commandSilenceTimer = null;
       }
       
-      // Zero-Echo Implementation: Aggressively shut off the mic while speaking
-      this.stopCommandListening();
+      // Safety release: force release mic ignore state after 12 seconds in case onend is dropped
+      if (this.voiceSafetyReleaseTimer) clearTimeout(this.voiceSafetyReleaseTimer);
+      this.voiceSafetyReleaseTimer = setTimeout(() => {
+        if (this.isAiSpeaking) {
+          console.warn('[WakeWordEngine] AI voice safety release triggered. Forcing isAiSpeaking = false.');
+          this.isAiSpeaking = false;
+          this.resetIdleTimer();
+        }
+      }, 12000); // 12 seconds maximum voice utterance block
+
+      // Zero-Echo Implementation: Keep mic open but aggressively ignore all transcripts in onresult
+      // this.stopCommandListening();
     };
     this.handleVoiceEnd = () => {
       this.isAiSpeaking = false;
+      if (this.voiceSafetyReleaseTimer) {
+        clearTimeout(this.voiceSafetyReleaseTimer);
+        this.voiceSafetyReleaseTimer = null;
+      }
       // Brief cooldown before opening the mic again to discard any hardware audio tail
       this.postSpeechCooldown = true;
       if (this.postSpeechCooldownTimer) clearTimeout(this.postSpeechCooldownTimer);
       this.postSpeechCooldownTimer = setTimeout(() => {
         this.postSpeechCooldown = false;
         this.latestTranscript = '';
-        // If still in command mode, reopen the mic instantly
-        if (this.isWoken) {
-          this.startCommandListening();
-        }
-      }, 300);
+      }, 1000); // 1-second cooldown to clear OS audio buffers
       this.resetIdleTimer();
     };
     this.handleVoiceResponseReceived = () => { this.isProcessingBackend = false; this.resetIdleTimer(); };
@@ -144,6 +155,10 @@ class WakeWordEngine {
     if (this.commandTimeoutTimer) clearTimeout(this.commandTimeoutTimer);
     if (this.commandSilenceTimer) clearTimeout(this.commandSilenceTimer);
     if (this.clarificationTimeoutTimer) clearTimeout(this.clarificationTimeoutTimer);
+    if (this.voiceSafetyReleaseTimer) {
+      clearTimeout(this.voiceSafetyReleaseTimer);
+      this.voiceSafetyReleaseTimer = null;
+    }
 
     if (this.recognition) {
       this.recognition.onend = null;
@@ -542,37 +557,10 @@ class WakeWordEngine {
         const latest = finalTranscript || interimTranscript;
         const currentTranscript = latest.trim().toLowerCase();
 
-        // 1. Interruptibility / Barge-In and Echo Cancellation
-        if (this.isAiSpeaking) {
-          const spokenText = (voicePersonality.currentSpokenText || '').toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "");
-          const cleanedTranscript = currentTranscript.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "");
-
-          // Detect if it is echo/self-hearing (high overlap or substring of AI response)
-          const isEcho = cleanedTranscript.length > 0 && (
-            spokenText.includes(cleanedTranscript) || 
-            cleanedTranscript.split(' ').every(word => word.length <= 2 || spokenText.includes(word))
-          );
-
-          if (isEcho) {
-            console.log('[WakeWordEngine] Echo/Self-hearing detected — ignoring.');
-            return;
-          }
-
-          // Real user interrupt - make it more robust against random background noise
-          const words = cleanedTranscript.split(' ').filter(w => w.length > 0);
-          if (words.length >= 3 || (words.length === 2 && cleanedTranscript.length > 8) || cleanedTranscript.length > 15) {
-            console.log('[WakeWordEngine] User barge-in! Stopping AI speech.');
-            voicePersonality.cancel();
-            this.isAiSpeaking = false;
-            this.postSpeechCooldown = false;
-          } else {
-            console.log('[WakeWordEngine] Ignoring short noise during speech:', cleanedTranscript);
-            return; // Ignore tiny noises/clicks
-          }
-        }
-
-        // 2. Discard if AI is speaking or in post-speech cooldown
+        // 1. Zero-Echo: Aggressively ignore everything while AI is speaking
+        // We do not support barge-in via speech recognition because it's too unreliable and causes self-triggering.
         if (this.isAiSpeaking || this.postSpeechCooldown) {
+          console.log('[WakeWordEngine] Ignoring transcript during AI speech/cooldown:', currentTranscript);
           return;
         }
 

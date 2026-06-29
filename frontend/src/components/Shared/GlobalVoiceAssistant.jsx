@@ -419,6 +419,7 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
     const handleCommand = (e) => {
       const { transcript } = e.detail;
       setTranscript(transcript);
+      lastInteractionTimeRef.current = Date.now();
 
       // Add user message to conversation thread immediately
       if (transcript && !pendingDeadlineTaskIdRef.current && !awaitingIdleFocusConfirmationRef.current) {
@@ -474,8 +475,10 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
     };
 
     const handleStartFocus = (e) => {
-      const { task, duration } = e.detail;
-      startFocusSession(task, duration);
+      const { task, taskName, title, duration, durationMinutes } = e.detail || {};
+      const finalTask = task || taskName || title || 'Deep Work Session';
+      const finalDuration = duration || durationMinutes || 25;
+      startFocusSession(finalTask, finalDuration);
     };
     const handleStopFocus = () => {
       stopFocusSession();
@@ -710,9 +713,24 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
   // Voice synthesis feedback helper delegating to voicePersonality
   const speakBack = (text, priority = false) => {
     setMicState('speaking');
+    lastInteractionTimeRef.current = Date.now();
 
     const resumeListening = () => {
-      setMicState(isWokenRef.current ? 'listening' : 'idle');
+      if (!isWokenRef.current) {
+        setMicState('idle');
+        return;
+      }
+      
+      setMicState('listening');
+      
+      // Wait for 15 seconds before sleeping
+      setTimeout(() => {
+        // Only sleep if no new interaction happened in the last 15 seconds
+        if (Date.now() - lastInteractionTimeRef.current >= 14900 && isWokenRef.current) {
+           console.log('[VoiceAssistant] 15-second conversational window expired. Sleeping.');
+           closeAssistant();
+        }
+      }, 15000);
     };
 
     voicePersonality.speak(text, {

@@ -12,8 +12,6 @@ import { checkAlertTriggers } from './alertService.js';
 import { sendPushToUser } from './pushService.js';
 import { setPendingProactiveCommand } from './voiceIntentService.js';
 import { sendEmailReminder } from './emailService.js';
-import Plan from '../models/Plan.js';
-import { sendPlanReminder } from './planService.js';
 
 export const startCronJobs = () => {
   // Runs every 10 minutes for proactive alerts
@@ -27,11 +25,12 @@ export const startCronJobs = () => {
 
   // Runs every 5 minutes
   cron.schedule('*/5 * * * *', async () => {
+    console.log('[Cron] Running scheduled audits for user alerts...');
     try {
-      const users = await User.find({}).lean();
+      const users = await User.find({});
       const now = new Date();
 
-      await Promise.all(users.map(async (user) => {
+      for (const user of users) {
         const userId = user._id;
         const roomName = `user_${userId}`;
         const sendEmail = user.email && user.notificationPreferences?.email !== false;
@@ -42,9 +41,10 @@ export const startCronJobs = () => {
           userId,
           completed: false,
           dueDate: { $gte: now, $lte: twoHoursFromNow }
-        }).lean();
+        });
 
         for (const task of imminentTasks) {
+          // Check if already notified in the last 2 hours to avoid spamming
           const existing = await Notification.findOne({
             userId,
             type: 'deadline_warning',
@@ -61,9 +61,12 @@ export const startCronJobs = () => {
               'deadline_warning'
             );
             if (notification && io) {
+              console.log(`[Cron] Emitting deadline_warning to ${roomName} for task "${task.title}"`);
               io.to(roomName).emit('notification:new', notification);
             }
+            // Native OS push notification
             await sendPushToUser(userId, `⏰ Deadline in 2h: ${task.title}`, message, { tag: `deadline-${task._id}`, url: '/dashboard?tab=tasks' });
+            
             if (sendEmail) {
               await sendEmailReminder(user.email, `Deadline Warning: ${task.title}`, message);
             }
@@ -78,7 +81,7 @@ export const startCronJobs = () => {
           const habits = await Habit.find({
             userId,
             targetDays: todayName
-          }).lean();
+          });
 
           for (const habit of habits) {
             const todayDateStr = now.toDateString();
@@ -87,6 +90,7 @@ export const startCronJobs = () => {
             });
 
             if (!completedToday) {
+              // Check if already notified today (since 12 AM today)
               const todayStart = new Date(now);
               todayStart.setHours(0, 0, 0, 0);
               const existing = await Notification.findOne({
@@ -105,6 +109,7 @@ export const startCronJobs = () => {
                   'habit_miss'
                 );
                 if (notification && io) {
+                  console.log(`[Cron] Emitting habit_miss to ${roomName} for habit "${habit.name}"`);
                   io.to(roomName).emit('notification:new', notification);
                 }
                 if (sendEmail) {
@@ -121,9 +126,10 @@ export const startCronJobs = () => {
           userId,
           progress: { $lt: 20 },
           targetDate: { $gte: now, $lte: sevenDaysFromNow }
-        }).lean();
+        });
 
         for (const goal of behindGoals) {
+          // Check if already notified in the last 7 days
           const existing = await Notification.findOne({
             userId,
             type: 'goal_behind',
@@ -140,6 +146,7 @@ export const startCronJobs = () => {
               'goal_behind'
             );
             if (notification && io) {
+              console.log(`[Cron] Emitting goal_behind to ${roomName} for goal "${goal.title}"`);
               io.to(roomName).emit('notification:new', notification);
             }
             if (sendEmail) {
@@ -148,7 +155,7 @@ export const startCronJobs = () => {
           }
         }
 
-        // 4. Check upcoming meetings for high-frequency interval alerts
+        // 4. Check upcoming meetings or exams for high-frequency alerts
         const upcomingEvents = await CalendarEvent.find({
           userId,
           startTime: { $gte: new Date(now.getTime() - 30 * 60 * 1000), $lte: new Date(now.getTime() + 25 * 60 * 60 * 1000) },
@@ -163,66 +170,59 @@ export const startCronJobs = () => {
           let timeLabel = '';
 
           if (hoursRemaining >= 23.9 && hoursRemaining <= 24.1) {
-            intervalKey = '24h'; timeLabel = 'in 24 hours (tomorrow)';
+            intervalKey = '24h';
+            timeLabel = 'in 24 hours (tomorrow)';
           } else if (hoursRemaining >= 7.9 && hoursRemaining <= 8.1) {
-            intervalKey = '8h'; timeLabel = 'in 8 hours';
+            intervalKey = '8h';
+            timeLabel = 'in 8 hours';
           } else if (hoursRemaining >= 0.9 && hoursRemaining <= 1.1) {
-            intervalKey = '1h'; timeLabel = 'in 1 hour';
+            intervalKey = '1h';
+            timeLabel = 'in 1 hour';
           } else if (hoursRemaining >= 0.1 && hoursRemaining <= 0.25) {
-            intervalKey = '10m'; timeLabel = 'in 10 minutes';
+            intervalKey = '10m';
+            timeLabel = 'in 10 minutes';
           } else if (hoursRemaining >= -0.05 && hoursRemaining <= 0.05) {
-            intervalKey = '0h'; timeLabel = 'right now';
+            intervalKey = '0h';
+            timeLabel = 'right now';
           }
 
           if (intervalKey && !event.notifiedIntervals?.includes(intervalKey)) {
             const formattedTime = new Date(event.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const message = intervalKey === '0h'
-              ? `Reminder: "${event.title}" is starting right now at ${formattedTime}.`
-              : `Reminder: "${event.title}" is scheduled ${timeLabel} at ${formattedTime}.`;
-
-            const notification = await createNotification(userId, `Upcoming Event: ${event.title}`, message, 'event_reminder');
-            if (!event.notifiedIntervals) event.notifiedIntervals = [];
+            let message;
+            if (intervalKey === '0h') {
+              message = `Reminder: "${event.title}" is starting right now at ${formattedTime}.`;
+            } else {
+              message = `Reminder: "${event.title}" is scheduled ${timeLabel} at ${formattedTime}.`;
+            }
+            
+            const notification = await createNotification(
+              userId,
+              `Upcoming Event: ${event.title}`,
+              message,
+              'event_reminder'
+            );
+            
+            if (!event.notifiedIntervals) {
+              event.notifiedIntervals = [];
+            }
             event.notifiedIntervals.push(intervalKey);
             await event.save();
 
             if (notification && io) {
+              console.log(`[Cron] Emitting event_reminder (${intervalKey}) to ${roomName} for event "${event.title}"`);
               io.to(roomName).emit('notification:new', notification);
             }
+            
             if (sendEmail) {
               await sendEmailReminder(user.email, `Event Reminder: ${event.title}`, message);
             }
           }
         }
-      }));
+      }
     } catch (error) {
       console.error('[Cron] Error in scheduled cron jobs:', error);
     }
   });
 
-  // ── Plan Daily Reminder ───────────────────────────────────────────
-  // Runs every minute — finds active plans whose reminderTime == now
-  cron.schedule('* * * * *', async () => {
-    try {
-      const now = new Date();
-      const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-      const plans = await Plan.find({
-        status: 'active',
-        reminderTime: currentTime
-      });
-
-      for (const plan of plans) {
-        try {
-          await sendPlanReminder(plan);
-        } catch (reminderErr) {
-          console.error(`[Cron] Plan reminder failed for plan ${plan._id}:`, reminderErr.message);
-        }
-      }
-    } catch (error) {
-      console.error('[Cron] Error in plan reminder cron:', error);
-    }
-  });
-
-  console.log('[Cron] Scheduled tasks service initialized successfully.');
+  console.log('[Cron] Scheduled tasks service initialized successfully (30m intervals).');
 };
-

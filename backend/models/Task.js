@@ -55,10 +55,6 @@ const taskSchema = new mongoose.Schema({
   aiReason: {
     type: String
   },
-  dismissCount: {
-    type: Number,
-    default: 0
-  },
   createdAt: {
     type: Date,
     default: Date.now
