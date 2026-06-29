@@ -6,10 +6,11 @@ import { google } from 'googleapis';
 import jwt from 'jsonwebtoken';
 
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'your_jwt_super_secret_key_12345', {
+  return jwt.sign({ id }, process.env.JWT_SECRET || 'resq-dev-only-secret-change-in-prod', {
     expiresIn: '7d',
   });
 };
+
 
 const router = express.Router();
 

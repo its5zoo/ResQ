@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Target, Plus, Brain, CheckSquare, Calendar, Trash2, X } from 'lucide-react';
+import { Target, Plus, Brain, CheckSquare, Calendar, Trash2, X, TrendingUp, Activity, CheckCircle2 } from 'lucide-react';
 import { goals as apiGoals } from '../../services/api.js';
 import CustomDatePicker from '../Shared/CustomDatePicker.jsx';
 
@@ -166,6 +166,43 @@ export default function GoalsPage() {
           </h2>
         </div>
       </div>
+
+      {/* Stats Summary Bar */}
+      {!loading && goals.length > 0 && (
+        <div className="grid grid-cols-3 gap-3 font-sans">
+          <div className="p-4 bg-[#090909] border border-white/[0.04] rounded-2xl flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-purple-500/10 flex items-center justify-center shrink-0">
+              <Target className="w-4 h-4 text-purple-400" />
+            </div>
+            <div>
+              <p className="text-[10px] font-tech uppercase tracking-widest text-white/30">Active Goals</p>
+              <p className="text-lg font-bold text-white">{goals.filter(g => g.progress < 100).length}</p>
+            </div>
+          </div>
+          <div className="p-4 bg-[#090909] border border-white/[0.04] rounded-2xl flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-[#E5B842]/10 flex items-center justify-center shrink-0">
+              <TrendingUp className="w-4 h-4 text-[#E5B842]" />
+            </div>
+            <div>
+              <p className="text-[10px] font-tech uppercase tracking-widest text-white/30">Avg Progress</p>
+              <p className="text-lg font-bold text-white">
+                {Math.round(goals.reduce((acc, g) => acc + (g.progress || 0), 0) / goals.length) || 0}%
+              </p>
+            </div>
+          </div>
+          <div className="p-4 bg-[#090909] border border-white/[0.04] rounded-2xl flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+              <Activity className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div>
+              <p className="text-[10px] font-tech uppercase tracking-widest text-white/30">Milestones Done</p>
+              <p className="text-lg font-bold text-white">
+                {goals.reduce((acc, g) => acc + (g.milestones?.filter(m => m.done).length || 0), 0)}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add Goal Panel */}
       <form onSubmit={handleAddGoal} className="p-6 bg-[#090909] border border-white/[0.04] rounded-2xl space-y-4 layered-shadow-lg">
@@ -345,26 +382,45 @@ export default function GoalsPage() {
                     {/* SVG Progress Ring */}
                     <div className="relative w-12 h-12 flex items-center justify-center shrink-0">
                       <svg className="w-full h-full transform -rotate-90">
-                        <circle cx="24" cy="24" r="20" stroke="rgba(255,255,255,0.05)" strokeWidth="3" fill="transparent" />
+                        <circle cx="24" cy="24" r="20" stroke="rgba(255,255,255,0.05)" strokeWidth="4" fill="transparent" />
                         <circle 
                           cx="24" 
                           cy="24" 
                           r="20" 
-                          stroke="#E5B842" 
-                          strokeWidth="3" 
+                          stroke={goal.progress === 100 ? '#34c759' : '#E5B842'} 
+                          strokeWidth="4" 
                           fill="transparent" 
                           strokeDasharray="125.6" 
                           strokeDashoffset={125.6 - (125.6 * (goal.progress || 0)) / 100}
+                          className="transition-all duration-1000"
                         />
                       </svg>
-                      <span className="absolute text-sm font-bold text-[#E5B842]">{goal.progress || 0}%</span>
+                      <span className={`absolute text-xs font-bold ${goal.progress === 100 ? 'text-emerald-400' : 'text-[#E5B842]'}`}>
+                        {goal.progress === 100 ? <CheckCircle2 className="w-4 h-4" /> : `${goal.progress || 0}%`}
+                      </span>
                     </div>
                   </div>
 
+                  {/* Horizontal Progress Bar */}
+                  <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden mt-2">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-1000 ${
+                        goal.progress === 100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-[#E5B842] to-[#C97D2E]'
+                      }`}
+                      style={{ width: `${goal.progress || 0}%` }}
+                    />
+                  </div>
+
                   {/* Target date indicator */}
-                  <div className="flex items-center justify-between text-sm text-white/70 uppercase font-bold">
-                    <div className="flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5 text-[#E5B842]/80" /> Target: {new Date(goal.targetDate).toLocaleDateString()}
+                  <div className="flex items-center justify-between text-sm uppercase font-bold">
+                    <div className={`flex items-center gap-1.5 ${
+                      diffDays < 0 && goal.progress < 100 ? 'text-red-400' 
+                      : diffDays <= 7 && goal.progress < 100 ? 'text-orange-400' 
+                      : 'text-white/60'
+                    }`}>
+                      <Calendar className="w-3.5 h-3.5" /> 
+                      {diffDays < 0 ? 'Overdue' : diffDays === 0 ? 'Due Today' : `${diffDays} days left`} 
+                      <span className="text-white/30 lowercase font-normal">({new Date(goal.targetDate).toLocaleDateString()})</span>
                     </div>
                     <button 
                       onClick={() => handleDeleteGoal(goal._id)}

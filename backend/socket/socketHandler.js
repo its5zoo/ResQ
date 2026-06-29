@@ -3,7 +3,6 @@ import jwt from 'jsonwebtoken';
 import Task from '../models/Task.js';
 import { reprioritizeTasksForUser } from '../controllers/taskController.js';
 import { executeVoiceCommand } from '../controllers/voiceController.js';
-import { checkMorningBriefing } from '../services/alertService.js';
 import { scheduleFocusBlockForTask } from '../services/smartSchedulerService.js';
 import { checkAndIncrementVoiceUsage } from '../middleware/voiceGate.js';
 
@@ -33,7 +32,7 @@ export const handleSocketEvents = (server) => {
     }
 
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_super_secret_key_12345');
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'resq-dev-only-secret-change-in-prod');
       socket.user = decoded; // decoded contains the user ID under decoded.id
       next();
     } catch (err) {

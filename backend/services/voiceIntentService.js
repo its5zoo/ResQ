@@ -14,6 +14,46 @@ const conversationHistories = new Map();
 // In-memory cache for the last 5 completed actions per user (rolling window for multi-turn memory)
 const lastActions = new Map(); // userId -> Array<{intent, title, destination, time, raw}>
 
+export const cleanTopicName = (text = '') => {
+  let cleaned = text.trim();
+  const prefixes = [
+    /^[iI]\s+want\s+to\s+create\s+(?:it\s+)?for\s+my\s+/i,
+    /^[iI]\s+want\s+to\s+create\s+(?:it\s+)?for\s+/i,
+    /^[iI]\s+want\s+to\s+create\s+a\s+plan\s+for\s+/i,
+    /^[iI]\s+want\s+to\s+make\s+a\s+plan\s+for\s+/i,
+    /^[iI]\s+want\s+to\s+make\s+(?:it\s+)?for\s+/i,
+    /^[iI]\s+want\s+to\s+build\s+a\s+plan\s+for\s+/i,
+    /^[iI]\s+want\s+to\s+create\s+/i,
+    /^[iI]\s+want\s+to\s+make\s+/i,
+    /^[iI]\s+want\s+to\s+build\s+/i,
+    /^[iI]\s+want\s+(?:it\s+)?for\s+/i,
+    /^[iI]\s+want\s+/i,
+    /^plan\s+for\s+/i,
+    /^plan\s+about\s+/i,
+    /^it's\s+about\s+/i,
+    /^it\s+is\s+about\s+/i,
+    /^about\s+/i,
+    /^for\s+/i,
+    /^to\s+study\s+/i,
+    /^to\s+learn\s+/i,
+    /^to\s+work\s+on\s+/i
+  ];
+  
+  for (const regex of prefixes) {
+    if (regex.test(cleaned)) {
+      cleaned = cleaned.replace(regex, '');
+      break;
+    }
+  }
+
+  if (cleaned.length > 60) cleaned = cleaned.substring(0, 60);
+
+  if (cleaned) {
+    cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+  }
+  return cleaned.trim();
+};
+
 /**
  * Helper to get date boundaries for a specific day
  */
@@ -183,7 +223,7 @@ const postProcessResult = async (resultObj, userId, transcript, userContext) => 
       resultObj.voiceResponse = resultObj.clarificationQuestion;
       
       // Cache original action context for clarification resolution
-      pendingCommands.set(userId, {
+      pendingCommands.set(userId.toString(), {
         originalTranscript: transcript,
         context: userContext,
         extractedData: resultObj.extractedData,
@@ -215,7 +255,7 @@ const postProcessResult = async (resultObj, userId, transcript, userContext) => 
       resultObj.clarificationQuestion = `Added. I've set '${taskTitle}' as high priority. Want me to block focus time for it today?`;
       resultObj.voiceResponse = resultObj.clarificationQuestion;
 
-      pendingCommands.set(userId, {
+      pendingCommands.set(userId.toString(), {
         originalTranscript: transcript,
         context: userContext,
         extractedData: resultObj.extractedData,
@@ -249,6 +289,25 @@ const postProcessResult = async (resultObj, userId, transcript, userContext) => 
     }
   }
 
+  // 3.8 plan creation clarification logic
+  if (resultObj.intent === 'create_plan') {
+    const isMoreInfo = resultObj.extractedData?.needsMoreInfo === true || resultObj.clarificationQuestion;
+    if (isMoreInfo) {
+      const qText = resultObj.clarificationQuestion || resultObj.voiceResponse || "Could you tell me more about what you need to plan?";
+      resultObj.intent = 'needs_clarification';
+      resultObj.clarificationQuestion = qText;
+      resultObj.voiceResponse = qText;
+      
+      pendingCommands.set(userId.toString(), {
+        originalTranscript: transcript,
+        context: userContext,
+        extractedData: resultObj.extractedData,
+        originalIntent: 'create_plan'
+      });
+      return resultObj;
+    }
+  }
+
   // Intercept Destructive or Modifying Intents
   const modifyingIntents = ['delete_task', 'edit_task', 'cancel_event', 'reschedule_event', 'delete_habit'];
   if (modifyingIntents.includes(resultObj.intent)) {
@@ -263,7 +322,7 @@ const postProcessResult = async (resultObj, userId, transcript, userContext) => 
     resultObj.clarificationQuestion = `Are you sure you want to ${actionWord} '${titleOrName}'?`;
     resultObj.voiceResponse = resultObj.clarificationQuestion;
     
-    pendingCommands.set(userId, {
+    pendingCommands.set(userId.toString(), {
       originalTranscript: transcript,
       context: userContext,
       extractedData: resultObj.extractedData,
@@ -273,9 +332,65 @@ const postProcessResult = async (resultObj, userId, transcript, userContext) => 
     return resultObj;
   }
 
-  // 4. Needs Clarification Caching
+  // 4. Filter UI Logic
+  if (resultObj.intent === 'filter_ui') {
+    resultObj.voiceResponse = "Sure, I've updated your view.";
+    resultObj.navigationTarget = 'dashboard';
+    return resultObj;
+  }
+
+  // 5. Prioritize Work Logic
+  if (resultObj.intent === 'prioritize_work') {
+    // 1. Fetch pending tasks
+    const tasks = await Task.find({ userId, completed: false, isDismissed: false });
+    
+    if (!tasks || tasks.length === 0) {
+      resultObj.voiceResponse = "You don't have any pending tasks right now! You're all caught up.";
+      return resultObj;
+    }
+
+    // 2. Sort to find the most critical task
+    // Primary: Urgency (descending). Secondary: Due Date (ascending/earliest)
+    const sortedTasks = tasks.sort((a, b) => {
+      if (b.urgency !== a.urgency) return (b.urgency || 0) - (a.urgency || 0);
+      const dateA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+      const dateB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+      return dateA - dateB;
+    });
+
+    const topTask = sortedTasks[0];
+
+    // 3. Ask Gemini for a micro-action strategy
+    const prompt = `You are a productivity AI. The user asked what their most important work is.
+Their top priority task is:
+Title: "${topTask.title}"
+Category: "${topTask.category || 'General'}"
+Description: "${topTask.description || 'None'}"
+Urgency: ${topTask.urgency}/10
+
+Give them a 2-3 sentence strategic advice on how to start this right now. Be direct, actionable, and encouraging. Do NOT use markdown.`;
+
+    const { queryGemini } = await import('./geminiService.js');
+    let strategy = '';
+    try {
+      strategy = await queryGemini([{ role: 'user', parts: [{ text: prompt }] }], false);
+    } catch (e) {
+      strategy = "The best way to start is to break it down into a 5-minute micro-action and do it right now.";
+    }
+
+    resultObj.extractedData = {
+      taskId: topTask._id.toString(),
+      title: topTask.title,
+      strategy: strategy
+    };
+    resultObj.voiceResponse = `Your top priority is "${topTask.title}". I've pulled it up with a strategy to get started.`;
+    resultObj.navigationTarget = 'dashboard';
+    return resultObj;
+  }
+
+  // 6. Needs Clarification Caching
   if (resultObj.intent === 'needs_clarification') {
-    pendingCommands.set(userId, {
+    pendingCommands.set(userId.toString(), {
       originalTranscript: transcript,
       context: userContext,
       extractedData: resultObj.extractedData,
@@ -436,6 +551,106 @@ const getLocalFallbackResult = (transcript, context) => {
       voiceResponse: "Got it. Stopping the focus session.",
       uiAction: { type: 'stop_focus', payload: {} },
       navigationTarget: null,
+      suggestAlternative: null
+    };
+  }
+
+  // 3.5 Plan/Roadmap fallback → create_plan intent
+  if (clean.includes('plan') || clean.includes('roadmap') || clean.includes('learning path') || clean.includes('prepare me') || clean.includes('create a schedule')) {
+    let topic = '';
+    let durationDays = 90;
+    let dailyMinutes = 60;
+
+    // Extract duration in days: "90 days", "3 months" (approx), "6 weeks"
+    const daysMatch = clean.match(/(\d+)\s*day/);
+    const weeksMatch = clean.match(/(\d+)\s*week/);
+    const monthsMatch = clean.match(/(\d+)\s*month/);
+    if (daysMatch) durationDays = parseInt(daysMatch[1]);
+    else if (weeksMatch) durationDays = parseInt(weeksMatch[1]) * 7;
+    else if (monthsMatch) durationDays = parseInt(monthsMatch[1]) * 30;
+
+    // Extract topic: "plan me 90 days Python" → "Python"
+    const planMeMatch = clean.match(/plan\s+me\s+\d+\s*(?:days?|weeks?|months?)\s+(.+)/i);
+    const planForMatch = clean.match(/plan\s+(?:for|my)\s+(.+?)(?:\s+in\s+\d+|\s+for\s+\d+|$)/i);
+    const roadmapMatch = clean.match(/roadmap\s+(?:for|of|on)?\s+(.+)/i);
+    if (planMeMatch && planMeMatch[1]) topic = cleanTopicName(planMeMatch[1]);
+    else if (planForMatch && planForMatch[1]) topic = cleanTopicName(planForMatch[1]);
+    else if (roadmapMatch && roadmapMatch[1]) topic = cleanTopicName(roadmapMatch[1]);
+    else if (topic) topic = cleanTopicName(topic);
+
+    // ── Vague/generic topic detection ──────────────────────────────────────────
+    // These words are too generic to generate a meaningful plan without more context.
+    const VAGUE_TOPICS = [
+      'presentation', 'project', 'assignment', 'work', 'task', 'thing', 'stuff',
+      'report', 'document', 'meeting', 'event', 'something', 'plan', 'new plan', ''
+    ];
+    const topicLower = topic.toLowerCase().trim();
+    const isVague = !topic || VAGUE_TOPICS.some(v => topicLower === v || topicLower === v + 's');
+
+    if (isVague) {
+      // Return as create_plan with needsMoreInfo:true so the handler at line ~253
+      // caches it with originalIntent='create_plan' and the follow-up resolves correctly.
+      const clarifyQ = topic
+        ? `I'd love to help you plan your ${topic}! To build a useful day-by-day schedule, could you tell me — what is this ${topic} about? What's the subject, topic, or goal?`
+        : `I can build you a detailed plan! What is this plan for? Tell me the topic or goal, your deadline, and how much time you can spare each day.`;
+
+      return {
+        intent: 'create_plan',
+        confidence: 1.0,
+        extractedData: { topic, durationDays, dailyMinutes, startDate: new Date().toISOString(), originalRequest: transcript, interviewAnswers: {}, needsMoreInfo: true },
+        missingFields: ['topic_detail'],
+        clarificationQuestion: clarifyQ,
+        voiceResponse: clarifyQ,
+        uiAction: null,
+        navigationTarget: null,
+        suggestAlternative: null
+      };
+    }
+
+    // Topic is specific enough — generate immediately
+    const startDate = new Date().toISOString();
+
+    return {
+      intent: 'create_plan',
+      confidence: 1.0,
+      extractedData: { topic, durationDays, dailyMinutes, startDate, originalRequest: transcript, interviewAnswers: {}, needsMoreInfo: false },
+      missingFields: [],
+      clarificationQuestion: null,
+      voiceResponse: `Building your ${durationDays}-day ${topic} plan now. Give me a moment...`,
+      uiAction: null,
+      navigationTarget: 'plans',
+      suggestAlternative: null
+    };
+  }
+
+  // 3.6 Edit Plan/Roadmap fallback
+  if ((clean.includes('change') || clean.includes('edit') || clean.includes('modify') || clean.includes('update')) && (clean.includes('plan') || clean.includes('roadmap'))) {
+    let durationDays = null;
+    let newTopic = null;
+    let dailyMinutes = null;
+
+    const daysMatch = clean.match(/(\d+)\s*day/);
+    const weeksMatch = clean.match(/(\d+)\s*week/);
+    const minsMatch = clean.match(/(\d+)\s*min/);
+    if (daysMatch) durationDays = parseInt(daysMatch[1]);
+    else if (weeksMatch) durationDays = parseInt(weeksMatch[1]) * 7;
+    
+    if (minsMatch) dailyMinutes = parseInt(minsMatch[1]);
+
+    const toMatch = clean.match(/to\s+(?:a\s+)?([^0-9]+?)(?:\s+for|$)/);
+    if (toMatch && toMatch[1] && !toMatch[1].includes('day') && !toMatch[1].includes('plan')) {
+      newTopic = cleanTopicName(toMatch[1]);
+    }
+
+    return {
+      intent: 'modify_plan',
+      confidence: 0.9,
+      extractedData: { durationDays, newTopic, dailyMinutes },
+      missingFields: [],
+      clarificationQuestion: null,
+      voiceResponse: "Updating your plan right away.",
+      uiAction: null,
+      navigationTarget: 'plans',
       suggestAlternative: null
     };
   }
@@ -885,23 +1100,25 @@ Use this memory to handle follow-up commands:
 - "nahi" / "nope" / "cancel" / "nevermind" → cancel/decline the last pending action
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🎭 PERSONALITY & TONE RULES
+🎭 PERSONALITY & TONE RULES (ADVANCED VOICE MODE)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-You are a smart, witty, and warm human-like assistant. Your personality rules:
+You are an ultra-fast, conversational voice AI (like ChatGPT Advanced Voice Mode).
 
-1. **Vary your tone naturally** — Sometimes be funny/playful, sometimes calm/supportive, sometimes direct/efficient. NEVER use the same phrase twice in a row.
-2. **Be funny when appropriate** — If the user is being casual or joking, match their energy. Light humor is welcome.
-3. **Be direct when needed** — If the user gives a clear command, just do it and confirm briefly. No unnecessary praise like "Great choice!" or "Wonderful!".
-4. **Keep confirmations SHORT** — Max 2 sentences for action confirmations. Max 3 sentences for briefings/summaries.
-5. **Sound human, not robotic** — Avoid: "I have successfully processed your request." Prefer: "Done! Added to your list."
-6. **Personality variety** — Rotate between these styles based on context:
+1. **Extremely Concise** — Never speak more than 1 or 2 sentences unless explicitly asked to summarize something long. The user is listening to you, not reading.
+2. **No Fluff & No Repetitive Openers** — Skip boilerplate expressions like "Of course", "Absolutely", "I have successfully...", or "As an AI...". Rotate starting words naturally to avoid sounding like a template (e.g. rotate between "Done!", "On it.", "Sorted.", "I've added that.", "Got it.").
+3. **No Verbatim Parroting** — Do not repeat the user's exact words back to them. If they say "add task study coding", do not say "I have added the task study coding". Say "Coding study's on your list." or "Added that to tasks."
+4. **Vary your tone naturally** — Be warm, occasionally witty, and highly efficient. Sound like a helpful human on a walkie-talkie.
+5. **No Excessive Name-Dropping** — Only mention the user's name (e.g., Faizaan) once at the beginning of a conversation or during a critical warning alert. Never prefix or suffix every confirmation with their name.
+6. **When confirming an action** — Just confirm the core detail. E.g., "Blocked out an hour for your meeting." instead of "I have added a meeting to your calendar for 1 hour."
+7. **Direct Answers** — If asked a question, give the answer immediately in the first 3 words.
+8. **Personality variety** — Rotate between these styles based on context:
    - Casual task creation: "On it!" / "Done, added that." / "Yep, got it." / "Consider it done."
    - Schedule confirmed: "Locked in." / "You're set." / "Booked it."
    - Encouragement: "Nice, you're on a roll." / "That's the spirit!"
    - Funny moment: "Look at you being all productive!" / "Your future self will thank you."
    - Summary: "Here's your day..." / "So here's what you've got..."
-7. **NEVER start two consecutive responses the same way.**
-8. **Hinglish Support**: If the user speaks in Hinglish (mix of Hindi and English), you MUST respond in the same Hinglish tone — casual, warm, mixed. E.g.: "Ho gaya! Maine add kar diya."
+9. **NEVER start two consecutive responses the same way.**
+10. **Hinglish Support**: If the user speaks in Hinglish (mix of Hindi and English), you MUST respond in the same Hinglish tone — casual, warm, mixed. E.g.: "Ho gaya! Maine list me daal diya hai." or "Sure, meeting calendar par set kar di hai."
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🔀 SMART MODULE ROUTING ENGINE
@@ -927,11 +1144,23 @@ When the user says something, FIRST determine WHERE it belongs:
 - A routine ("I go to gym regularly", "I meditate daily")
 - Contains words: "routine", "daily", "weekly", "regularly", "every"
 
+**→ CREATE PLAN** if it's:
+- A structured multi-day plan request ("plan me 90 days Python", "help me plan my product launch", "I want a roadmap for data science")
+- A learning journey or curriculum ("prepare me for UPSC", "plan my JavaScript learning")
+- A work project with a deadline ("I have to complete this project in 3 weeks", "plan my startup launch")
+- A fitness/health program ("plan my marathon training", "help me get fit in 60 days")
+- Any request containing: "plan", "roadmap", "schedule my learning", "prepare me", "create a study plan"
+- Intent: create_plan
+- For CREATE PLAN: Ask ONLY for the topic if it is missing, or the duration if it is missing. Do NOT ask for daily time, level, or anything else. Default daily time to 60 minutes. NEVER ask more than 1 clarification question. If you have the topic and the duration, set needsMoreInfo: false and proceed immediately.
+
+**→ EDIT PLAN** if it's:
+- A request to change an existing plan or roadmap ("change my plan to 15 days", "edit the plan", "make the python plan 30 days instead", "change daily time to 30 mins")
+- Intent: modify_plan
+- Extract fields: 'topic' (to identify which plan to edit), 'durationDays', 'dailyMinutes', and 'newTopic' (if changing the name).
+
 **→ GOAL** if it's:
-- Long-term ambition ("I want to learn AI this year", "I want to become a developer")
-- Multi-week/month objective
-- Career, fitness journey, financial, or learning target
-- Contains "I want to become", "my goal is", "I'm working towards"
+- A vague long-term ambition with no plan request ("I want to become a developer someday", "my goal is to be fit")
+- NOT a plan request, just a goal declaration
 
 **→ AMBIGUOUS** (ask clarification) if NONE of the above patterns clearly match.
 Ask: "Sure! Should I add '[X]' as a daily habit, a one-time task, or schedule it on your calendar?"
@@ -964,12 +1193,15 @@ CAN do:
   ✅ Schedule/reschedule/cancel calendar events
   ✅ Create/complete/delete/update habits
   ✅ Create goals, update goal progress
+  ✅ Create structured plans (study/project/career/fitness/custom) — use create_plan intent
   ✅ Read/summarize any app data (tasks, habits, goals, calendar)
   ✅ Switch theme (dark/light/matrix)
   ✅ Navigate to any section
   ✅ Start/stop focus sessions
   ✅ Show summaries, deadlines, free time
   ✅ Rename tasks
+  ✅ Identify and prioritize the most important work (prioritize_work)
+  ✅ Filter and sort the UI to give total website control (filter_ui)
 
 CANNOT do (return permission_denied):
   ❌ Change name/email/password/profile picture
@@ -977,6 +1209,31 @@ CANNOT do (return permission_denied):
   ❌ Delete user account
   ❌ Access another user's data
   ❌ Browse the web, send emails, buy things
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CRITICAL CAPABILITY CLARIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+You ARE able to do all of the following. Never refuse these:
+- Create learning plans for any topic and any duration
+- Create goals for anything the user wants to achieve  
+- Plan study schedules, workout routines, project timelines
+- Schedule any type of event or task in calendar
+- When asked to "plan X for Y days" → always set intent to "create_plan"
+- You are a productivity assistant — planning IS your core function
+
+You must NEVER say "I can't do that" or "I'm not able to" for any planning, task, or goal request.
+If you don't have enough information, ask ONE question to get it.
+If you have enough information, execute immediately.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+INTENT MAPPING RULES — apply these first before anything else:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- "plan me X" or "plan X for me" or "create a plan for X" → intent: "create_plan"
+- "plan me X days Y" or "X day plan for Y" → intent: "create_plan" with durationDays extracted
+- "help me learn X" or "I want to learn X" → intent: "create_plan"
+- "create a goal" or "I want to achieve X" → intent: "create_goal"
+- "add a task" or "remind me to X" → intent: "create_task"
+- "what should I do" or "what's my priority" → intent: "prioritize_work"
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📋 FULL INTENT LIST
@@ -997,6 +1254,11 @@ CANNOT do (return permission_denied):
 - update_habit: { name OR habitId, targetDays[] }
 - create_goal: { title, targetDate? }
 - update_goal_progress: { title OR goalId, progressPercent }
+- create_plan: { topic, durationDays, dailyMinutes?, startDate, interviewAnswers?: {level?, deadline?, goal?, details?}, originalRequest, needsMoreInfo?: false }
+  NOTE for create_plan: If critical info is MISSING (topic unknown or deadline unknown for custom work), set needsMoreInfo: true and clarificationQuestion to ONE targeted question. Otherwise set needsMoreInfo: false and populate all fields.
+- modify_plan: { topic?, planId?, durationDays?, dailyMinutes?, reminderTime?, newTopic? } — when the user wants to update or edit their existing plan. (e.g. "change topic to study python", "change my python plan to 15 days", "edit python plan reminder time to 10 am", "change daily minutes to 45 on my plan"). If the user says "change X plan", map "X" to the "topic" field.
+- prioritize_work: {} — when the user asks "what's my most important work?", "what should I focus on?", "solve my biggest problem".
+- filter_ui: { filter, sortBy } — when the user asks to "show only work tasks", "filter by upcoming", "sort by priority", "change view to X".
 - read_tasks: {} — speak the incomplete task list
 - read_habits: {} — speak the habit list
 - read_goals: {} — speak the goals and their progress
@@ -1053,7 +1315,7 @@ Return ONLY valid JSON. No markdown wrappers, no extra text.
       conversationHistories.set(userId.toString(), history);
 
       // Store in rolling lastActions window (max 5) for multi-turn memory
-      const actionableIntents = ['create_task', 'schedule_event', 'create_habit', 'create_goal', 'complete_task', 'complete_habit', 'update_goal_progress', 'set_focus_session', 'rename_task', 'delete_task', 'cancel_event', 'reschedule_event', 'delete_habit', 'update_habit'];
+      const actionableIntents = ['create_task', 'schedule_event', 'create_habit', 'create_goal', 'complete_task', 'complete_habit', 'update_goal_progress', 'set_focus_session', 'rename_task', 'delete_task', 'cancel_event', 'reschedule_event', 'delete_habit', 'update_habit', 'modify_plan', 'edit_plan'];
       if (actionableIntents.includes(finalResult.intent)) {
         const ed = finalResult.extractedData || {};
         const destinationMap = {
@@ -1069,6 +1331,8 @@ Return ONLY valid JSON. No markdown wrappers, no extra text.
           complete_task: 'Tasks section (marked complete)',
           delete_task: 'Tasks section (deleted)',
           complete_habit: 'Habits section (marked complete)',
+          modify_plan: 'Plans section (modified)',
+          edit_plan: 'Plans section (modified)',
           update_goal_progress: 'Goals section',
           set_focus_session: 'Calendar (Focus Session)'
         };
@@ -1098,13 +1362,15 @@ Return ONLY valid JSON. No markdown wrappers, no extra text.
  * Resolves a clarification turn when the user responds to a clarification prompt
  */
 export const resolveClarification = async (userId, followUpTranscript, timezoneContext = null) => {
-  const pending = pendingCommands.get(userId);
+  const cacheKey = userId.toString();
+  const pending = pendingCommands.get(cacheKey);
+
   if (!pending) {
     return processVoiceCommand(followUpTranscript, userId, timezoneContext);
   }
 
   // Clear pendingCommand cache
-  pendingCommands.delete(userId);
+  pendingCommands.delete(cacheKey);
 
   const cleanFollowUp = followUpTranscript.toLowerCase();
 
@@ -1377,6 +1643,86 @@ export const resolveClarification = async (userId, followUpTranscript, timezoneC
       };
     }
     // Otherwise, fall through to Gemini to interpret if they suggested a new time or a new request entirely.
+  }
+
+  if (pending.originalIntent === 'create_plan') {
+    const data = { ...pending.extractedData };
+
+    // 1. Try to extract durationDays from the follow-up response (e.g., "30 days plan", "30 days")
+    const daysMatch = cleanFollowUp.match(/(\d+)\s*day/);
+    const weeksMatch = cleanFollowUp.match(/(\d+)\s*week/);
+    const monthsMatch = cleanFollowUp.match(/(\d+)\s*month/);
+    if (daysMatch) data.durationDays = parseInt(daysMatch[1]);
+    else if (weeksMatch) data.durationDays = parseInt(weeksMatch[1]) * 7;
+    else if (monthsMatch) data.durationDays = parseInt(monthsMatch[1]) * 30;
+
+    // 2. Try to extract dailyMinutes from the follow-up response (e.g., "1 hour", "30 mins")
+    const minsMatch = cleanFollowUp.match(/(\d+)\s*min/);
+    const hoursMatch = cleanFollowUp.match(/(\d+)\s*(?:hour|hr)/);
+    if (minsMatch) data.dailyMinutes = parseInt(minsMatch[1]);
+    else if (hoursMatch) data.dailyMinutes = parseInt(hoursMatch[1]) * 60;
+
+    // 3. Try to extract/refine the topic if the response is not just a duration or daily time
+    const isDurationOrMins = daysMatch || weeksMatch || monthsMatch || minsMatch || hoursMatch;
+    if (!isDurationOrMins && cleanFollowUp !== 'nothing') {
+      const refined = cleanTopicName(followUpTranscript);
+      if (refined) {
+        data.topic = refined;
+      }
+    }
+
+    // 4. Check if topic is still vague/empty
+    const VAGUE_TOPICS = [
+      'presentation', 'project', 'assignment', 'work', 'task', 'thing', 'stuff',
+      'report', 'document', 'meeting', 'event', 'something', 'plan', 'new plan', ''
+    ];
+    const topicLower = (data.topic || '').toLowerCase().trim();
+    const isVague = !data.topic || VAGUE_TOPICS.some(v => topicLower === v || topicLower === v + 's');
+
+    if (isVague) {
+      // Re-cache with updated partial data so we don't lose the duration
+      pendingCommands.set(userId.toString(), {
+        ...pending,
+        extractedData: data
+      });
+      
+      const clarifyQ = "What is the topic or subject of the plan you want me to create?";
+      return {
+        intent: 'create_plan',
+        confidence: 1.0,
+        extractedData: { ...data, needsMoreInfo: true },
+        missingFields: ['topic'],
+        clarificationQuestion: clarifyQ,
+        voiceResponse: clarifyQ,
+        uiAction: null,
+        navigationTarget: null,
+        suggestAlternative: null
+      };
+    }
+
+    // We have a topic! Generate plan immediately with defaults if needed
+    const finalTopic = data.topic;
+    const finalDuration = data.durationDays || 30; // default to 30 days if not specified
+    const finalMins = data.dailyMinutes || 60; // default to 60 minutes/day
+
+    return {
+      intent: 'create_plan',
+      confidence: 1.0,
+      extractedData: {
+        ...data,
+        topic: finalTopic,
+        durationDays: finalDuration,
+        dailyMinutes: finalMins,
+        startDate: new Date().toISOString(),
+        needsMoreInfo: false
+      },
+      missingFields: [],
+      clarificationQuestion: null,
+      voiceResponse: `Building your ${finalDuration}-day ${finalTopic} plan now. Give me a moment...`,
+      uiAction: null,
+      navigationTarget: 'plans',
+      suggestAlternative: null
+    };
   }
 
   // General clarification re-run using the full master prompt context

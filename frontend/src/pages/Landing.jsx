@@ -3,12 +3,22 @@ import Navbar from '../components/Landing/Navbar';
 import Hero from '../components/Landing/Hero';
 import FeatureStrip from '../components/Landing/FeatureStrip';
 
-import CoreWorkflowSection from '../components/Landing/CoreWorkflowSection';
-import FocusSessionSection from '../components/Landing/FocusSessionSection';
-import HabitsSection from '../components/Landing/HabitsSection';
+// ── New Feature Sections (6) ─────────────────────────────────────────────────
+import RescueModeSection from '../components/Landing/RescueModeSection';
+import ForesightSection from '../components/Landing/ForesightSection';
+import ProcrastinationSection from '../components/Landing/ProcrastinationSection';
+import SmartPlannerSection from '../components/Landing/SmartPlannerSection';
+import PostMeetingSection from '../components/Landing/PostMeetingSection';
+import PreMortemSection from '../components/Landing/PreMortemSection';
+import EnergySchedulingSection from '../components/Landing/EnergySchedulingSection';
+
+// ── Existing Feature Sections ─────────────────────────────────────────────────
+import VoiceSection from '../components/Landing/VoiceSection';
 import GoalSystemSection from '../components/Landing/GoalSystemSection';
 import CalendarSection from '../components/Landing/CalendarSection';
-import VoiceSection from '../components/Landing/VoiceSection';
+import CoreWorkflowSection from '../components/Landing/CoreWorkflowSection';
+import HabitsSection from '../components/Landing/HabitsSection';
+import FocusSessionSection from '../components/Landing/FocusSessionSection';
 import MobileSection from '../components/Landing/MobileSection';
 import CTASection from '../components/Landing/CTASection';
 import Footer from '../components/Landing/Footer';
@@ -57,19 +67,47 @@ export default function Landing() {
       <Navbar />
       <Hero />
       <FeatureStrip />
-      
-      {/* New Narrative Flow */}
+
+      {/* ── NEW FEATURES (Strongest → Most Agentic) ───────────────────────────── */}
+      {/* 1. Rescue Mode — most dramatic, immediate, visceral */}
+      <RescueModeSection />
+
+      {/* 2. Foresight — visible on every task, always present */}
+      <ForesightSection />
+
+      {/* 3. Procrastination Interception — behaviorally novel */}
+      <ProcrastinationSection />
+
+      {/* 4. Smart Roadmap Planner — universal learning roadmap builder */}
+      <SmartPlannerSection />
+
+      {/* ── EXISTING FEATURES (Voice AI — proven crowd-pleaser) ───────────────── */}
       <VoiceSection />
-      <GoalSystemSection />
+
+      {/* ── NEW: Post-Meeting — closes the calendar loop ──────────────────────── */}
+      <PostMeetingSection />
+
+      {/* ── EXISTING: Calendar + Goal ─────────────────────────────────────────── */}
       <CalendarSection />
-      
-      {/* Existing Sections */}
+      <GoalSystemSection />
+
+      {/* ── NEW: Pre-Mortem — pairs naturally after Goals ─────────────────────── */}
+      <PreMortemSection />
+
+      {/* ── EXISTING: Core Workflow + Habits ──────────────────────────────────── */}
       <CoreWorkflowSection />
       <HabitsSection />
+
+      {/* ── NEW: Energy Scheduling — pairs after Habits (both behavioral) ──────── */}
+      <EnergySchedulingSection />
+
+      {/* ── EXISTING: Focus + Mobile ──────────────────────────────────────────── */}
       <FocusSessionSection />
       <MobileSection />
+
       <CTASection />
       <Footer />
     </div>
   );
 }
+

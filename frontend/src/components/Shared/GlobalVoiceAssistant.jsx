@@ -130,6 +130,34 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
   const [usageStats, setUsageStats] = useState(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
+  const [activePlanReminder, setActivePlanReminder] = useState(null);
+
+  // Listen for global plan reminders
+  useEffect(() => {
+    const handlePlanReminder = (e) => {
+      const { message, planId } = e.detail || {};
+      if (message && planId) {
+        setActivePlanReminder({ message, planId });
+        // Automatically dismiss after 8s
+        setTimeout(() => setActivePlanReminder(null), 8000);
+      }
+    };
+    window.addEventListener('resq:plan-reminder', handlePlanReminder);
+    return () => window.removeEventListener('resq:plan-reminder', handlePlanReminder);
+  }, []);
+
+  // Listen for plan generation progress
+  useEffect(() => {
+    const handlePlanProgress = (e) => {
+      const { stage, message } = e.detail || {};
+      if (message) {
+        setAiResponse(message);
+        setMicState('processing'); // Keep the visualizer in processing mode
+      }
+    };
+    window.addEventListener('resq:plan-progress', handlePlanProgress);
+    return () => window.removeEventListener('resq:plan-progress', handlePlanProgress);
+  }, []);
   
   const executorRef = useRef(null);
   if (!executorRef.current) {
@@ -230,6 +258,10 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
     const fetchUserAndUsage = async () => {
       const token = localStorage.getItem('token');
       if (token) {
+        if (socket && !socket.connected) {
+          socket.auth.token = token;
+          socket.connect();
+        }
         try {
           const userData = await auth.getMe();
           if (userData) {
@@ -641,8 +673,12 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
         handleVoiceResult(result);
       } catch (error) {
         console.error('Error sending voice command via HTTP:', error);
-        if (error.response?.status === 403) {
-          const { reason, used, limit } = error.response.data || {};
+        
+        const errorData = error.response?.data || error;
+        const isForbidden = error.response?.status === 403 || errorData?.blocked === true || errorData?.reason === 'limit_reached' || errorData?.reason === 'user_disabled';
+        
+        if (isForbidden) {
+          const { reason, used, limit } = errorData || {};
           
           if (reason === 'limit_reached') {
             // 1. Stop the wake word engine
@@ -985,9 +1021,18 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
                       <div className="absolute w-20 h-20 rounded-full bg-[#E5B842]/5 animate-pulse"></div>
                     </>
                   )}
-                  <div className={`relative w-20 h-20 rounded-[1.75rem] flex items-center justify-center z-10 transition-all duration-500 ${micState === 'listening' ? 'bg-[#00F0FF]/10 border-2 border-[#00F0FF]/40 shadow-[0_0_50px_rgba(0,240,255,0.2)]' : micState === 'processing' ? 'bg-[#E5B842]/10 border-2 border-[#E5B842]/40 shadow-[0_0_50px_rgba(229,184,66,0.2)]' : micState === 'speaking' ? 'bg-emerald-500/10 border-2 border-emerald-500/40 shadow-[0_0_50px_rgba(52,199,89,0.2)]' : 'bg-white/5 border-2 border-white/10'}`}>
+                  <button 
+                    onClick={() => {
+                      if (micState === 'speaking') {
+                        // User barge-in! Cut off AI and start listening
+                        window.dispatchEvent(new CustomEvent('resq:voice-end'));
+                        import('../../services/VoicePersonality').then(module => module.default.cancel());
+                      }
+                    }}
+                    className={`relative w-20 h-20 rounded-[1.75rem] flex items-center justify-center z-10 transition-all duration-500 cursor-pointer hover:scale-105 active:scale-95 ${micState === 'listening' ? 'bg-[#00F0FF]/10 border-2 border-[#00F0FF]/40 shadow-[0_0_50px_rgba(0,240,255,0.2)]' : micState === 'processing' ? 'bg-[#E5B842]/10 border-2 border-[#E5B842]/40 shadow-[0_0_50px_rgba(229,184,66,0.2)]' : micState === 'speaking' ? 'bg-emerald-500/10 border-2 border-emerald-500/40 shadow-[0_0_50px_rgba(52,199,89,0.2)]' : 'bg-white/5 border-2 border-white/10'}`}
+                  >
                     <Mic className={`w-8 h-8 transition-colors duration-300 ${micState === 'listening' ? 'text-[#00F0FF]' : micState === 'processing' ? 'text-[#E5B842]' : micState === 'speaking' ? 'text-emerald-400' : 'text-white/60'}`} />
-                  </div>
+                  </button>
                 </div>
 
                 {/* Animated waveform bars */}
@@ -998,11 +1043,23 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
                 </div>
 
                 <h2 className="text-xl font-display font-black tracking-tight text-white mb-1">
-                  {micState === 'speaking' ? 'ResQ is responding' : micState === 'processing' ? 'Processing your request...' : "I'm listening..."}
+                  {micState === 'speaking' ? 'ResQ is responding' : micState === 'processing' ? 'ResQ is thinking...' : "I'm listening..."}
                 </h2>
                 <p className="text-sm text-white/40 font-tech uppercase tracking-widest">
-                  {transcript ? `"${transcript}"` : micState === 'listening' ? 'Speak your command' : micState === 'processing' ? 'Analyzing intent...' : 'Say anything'}
+                  {transcript ? `"${transcript}"` : micState === 'listening' ? 'Speak your command' : micState === 'processing' ? 'Analyzing with Gemini 2.5 Flash' : 'Say anything'}
                 </p>
+
+                {/* Thinking skeleton — only visible during processing */}
+                {micState === 'processing' && (
+                  <div className="flex items-center gap-2 mt-3 px-4 py-2.5 rounded-xl bg-[#E5B842]/5 border border-[#E5B842]/15">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-[#E5B842] animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                      <div className="w-2 h-2 rounded-full bg-[#E5B842] animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                      <div className="w-2 h-2 rounded-full bg-[#E5B842] animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                    </div>
+                    <span className="text-xs text-[#E5B842]/70 font-tech tracking-wider">Processing command...</span>
+                  </div>
+                )}
               </div>
 
               {/* Conversation Thread — scrollable chat history */}
@@ -1028,8 +1085,8 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
                 </div>
               )}
 
-              {/* Latest AI Response (always visible) */}
-              {conversationThread.length === 0 && (
+              {/* Latest AI Response (always visible, hidden during processing) */}
+              {conversationThread.length === 0 && micState !== 'processing' && (
                 <div className={`transition-all duration-500 transform mb-4 ${aiResponse ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0 pointer-events-none'}`}>
                   <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5 relative overflow-hidden">
                     <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#00F0FF]/30 to-transparent"></div>
@@ -1129,6 +1186,31 @@ export default function GlobalVoiceAssistant({ navigate: propNavigate, setCurren
                 "Unlock Unlimited Commands"
               )}
             </button>
+          </div>
+        </div>
+      )}
+      {activePlanReminder && (
+        <div 
+          onClick={() => {
+            navigate(`/plans/${activePlanReminder.planId}`);
+            setActivePlanReminder(null);
+          }}
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-[10001] max-w-md w-full px-5 py-4 bg-black/90 backdrop-blur-xl border border-[#E5B842]/30 rounded-2xl shadow-2xl flex items-start gap-3 cursor-pointer hover:border-[#E5B842]/50 hover:bg-[#E5B842]/5 transition-all duration-200 animate-slide-in-down"
+          style={{ animation: 'slideInDown 0.3s ease-out' }}
+        >
+          <style>{`
+            @keyframes slideInDown {
+              from { transform: translate(-50%, -100%); opacity: 0; }
+              to { transform: translate(-50%, 0); opacity: 1; }
+            }
+          `}</style>
+          <div className="shrink-0 w-8 h-8 rounded-lg bg-[#E5B842]/10 border border-[#E5B842]/20 flex items-center justify-center text-sm">
+            📚
+          </div>
+          <div className="flex-1 space-y-1">
+            <p className="text-xs font-bold text-[#E5B842] uppercase tracking-widest leading-none">ResQ Smart Planner</p>
+            <p className="text-sm text-white/80 leading-relaxed font-sans">{activePlanReminder.message}</p>
+            <p className="text-[10px] text-white/30 font-bold uppercase tracking-wider">Click to view your plan</p>
           </div>
         </div>
       )}

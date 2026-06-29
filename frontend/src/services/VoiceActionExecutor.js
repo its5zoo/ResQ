@@ -3,7 +3,7 @@ import voicePersonality from './VoicePersonality.js';
 import { wakeWordEngine } from './WakeWordEngine.js';
 import { tasks as apiTasks, calendar as apiCalendar, ai as apiAi, settings as apiSettings } from './api.js';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import { API_BASE_URL as API_URL } from '../config/apiConfig.js';
 
 export class VoiceActionExecutor {
   constructor(navigationCallback, speakCallback) {
@@ -209,6 +209,71 @@ export class VoiceActionExecutor {
           }
         } catch (e) {
           console.error('[VoiceActionExecutor] show_summary failed:', e);
+        }
+        break;
+      }
+
+      case 'create_plan': {
+        try {
+          const { topic, durationDays, needsMoreInfo } = extractedData || {};
+          if (!needsMoreInfo) {
+            // Backend is generating in background. Navigate to plans tab and wait for plan:created socket event.
+            if (typeof this.navigationCallback === 'function') {
+              this.navigationCallback('plans');
+            } else {
+              window.dispatchEvent(new CustomEvent('resq:navigate', { detail: { target: 'plans' } }));
+            }
+            // Trigger loading banner in PlansPage
+            window.dispatchEvent(new CustomEvent('resq:plan-generating', { detail: { topic: topic || 'your plan' } }));
+          }
+        } catch (e) {
+          console.error('[VoiceActionExecutor] create_plan UI update failed:', e);
+        }
+        break;
+      }
+
+      case 'modify_plan':
+      case 'edit_plan': {
+        try {
+          const { topic } = extractedData || {};
+          if (typeof this.navigationCallback === 'function') {
+            this.navigationCallback('plans');
+          } else {
+            window.dispatchEvent(new CustomEvent('resq:navigate', { detail: { target: 'plans' } }));
+          }
+          window.dispatchEvent(new CustomEvent('resq:plan-generating', { detail: { topic: topic || 'updating plan' } }));
+        } catch (e) {
+          console.error('[VoiceActionExecutor] modify_plan UI update failed:', e);
+        }
+        break;
+      }
+
+      case 'prioritize_work': {
+        try {
+          if (typeof this.navigationCallback === 'function') {
+            this.navigationCallback('dashboard');
+          } else {
+            window.dispatchEvent(new CustomEvent('resq:navigate', { detail: { target: 'dashboard' } }));
+          }
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('resq:prioritize-task', { detail: extractedData }));
+          }, 300);
+        } catch (e) {
+          console.error('[VoiceActionExecutor] prioritize_work UI update failed:', e);
+        }
+        break;
+      }
+
+      case 'filter_ui': {
+        try {
+          if (typeof this.navigationCallback === 'function') {
+            this.navigationCallback('dashboard');
+          } else {
+            window.dispatchEvent(new CustomEvent('resq:navigate', { detail: { target: 'dashboard' } }));
+          }
+          window.dispatchEvent(new CustomEvent('resq:filter-tasks', { detail: extractedData }));
+        } catch (e) {
+          console.error('[VoiceActionExecutor] filter_ui UI update failed:', e);
         }
         break;
       }

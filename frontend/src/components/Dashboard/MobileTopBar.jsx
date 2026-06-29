@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 const pageTitles = {
   dashboard: 'Dashboard',
+  shield: 'ResQ Shield',
   tasks: 'My Tasks',
   calendar: 'Calendar',
   goals: 'Goals',

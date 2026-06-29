@@ -275,6 +275,30 @@ export const ai = {
       return handleRequestError(error);
     }
   },
+  getForesightScan: async () => {
+    try {
+      const response = await api.get('/ai/foresight-scan');
+      return response.data;
+    } catch (error) {
+      return handleRequestError(error);
+    }
+  },
+  getRescuePlan: async (taskId) => {
+    try {
+      const response = await api.post('/ai/rescue-plan', { taskId });
+      return response.data;
+    } catch (error) {
+      return handleRequestError(error);
+    }
+  },
+  getPreMortem: async (goalId) => {
+    try {
+      const response = await api.post('/ai/pre-mortem', { goalId });
+      return response.data;
+    } catch (error) {
+      return handleRequestError(error);
+    }
+  },
 };
 
 export const voice = {
@@ -481,3 +505,47 @@ export const subscription = {
     }
   }
 };
+
+// ── Admin API ─────────────────────────────────────────────────────────────────
+export const admin = {
+  /** GET /api/admin/stats — Aggregate stats */
+  getStats: async () => {
+    try {
+      const response = await api.get('/admin/stats');
+      return response.data;
+    } catch (error) {
+      return handleRequestError(error);
+    }
+  },
+
+  /** GET /api/admin/users — Paginated user list */
+  getUsers: async (params = {}) => {
+    try {
+      const response = await api.get('/admin/users', { params });
+      return response.data;
+    } catch (error) {
+      return handleRequestError(error);
+    }
+  },
+
+  /** POST /api/admin/users/:id/grant-premium */
+  grantPremium: async (userId, duration_days = 30) => {
+    try {
+      const response = await api.post(`/admin/users/${userId}/grant-premium`, { duration_days });
+      return response.data;
+    } catch (error) {
+      return handleRequestError(error);
+    }
+  },
+
+  /** POST /api/admin/users/:id/revoke-premium */
+  revokePremium: async (userId) => {
+    try {
+      const response = await api.post(`/admin/users/${userId}/revoke-premium`);
+      return response.data;
+    } catch (error) {
+      return handleRequestError(error);
+    }
+  }
+};
+

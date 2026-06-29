@@ -82,13 +82,12 @@ export async function checkMorningBriefing(socket, userId) {
  * Audits all active users for meetings (15m before), task deadlines (2h before), and habits (8 PM)
  */
 export async function checkAlertTriggers() {
-  console.log('[AlertService] Checking proactive alerts...');
   try {
     const now = new Date();
     const currentHour = now.getHours();
-    const users = await User.find({});
+    const users = await User.find({}).lean();
 
-    for (const user of users) {
+    await Promise.all(users.map(async (user) => {
       const userId = user._id;
       const roomName = `user_${userId}`;
 
@@ -99,7 +98,7 @@ export async function checkAlertTriggers() {
       const imminentEvents = await CalendarEvent.find({
         userId,
         startTime: { $gte: minStart, $lte: maxStart }
-      });
+      }).lean();
 
       for (const event of imminentEvents) {
         const existing = await Notification.findOne({
@@ -120,13 +119,8 @@ export async function checkAlertTriggers() {
           });
 
           if (io) {
-            console.log(`[AlertService] Sending pre-meeting alert to ${roomName} for "${event.title}"`);
-            io.to(roomName).emit('resq:proactive_alert', {
-              message,
-              type: 'meeting'
-            });
+            io.to(roomName).emit('resq:proactive_alert', { message, type: 'meeting' });
           }
-          // Native OS push notification
           await sendPushToUser(userId, '📅 Meeting Starting Soon', message, { tag: `meeting-${event._id}`, url: '/dashboard?tab=calendar' });
           if (user.email) {
             await sendEmailReminder(user.email, `Meeting Starting Soon: ${event.title}`, message);
@@ -142,7 +136,7 @@ export async function checkAlertTriggers() {
         userId,
         completed: false,
         dueDate: { $gte: minDue, $lte: maxDue }
-      });
+      }).lean();
 
       for (const task of imminentTasks) {
         const existing = await Notification.findOne({
@@ -162,18 +156,12 @@ export async function checkAlertTriggers() {
             type: 'deadline_warning'
           });
 
-          // Register proactive voice command context
           setPendingProactiveCommand(userId, 'deadline', { taskId: task._id, title: task.title });
 
           if (io) {
-            console.log(`[AlertService] Sending deadline warning to ${roomName} for "${task.title}"`);
-            io.to(roomName).emit('resq:proactive_alert', {
-              message,
-              type: 'deadline',
-              taskId: task._id
-            });
+            io.to(roomName).emit('resq:proactive_alert', { message, type: 'deadline', taskId: task._id });
           }
-          
+
           if (user.email) {
             await sendEmailReminder(user.email, `Deadline Alert: ${task.title}`, `Your time is up for ${task.title}. Log in to ResQ to mark it as completed.`);
           }
@@ -183,10 +171,7 @@ export async function checkAlertTriggers() {
       // 3. HABIT REMINDER (at 8 PM if target habit not completed)
       if (currentHour >= 20) {
         const todayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][now.getDay()];
-        const habits = await Habit.find({
-          userId,
-          targetDays: todayName
-        });
+        const habits = await Habit.find({ userId, targetDays: todayName }).lean();
 
         for (const habit of habits) {
           const todayDateStr = now.toDateString();
@@ -216,18 +201,12 @@ export async function checkAlertTriggers() {
                 type: 'habit_miss'
               });
 
-              // Register proactive voice command context
               setPendingProactiveCommand(userId, 'habit', { habitId: habit._id, title: habit.name });
 
               if (io) {
-                console.log(`[AlertService] Sending habit reminder to ${roomName} for "${habit.name}"`);
-                io.to(roomName).emit('resq:proactive_alert', {
-                  message,
-                  type: 'habit',
-                  habitId: habit._id
-                });
+                io.to(roomName).emit('resq:proactive_alert', { message, type: 'habit', habitId: habit._id });
               }
-              
+
               if (user.email) {
                 await sendEmailReminder(user.email, `Habit Reminder: ${habit.name}`, `Your time for the ${habit.name} habit is up. Log in to ResQ to mark it as done and keep your ${streak}-day streak!`);
               }
@@ -235,8 +214,9 @@ export async function checkAlertTriggers() {
           }
         }
       }
-    }
+    }));
   } catch (err) {
     console.error('[AlertService] checkAlertTriggers error:', err);
   }
 }
+

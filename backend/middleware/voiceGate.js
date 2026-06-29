@@ -9,19 +9,44 @@ export async function checkAndIncrementVoiceUsage(userId) {
     return { blocked: true, status: 404, message: 'User not found' };
   }
 
+  // 0. Auto-heal: If user has active premium but voiceAI was disabled (e.g. old limit lock),
+  //    re-enable it transparently so they don't need to re-login after purchasing.
+  if (user.isPremiumActive && user.voiceAI && !user.voiceAI.enabled) {
+    console.log(`[voiceGate] Auto-healing voiceAI for premium user ${userId}`);
+    user.voiceAI.enabled = true;
+    user.voiceAI.disabledReason = null;
+    user.voiceAI.monthlyCommandsUsed = 0;
+    user.voiceAI.monthlyLimit = -1; // unlimited
+    await user.save();
+  }
+
   // 1. Check if voice AI is enabled by user
   if (!user.voiceAI || !user.voiceAI.enabled) {
+    const isLimit = user.voiceAI?.disabledReason === 'limit_reached';
     return {
       blocked: true,
       status: 403,
       reason: user.voiceAI?.disabledReason || 'user_disabled',
-      message: 'Voice AI is disabled. Enable it in Settings → Voice AI.'
+      message: isLimit
+        ? 'Monthly voice AI limit reached. Upgrade to Premium for unlimited access.'
+        : 'Voice AI is disabled. Enable it in Settings → Voice AI.'
     };
   }
 
-  // 2. Premium users (paid or active trial): unlimited, skip limit check
-  if (user.isPremiumActive) {
-    return { blocked: false, user };
+  // 2. Premium users with unlimited limit (-1): skip all limit checks
+  if (user.voiceAI.monthlyLimit === -1 || user.isPremiumActive) {
+    // Still increment for analytics, but never block
+    user.voiceAI.monthlyCommandsUsed = (user.voiceAI.monthlyCommandsUsed || 0) + 1;
+    await user.save();
+    return {
+      blocked: false,
+      user,
+      voiceUsage: {
+        used: user.voiceAI.monthlyCommandsUsed,
+        limit: -1,
+        remaining: -1 // unlimited
+      }
+    };
   }
 
   // 3. Reset counter if new month
@@ -71,25 +96,13 @@ export async function checkAndIncrementVoiceUsage(userId) {
  * Express middleware to gate voice and AI requests
  */
 export async function voiceGate(req, res, next) {
-  console.log(`[voiceGate] TOP: middleware executing for route: ${req.method} ${req.originalUrl || req.url}`);
   try {
     const userId = req.userId || req.user?._id || req.user?.id;
-    console.log(`[voiceGate] Resolved userId: ${userId}`);
     if (!userId) {
       return res.status(401).json({ message: 'Not authorized, no user context' });
     }
 
-    const user = await User.findById(userId);
-    if (user) {
-      console.log(`[voiceGate] Database state for user ${user.email} (ID: ${userId}):`);
-      console.log(` - voiceAI config: ${JSON.stringify(user.voiceAI)}`);
-      console.log(` - Plan: ${user.plan}`);
-    } else {
-      console.warn(`[voiceGate] User ID ${userId} not found in database.`);
-    }
-
     const check = await checkAndIncrementVoiceUsage(userId);
-    console.log(`[voiceGate] Usage check results: ${JSON.stringify(check)}`);
 
     if (check.blocked) {
       if (process.env.BYPASS_VOICE_GATE === 'true') {
@@ -119,3 +132,4 @@ export async function voiceGate(req, res, next) {
     res.status(500).json({ message: 'Internal server error' });
   }
 }
+

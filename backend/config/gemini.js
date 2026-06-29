@@ -4,25 +4,26 @@ dotenv.config();
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// Use gemini-3.1-flash-lite as requested
-const RESQ_MODEL = 'gemini-3.1-flash-lite';
+// gemini-2.5-flash — current production model (2.0-flash deprecated June 1, 2026)
+const RESQ_MODEL = 'gemini-2.5-flash';
 
 export function getResQModel() {
   return genAI.getGenerativeModel({ 
     model: RESQ_MODEL,
     generationConfig: {
-      temperature: 0.7,       // balanced creativity + precision
+      temperature: 0.7,
       topK: 40,
       topP: 0.95,
-      maxOutputTokens: 1024,  // enough for JSON + voice response
+      maxOutputTokens: 2048,
     }
   });
 }
 
 // Safety check on startup
 export function verifyModelConfig() {
-  if (RESQ_MODEL !== 'gemini-3.1-flash-lite') {
-    throw new Error('CRITICAL: ResQ model config tampered. Only gemini-3.1-flash-lite is allowed.');
+  if (RESQ_MODEL !== 'gemini-2.5-flash') {
+    throw new Error('CRITICAL: ResQ model config tampered. Only gemini-2.5-flash is allowed.');
   }
   console.log(`✅ ResQ AI Engine: ${RESQ_MODEL} verified`);
 }
+

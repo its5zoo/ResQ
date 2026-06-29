@@ -1,15 +1,11 @@
 import { io } from 'socket.io-client';
 import { useEffect } from 'react';
+import voicePersonality from './VoicePersonality.js';
 
-const getSocketUrl = () => {
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-  if (apiUrl.endsWith('/api')) {
-    return apiUrl.slice(0, -4);
-  }
-  return apiUrl;
-};
+import { SOCKET_URL } from '../config/apiConfig.js';
 
-export const socket = io(getSocketUrl(), {
+
+export const socket = io(SOCKET_URL, {
   auth: {
     token: localStorage.getItem('token') || ''
   },
@@ -33,6 +29,38 @@ socket.on('notification:new', (notification) => {
       icon: '/favicon.ico'
     });
   }
+});
+
+// ── Voice Plan Reminder ──────────────────────────────────────────────
+// Fired by cron when it's time for a daily plan reminder
+socket.on('voice_reminder', ({ audio, mimeType, message, planId }) => {
+  if (notificationsBlocked) return;
+
+  if (audio) {
+    voicePersonality.playAudioBuffer(audio, mimeType, message).catch(() => {
+      voicePersonality.speakFallback(message);
+    });
+  } else {
+    voicePersonality.speakFallback(message);
+  }
+
+  // Show visual banner
+  window.dispatchEvent(new CustomEvent('resq:plan-reminder', { detail: { message, planId } }));
+});
+
+// ── Plan Created (background generation complete) ────────────────────
+socket.on('plan:created', ({ planId, topic, durationDays }) => {
+  window.dispatchEvent(new CustomEvent('resq:plan-created', { detail: { planId, topic, durationDays } }));
+});
+
+// ── Plan Progress ────────────────────────────────────────────────────────
+socket.on('plan_progress', ({ stage, message }) => {
+  window.dispatchEvent(new CustomEvent('resq:plan-progress', { detail: { stage, message } }));
+});
+
+// ── Plan Error ────────────────────────────────────────────────────────
+socket.on('plan:error', ({ message }) => {
+  window.dispatchEvent(new CustomEvent('resq:plan-error', { detail: { message } }));
 });
 
 export const connectSocket = (token) => {

@@ -33,24 +33,28 @@ class WakeWordEngine {
     this.handleVoiceStart = () => {
       this.isAiSpeaking = true;
       this.isProcessingBackend = false;
-      // Clear any accumulated transcript from before AI started speaking
-      // to prevent it from being submitted after the AI finishes talking
       this.latestTranscript = '';
       if (this.commandSilenceTimer) {
         clearTimeout(this.commandSilenceTimer);
         this.commandSilenceTimer = null;
       }
+      
+      // Zero-Echo Implementation: Aggressively shut off the mic while speaking
+      this.stopCommandListening();
     };
     this.handleVoiceEnd = () => {
       this.isAiSpeaking = false;
-      // 1 second cooldown after speaking ends to discard echo tail
+      // Brief cooldown before opening the mic again to discard any hardware audio tail
       this.postSpeechCooldown = true;
       if (this.postSpeechCooldownTimer) clearTimeout(this.postSpeechCooldownTimer);
       this.postSpeechCooldownTimer = setTimeout(() => {
         this.postSpeechCooldown = false;
-        // Also clear any transcript built up during cooldown
         this.latestTranscript = '';
-      }, 1000);
+        // If still in command mode, reopen the mic instantly
+        if (this.isWoken) {
+          this.startCommandListening();
+        }
+      }, 300);
       this.resetIdleTimer();
     };
     this.handleVoiceResponseReceived = () => { this.isProcessingBackend = false; this.resetIdleTimer(); };
@@ -90,8 +94,9 @@ class WakeWordEngine {
     this.userId = user._id;
     this.isAuthorized = true;
 
-    // Check if voice AI limit was already reached
-    if (user.voiceAI && !user.voiceAI.enabled && user.voiceAI.disabledReason === 'limit_reached') {
+    // Check if voice AI limit was already reached (only for non-premium users)
+    const isPremium = user.isPremiumActive || user.voiceAI?.monthlyLimit === -1;
+    if (!isPremium && user.voiceAI && !user.voiceAI.enabled && user.voiceAI.disabledReason === 'limit_reached') {
       this.limitReached = true;
       // Emit locked state
       setTimeout(() => {
@@ -105,6 +110,26 @@ class WakeWordEngine {
       this.init();
     } else {
       this.checkPermissionAndStart();
+    }
+  }
+
+  /**
+   * Re-sync limit state after subscription changes (e.g. after buying Premium).
+   * Call this after refreshSubscription() resolves with a fresh user object.
+   */
+  refreshState(user) {
+    if (!user) return;
+    console.log('[WakeWordEngine] Refreshing state for user plan:', user.plan, 'isPremiumActive:', user.isPremiumActive);
+    const isPremium = user.isPremiumActive || user.voiceAI?.monthlyLimit === -1;
+    if (isPremium) {
+      // Unlock the engine
+      this.limitReached = false;
+      // Dispatch unlocked orb state
+      window.dispatchEvent(new CustomEvent('resq:orb_state', { detail: { state: 'idle' } }));
+      console.log('[WakeWordEngine] Premium detected — voice AI limits unlocked.');
+    } else if (user.voiceAI && !user.voiceAI.enabled && user.voiceAI.disabledReason === 'limit_reached') {
+      this.limitReached = true;
+      window.dispatchEvent(new CustomEvent('resq:orb_state', { detail: { state: 'locked', reason: 'limit_reached' } }));
     }
   }
 
@@ -157,8 +182,15 @@ class WakeWordEngine {
     console.warn('[WakeWordEngine] monthly command limit reached. Pausing engine.');
     this.limitReached = true;
     this.stopBackgroundListening();
+    
     // Change orb to gray, show lock icon
     window.dispatchEvent(new CustomEvent('resq:orb_state', { detail: { state: 'locked', reason: 'limit_reached' } }));
+    
+    // Trigger the Premium Upgrade Modal in GlobalVoiceAssistant
+    window.dispatchEvent(new CustomEvent('resq:limit_reached', { detail: { used: 30, limit: 30 } }));
+    
+    // Voice notification
+    voicePersonality.speak("Your monthly voice command limit has been reached. Please upgrade to premium to continue.");
   }
 
   async checkPermissionAndStart() {
@@ -426,7 +458,7 @@ class WakeWordEngine {
     if (this.idleConversationTimer) clearTimeout(this.idleConversationTimer);
     this.idleConversationTimer = setTimeout(() => {
       if (this.isWoken && !this.isAiSpeaking && !this.isProcessingBackend) {
-        console.log('[WakeWordEngine] 15 seconds idle timeout reached. Going to sleep.');
+        console.log('[WakeWordEngine] 30 seconds idle timeout reached. Going to sleep.');
         
         if (this.awaitingClarification) {
            this.exitClarificationMode();
@@ -435,7 +467,7 @@ class WakeWordEngine {
         window.dispatchEvent(new CustomEvent('resq:close'));
         this.resetToIdle();
       }
-    }, 15000);
+    }, 60000); // Increased from 30s to 60s
   }
 
   playWakeChime() {
@@ -497,44 +529,6 @@ class WakeWordEngine {
       };
 
       recognition.onresult = (event) => {
-        // User Barge-In: If user speaks while AI is still speaking, wait for the natural pause.
-        // After they start speaking and natural pause detected (via silence timer below), we'll process.
-        // We only cancel AI speech immediately if user uses a direct interruption phrase.
-        if (this.isAiSpeaking) {
-          const currentTranscript = event.results[event.resultIndex][0].transcript.trim().toLowerCase();
-          
-          if (currentTranscript.length > 2) {
-             const hardBargeInWords = [...this.wakeWords, "stop", "wait", "hold on", "shut up", "ruk", "bas"];
-             const isHardBargeIn = hardBargeInWords.some(w => currentTranscript.includes(w));
-
-             if (isHardBargeIn) {
-               console.log('[WakeWordEngine] Explicit barge-in! Canceling AI speech immediately.');
-               voicePersonality.cancel();
-               this.isAiSpeaking = false;
-               this.latestTranscript = currentTranscript;
-             } else {
-               // Natural barge-in: user started talking — store what they said but wait for AI to pause naturally
-               // The silence timer below will process after they finish speaking
-               this.latestTranscript = currentTranscript;
-               // Cancel AI speech after a short delay if user is still speaking (500ms grace)
-               if (!this._bargeInTimer) {
-                 this._bargeInTimer = setTimeout(() => {
-                   if (this.latestTranscript && this.isAiSpeaking) {
-                     console.log('[WakeWordEngine] Natural barge-in: user is speaking, stopping AI.');
-                     voicePersonality.cancel();
-                     this.isAiSpeaking = false;
-                   }
-                   this._bargeInTimer = null;
-                 }, 500);
-               }
-             }
-          } else {
-             return; // Ignore very short random noises
-          }
-        }
-
-        this.resetIdleTimer();
-
         let interimTranscript = '';
         let finalTranscript = '';
         for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -546,9 +540,38 @@ class WakeWordEngine {
         }
         
         const latest = finalTranscript || interimTranscript;
+        const currentTranscript = latest.trim().toLowerCase();
 
-        // CRITICAL: While AI is still speaking (or in post-speech cooldown), discard any transcripts.
-        // This prevents the AI's own audio from being heard by the mic and re-submitted as a command.
+        // 1. Interruptibility / Barge-In and Echo Cancellation
+        if (this.isAiSpeaking) {
+          const spokenText = (voicePersonality.currentSpokenText || '').toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "");
+          const cleanedTranscript = currentTranscript.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "");
+
+          // Detect if it is echo/self-hearing (high overlap or substring of AI response)
+          const isEcho = cleanedTranscript.length > 0 && (
+            spokenText.includes(cleanedTranscript) || 
+            cleanedTranscript.split(' ').every(word => word.length <= 2 || spokenText.includes(word))
+          );
+
+          if (isEcho) {
+            console.log('[WakeWordEngine] Echo/Self-hearing detected — ignoring.');
+            return;
+          }
+
+          // Real user interrupt - make it more robust against random background noise
+          const words = cleanedTranscript.split(' ').filter(w => w.length > 0);
+          if (words.length >= 3 || (words.length === 2 && cleanedTranscript.length > 8) || cleanedTranscript.length > 15) {
+            console.log('[WakeWordEngine] User barge-in! Stopping AI speech.');
+            voicePersonality.cancel();
+            this.isAiSpeaking = false;
+            this.postSpeechCooldown = false;
+          } else {
+            console.log('[WakeWordEngine] Ignoring short noise during speech:', cleanedTranscript);
+            return; // Ignore tiny noises/clicks
+          }
+        }
+
+        // 2. Discard if AI is speaking or in post-speech cooldown
         if (this.isAiSpeaking || this.postSpeechCooldown) {
           return;
         }
@@ -559,19 +582,27 @@ class WakeWordEngine {
           window.dispatchEvent(new CustomEvent('resq:interim-transcript', { detail: { transcript: interimTranscript } }));
         }
 
+        this.resetIdleTimer();
+
         if (this.commandSilenceTimer) clearTimeout(this.commandSilenceTimer);
-        if (this._bargeInTimer) { clearTimeout(this._bargeInTimer); this._bargeInTimer = null; }
 
         if (latest.trim()) {
-          // Adaptive silence timer: short responses get 1.5s pause, longer ones get 2.5s
+          // Snappier conversation timeouts (like ChatGPT)
           const wordCount = latest.trim().split(/\s+/).length;
-          const silenceMs = wordCount <= 3 ? 1500 : wordCount <= 8 ? 2000 : 2500;
+          const silenceMs = wordCount <= 3 ? 800 : wordCount <= 8 ? 1200 : 1500;
           
           this.commandSilenceTimer = setTimeout(() => {
-            // Double-check AI isn't speaking or in cooldown before submitting
             if (this.isAiSpeaking || this.postSpeechCooldown) return;
             console.log(`[WakeWordEngine] ${silenceMs}ms natural pause detected, sending turn to backend.`);
             if (this.latestTranscript.trim()) {
+              const lowerTranscript = this.latestTranscript.trim().toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "");
+              if (lowerTranscript === 'bye' || lowerTranscript === 'okay bye' || lowerTranscript === 'goodbye' || lowerTranscript === 'bye bye') {
+                console.log('[WakeWordEngine] User said bye, closing assistant.');
+                window.dispatchEvent(new CustomEvent('resq:close'));
+                this.resetToIdle();
+                this.latestTranscript = '';
+                return;
+              }
               this.finalizeConversationTurn(this.latestTranscript);
               this.latestTranscript = '';
             }

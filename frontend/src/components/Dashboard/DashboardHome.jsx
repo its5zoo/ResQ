@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Brain, 
   Cpu, 
@@ -12,7 +12,15 @@ import {
   Inbox,
   Zap,
   Mic,
-  MousePointerClick
+  MousePointerClick,
+  Shield,
+  Target,
+  Activity,
+  Timer,
+  Pause,
+  Play,
+  RotateCcw,
+  Coffee
 } from 'lucide-react';
 import { ai, tasks as apiTasks, habits as apiHabits, calendar as apiCalendar } from '../../services/api.js';
 import { useSocket } from '../../services/socket.js';
@@ -27,6 +35,15 @@ export default function DashboardHome({ setCurrentTab }) {
   const [toast, setToast] = useState(null);
   const [completingItems, setCompletingItems] = useState([]);
   const [notificationsBlocked, setNotificationsBlocked] = useState(false);
+
+  // Pomodoro Timer State
+  const POMODORO_WORK = 25 * 60;
+  const POMODORO_BREAK = 5 * 60;
+  const [pomodoroTime, setPomodoroTime] = useState(POMODORO_WORK);
+  const [pomodoroRunning, setPomodoroRunning] = useState(false);
+  const [pomodoroMode, setPomodoroMode] = useState('work'); // 'work' | 'break'
+  const [pomodoroSessions, setPomodoroSessions] = useState(0);
+  const pomodoroRef = useRef(null);
 
   const fetchDashboardData = async () => {
     try {
@@ -49,6 +66,42 @@ export default function DashboardHome({ setCurrentTab }) {
       setLoading(false);
     }
   };
+
+  // Pomodoro tick
+  useEffect(() => {
+    if (pomodoroRunning) {
+      pomodoroRef.current = setInterval(() => {
+        setPomodoroTime(prev => {
+          if (prev <= 1) {
+            clearInterval(pomodoroRef.current);
+            setPomodoroRunning(false);
+            if (pomodoroMode === 'work') {
+              setPomodoroSessions(s => s + 1);
+              setPomodoroMode('break');
+              setPomodoroTime(POMODORO_BREAK);
+            } else {
+              setPomodoroMode('work');
+              setPomodoroTime(POMODORO_WORK);
+            }
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      clearInterval(pomodoroRef.current);
+    }
+    return () => clearInterval(pomodoroRef.current);
+  }, [pomodoroRunning, pomodoroMode]);
+
+  const resetPomodoro = () => {
+    clearInterval(pomodoroRef.current);
+    setPomodoroRunning(false);
+    setPomodoroMode('work');
+    setPomodoroTime(POMODORO_WORK);
+  };
+
+  const formatPomodoroTime = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
   const refreshAISummary = async () => {
     try {
@@ -352,6 +405,54 @@ export default function DashboardHome({ setCurrentTab }) {
 
       </div>
 
+      {/* ⚡ Power Stats Bar — zero extra API calls, derived from existing data */}
+      {!loading && (
+        <div className="flex flex-wrap items-center gap-2 lg:gap-0 divide-y lg:divide-y-0 lg:divide-x divide-white/5 bg-[#090909] border border-white/[0.05] rounded-2xl px-2 py-1 font-sans overflow-hidden">
+          <div className="flex items-center gap-2.5 px-4 py-2.5 flex-1 min-w-[140px]">
+            <div className="w-7 h-7 rounded-lg bg-[#E5B842]/10 flex items-center justify-center shrink-0">
+              <Target className="w-3.5 h-3.5 text-[#E5B842]" />
+            </div>
+            <div>
+              <p className="text-[10px] font-tech font-bold uppercase tracking-widest text-white/30">Tasks Prioritized</p>
+              <p className="text-sm font-bold text-white">{aiPriorityItems.length} <span className="text-white/40 text-xs font-normal">by AI today</span></p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 px-4 py-2.5 flex-1 min-w-[140px]">
+            <div className="w-7 h-7 rounded-lg bg-[#00F0FF]/10 flex items-center justify-center shrink-0">
+              <Shield className="w-3.5 h-3.5 text-[#00F0FF]" />
+            </div>
+            <div>
+              <p className="text-[10px] font-tech font-bold uppercase tracking-widest text-white/30">Hours Protected</p>
+              <p className="text-sm font-bold text-white">
+                {Math.round(localEvents.filter(e => e.aiGenerated).reduce((acc, e) => acc + (new Date(e.endTime) - new Date(e.startTime)) / 3600000, 0) * 10) / 10}h
+                <span className="text-white/40 text-xs font-normal"> AI blocks</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 px-4 py-2.5 flex-1 min-w-[140px]">
+            <div className="w-7 h-7 rounded-lg bg-orange-500/10 flex items-center justify-center shrink-0">
+              <Flame className="w-3.5 h-3.5 text-orange-400" />
+            </div>
+            <div>
+              <p className="text-[10px] font-tech font-bold uppercase tracking-widest text-white/30">Streak</p>
+              <p className="text-sm font-bold text-white">{totalStreak} <span className="text-white/40 text-xs font-normal">day{totalStreak !== 1 ? 's' : ''}</span></p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 px-4 py-2.5 flex-1 min-w-[140px]">
+            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+              <Activity className="w-3.5 h-3.5 text-emerald-400" />
+            </div>
+            <div>
+              <p className="text-[10px] font-tech font-bold uppercase tracking-widest text-white/30">Daily Progress</p>
+              <p className="text-sm font-bold text-white">{completedRate}% <span className="text-white/40 text-xs font-normal">complete</span></p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Stats Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6 font-sans">
         {/* Tasks Today */}
@@ -555,9 +656,101 @@ export default function DashboardHome({ setCurrentTab }) {
 
         </div>
 
-        {/* Right Column: Mini Calendar & Habit check-in */}
+        {/* Right Column: Pomodoro Timer + Mini Calendar + Habit check-in */}
         <div className="lg:col-span-4 space-y-5 lg:space-y-8">
-          
+
+          {/* 🍅 Pomodoro Focus Timer */}
+          <div className="p-5 lg:p-6 bg-[#090909] border border-white/[0.04] rounded-3xl layered-shadow-lg">
+            <div className="flex items-center justify-between mb-5">
+              <h4 className="text-sm font-bold uppercase tracking-wider text-white/70 flex items-center gap-2">
+                <Timer className="w-4 h-4 text-[#E5B842]" />
+                Pomodoro Focus Timer
+              </h4>
+              <span className={`text-xs font-tech font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border ${
+                pomodoroMode === 'work'
+                  ? 'bg-[#E5B842]/10 border-[#E5B842]/30 text-[#E5B842]'
+                  : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+              }`}>
+                {pomodoroMode === 'work' ? 'Work' : 'Break'}
+              </span>
+            </div>
+
+            {/* Circular Progress Ring */}
+            <div className="flex flex-col items-center mb-5">
+              <div className="relative w-32 h-32">
+                <svg className="w-full h-full -rotate-90" viewBox="0 0 128 128">
+                  <circle cx="64" cy="64" r="56" stroke="rgba(255,255,255,0.05)" strokeWidth="6" fill="transparent" />
+                  <circle
+                    cx="64" cy="64" r="56"
+                    stroke={pomodoroMode === 'work' ? '#E5B842' : '#34c759'}
+                    strokeWidth="6"
+                    fill="transparent"
+                    strokeDasharray={`${2 * Math.PI * 56}`}
+                    strokeDashoffset={`${2 * Math.PI * 56 * (1 - pomodoroTime / (pomodoroMode === 'work' ? POMODORO_WORK : POMODORO_BREAK))}`}
+                    strokeLinecap="round"
+                    style={{ transition: 'stroke-dashoffset 1s linear' }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className={`text-2xl font-display font-black tabular-nums ${
+                    pomodoroMode === 'work' ? 'text-[#E5B842]' : 'text-emerald-400'
+                  }`}>{formatPomodoroTime(pomodoroTime)}</span>
+                  <span className="text-[10px] text-white/30 font-tech uppercase tracking-widest mt-0.5">
+                    {pomodoroMode === 'work' ? 'Focus' : 'Rest'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Session counter */}
+            <div className="flex items-center justify-center gap-1.5 mb-5">
+              {[0, 1, 2, 3].map(i => (
+                <div
+                  key={i}
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                    i < pomodoroSessions % 4 ? 'bg-[#E5B842] scale-110' : 'bg-white/15'
+                  }`}
+                />
+              ))}
+              <span className="text-xs text-white/40 ml-2 font-tech">{pomodoroSessions} sessions</span>
+            </div>
+
+            {/* Controls */}
+            <div className="flex items-center justify-center gap-3">
+              <button
+                onClick={resetPomodoro}
+                className="w-9 h-9 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white/50 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setPomodoroRunning(r => !r)}
+                className={`flex-1 py-3 rounded-xl text-sm font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all duration-300 cursor-pointer ${
+                  pomodoroRunning
+                    ? 'bg-white/5 border border-white/10 text-white/80 hover:bg-white/10'
+                    : pomodoroMode === 'work'
+                    ? 'bg-[#E5B842] text-black hover:bg-[#FFF2CC]'
+                    : 'bg-emerald-500 text-white hover:bg-emerald-400'
+                }`}
+              >
+                {pomodoroRunning
+                  ? <><Pause className="w-4 h-4" /> Pause</>
+                  : <><Play className="w-4 h-4" /> {pomodoroTime === (pomodoroMode === 'work' ? POMODORO_WORK : POMODORO_BREAK) ? 'Start' : 'Resume'}</>
+                }
+              </button>
+              <button
+                onClick={() => {
+                  resetPomodoro();
+                  window.dispatchEvent(new CustomEvent('resq:start-focus', { detail: { task: 'Pomodoro Session', duration: 25 } }));
+                }}
+                className="w-9 h-9 rounded-xl border border-[#E5B842]/20 bg-[#E5B842]/5 hover:bg-[#E5B842]/10 text-[#E5B842]/60 hover:text-[#E5B842] flex items-center justify-center transition-all cursor-pointer"
+                title="Start full Focus Session overlay"
+              >
+                <Zap className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
           {/* Mini Calendar agenda */}
           <div className="p-5 lg:p-8 bg-[#090909] border border-white/[0.04] rounded-3xl layered-shadow-lg">
             <div className="flex items-center justify-between mb-6">

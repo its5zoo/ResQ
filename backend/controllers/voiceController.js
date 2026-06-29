@@ -39,6 +39,11 @@ export const executeVoiceCommand = async (userId, transcript, timezoneContext = 
   const intent = resultObj.intent;
   const payload = resultObj.extractedData || {};
 
+  // Fix AI Loop Bug: Clear the pending command cache once we successfully resolve the intent
+  if (intent !== 'needs_clarification') {
+    clearPendingCommands(userId);
+  }
+
   let taskModified = false;
   let calendarModified = false;
   let habitsModified = false;
@@ -266,6 +271,206 @@ export const executeVoiceCommand = async (userId, transcript, timezoneContext = 
       });
       await newGoal.save();
       goalsModified = true;
+      resultObj.createdGoalId = newGoal._id;
+
+      if (payload.autoPlan) {
+        // Auto-generate milestones in the background
+        import('../services/geminiService.js').then(({ generateGoalBreakdown }) => {
+          generateGoalBreakdown(newGoal, payload.userPreferences || '')
+            .then(async (milestones) => {
+              if (Array.isArray(milestones) && milestones.length > 0) {
+                await Goal.findByIdAndUpdate(newGoal._id, {
+                  milestones: milestones.map(m => ({
+                    week: m.week,
+                    milestone: m.milestone,
+                    effort: m.effort || 'medium',
+                    done: false
+                  }))
+                });
+                console.log(`[Voice AI] Auto-generated roadmap for goal ${newGoal._id}`);
+              }
+            }).catch(console.error);
+        });
+
+        // Auto-create a daily reminder habit
+        const reminderHabit = new Habit({
+          userId,
+          name: `Goal: ${newGoal.title}`,
+          targetDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          aiTip: `Daily reminder to make progress on your goal: ${newGoal.title}`
+        });
+        reminderHabit.save().catch(console.error);
+      }
+    }
+    else if (intent === 'create_plan') {
+      const { topic, dailyMinutes, interviewAnswers, originalRequest, needsMoreInfo } = payload;
+      const durationDays = payload.durationDays || 30;
+      const startDate = payload.startDate || new Date().toISOString();
+
+      // If Gemini says it still needs more info, return clarification (handled by needs_clarification flow)
+      if (needsMoreInfo) {
+        // Already handled by the clarification question in voiceResponse — just return
+      } else if (topic) {
+        // Generate the plan in the background so we don't block the voice response
+        import('../services/planService.js').then(async ({ generatePlanWithGemini, syncPlanToCalendar, detectPlanType }) => {
+          try {
+            if (io) io.to(`user_${userId}`).emit('plan_progress', { stage: 'generating', message: `Building your ${durationDays}-day plan...` });
+
+            const Plan = (await import('../models/Plan.js')).default;
+            const planType = detectPlanType(topic, originalRequest || '');
+            const start = new Date(startDate);
+            const end = new Date(start);
+            end.setDate(start.getDate() + parseInt(durationDays) - 1);
+
+            const days = await generatePlanWithGemini({
+              topic,
+              planType,
+              durationDays: parseInt(durationDays),
+              dailyMinutes: parseInt(dailyMinutes) || 60,
+              startDate: start,
+              interviewAnswers: interviewAnswers || {}
+            });
+
+            if (io) io.to(`user_${userId}`).emit('plan_progress', { stage: 'saving', message: 'Saving plan to database...' });
+
+            const plan = new Plan({
+              userId,
+              planType,
+              originalRequest: originalRequest || topic,
+              topic,
+              interviewAnswers: interviewAnswers || {},
+              durationDays: parseInt(durationDays),
+              dailyMinutes: parseInt(dailyMinutes) || 60,
+              startDate: start,
+              endDate: end,
+              currentDay: 1,
+              completedDays: 0,
+              streakDays: 0,
+              days
+            });
+            await plan.save();
+
+            // Emit to user's socket so frontend can navigate to the new plan
+            if (io) {
+              io.to(`user_${userId}`).emit('plan:created', {
+                planId: plan._id.toString(),
+                topic: plan.topic,
+                durationDays: plan.durationDays
+              });
+            }
+
+            // Sync to Google Calendar in background
+            if (io) io.to(`user_${userId}`).emit('plan_progress', { stage: 'syncing', message: 'Adding to Google Calendar...' });
+            syncPlanToCalendar(plan, userId).catch(e => console.error('[Voice] Calendar sync error:', e.message));
+
+            console.log(`[Voice] Plan created: ${plan._id} for topic: ${topic}`);
+          } catch (planErr) {
+            console.error('[Voice] create_plan background error:', planErr.message);
+            let errorMessage = 'Plan generation failed. Please try again.';
+            if (planErr.message && (planErr.message.includes('429') || planErr.message.includes('Quota exceeded'))) {
+              errorMessage = 'Plan generation failed: Google Gemini Free Tier API Quota exceeded. Please try again later or upgrade your API key.';
+            }
+            if (io) {
+              io.to(`user_${userId}`).emit('plan:error', { message: errorMessage });
+            }
+            if (io) {
+              io.to(`user_${userId}`).emit('plan:error', { message: errorMessage });
+            }
+          }
+        });
+      }
+    }
+    else if (intent === 'modify_plan' || intent === 'edit_plan') {
+      const { planId, topic, durationDays, dailyMinutes, reminderTime, newTopic } = payload;
+      let query = { userId };
+      if (planId) query._id = planId;
+      else if (topic) query.topic = new RegExp(topic, 'i');
+
+      const Plan = (await import('../models/Plan.js')).default;
+      const plan = await Plan.findOne(query).sort({ updatedAt: -1 });
+
+      if (plan) {
+        let modified = false;
+        let rebuildRoadmap = false;
+
+        if (newTopic && newTopic !== plan.topic) {
+          plan.topic = newTopic;
+          modified = true;
+          rebuildRoadmap = true;
+        }
+        if (durationDays && parseInt(durationDays) !== plan.durationDays) {
+          plan.durationDays = parseInt(durationDays);
+          modified = true;
+          rebuildRoadmap = true;
+        }
+        if (dailyMinutes && parseInt(dailyMinutes) !== plan.dailyMinutes) {
+          plan.dailyMinutes = parseInt(dailyMinutes);
+          modified = true;
+          rebuildRoadmap = true;
+        }
+        if (reminderTime && reminderTime !== plan.reminderTime) {
+          plan.reminderTime = reminderTime;
+          modified = true;
+        }
+
+        if (modified) {
+          import('../services/planService.js').then(async ({ generatePlanWithGemini, syncPlanToCalendar }) => {
+            try {
+              if (rebuildRoadmap) {
+                const start = new Date(plan.startDate);
+                const end = new Date(start);
+                end.setDate(start.getDate() + plan.durationDays - 1);
+                plan.endDate = end;
+
+                const days = await generatePlanWithGemini({
+                  topic: plan.topic,
+                  planType: plan.planType,
+                  durationDays: plan.durationDays,
+                  dailyMinutes: plan.dailyMinutes,
+                  startDate: start,
+                  interviewAnswers: plan.interviewAnswers || {}
+                });
+                plan.days = days;
+                plan.completedDays = 0;
+                plan.currentDay = 1;
+              }
+              await plan.save();
+
+              if (plan.calendarSynced) {
+                try {
+                  const user = await User.findById(userId);
+                  if (user && user.googleAccessToken) {
+                    const calendar = await getCalendarClient(user);
+                    const eventIds = plan.days
+                      .filter(d => d.googleCalendarEventId)
+                      .map(d => d.googleCalendarEventId);
+
+                    for (const eventId of eventIds) {
+                      try {
+                        await calendar.events.delete({ calendarId: 'primary', eventId });
+                      } catch {}
+                    }
+                  }
+                } catch {}
+                syncPlanToCalendar(plan, userId).catch(console.error);
+              }
+
+              if (io) {
+                io.to(`user_${userId}`).emit('plan:created', {
+                  planId: plan._id.toString(),
+                  topic: plan.topic,
+                  durationDays: plan.durationDays
+                });
+              }
+            } catch (err) {
+              console.error('[Voice] Rebuild plan failed:', err.message);
+              if (io) {
+                io.to(`user_${userId}`).emit('plan:error', { message: 'Plan rebuild failed.' });
+              }
+            }
+          });
+        }
+      }
     }
     else if (intent === 'update_goal_progress') {
       const goalId = payload.goalId;
@@ -355,10 +560,12 @@ export const processVoiceCommand = async (req, res) => {
   }
 
   try {
+    console.log(`[VoiceController] Processing command for user ${req.user._id}: "${command}"`);
     const result = await executeVoiceCommand(req.user._id, command);
+    console.log(`[VoiceController] Command executed successfully. Intent: ${result.intent}`);
     res.json(result);
   } catch (error) {
-    console.error('Error processing voice command:', error);
+    console.error('[VoiceController] Fatal Error processing voice command:', error);
     res.status(500).json({ message: error.message });
   }
 };

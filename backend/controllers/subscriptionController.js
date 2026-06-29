@@ -156,6 +156,15 @@ export const claimTrial = async (req, res) => {
     user.trial_claimed = true;
     user.trial_start_date = trialStart;
     user.trial_end_date = trialEnd;
+
+    // ── Reset Voice AI limits so trial users aren't blocked ──
+    if (!user.voiceAI) user.voiceAI = {};
+    user.voiceAI.enabled = true;
+    user.voiceAI.disabledReason = null;
+    user.voiceAI.monthlyCommandsUsed = 0;
+    user.voiceAI.monthlyLimit = 30; // trial: 30 commands/month
+    user.markModified('voiceAI');
+
     await user.save();
 
     // Record in permanent tracking table (prevents future abuse)
@@ -306,7 +315,7 @@ export const verifyPayment = async (req, res) => {
       return res.status(404).json({ message: 'Payment record not found.' });
     }
 
-    // Update user subscription
+    // Update user subscription AND reset voiceAI limits for premium
     const user = await User.findByIdAndUpdate(
       req.user._id,
       {
@@ -315,17 +324,31 @@ export const verifyPayment = async (req, res) => {
         subscription_status: 'active',
         subscription_start: now,
         subscription_end: subscriptionEnd,
-        last_payment_id: paymentRecord._id
+        last_payment_id: paymentRecord._id,
+        // ── Unlock Voice AI for premium users (unlimited) ──
+        'voiceAI.enabled': true,
+        'voiceAI.disabledReason': null,
+        'voiceAI.monthlyCommandsUsed': 0,
+        'voiceAI.monthlyLimit': -1 // -1 = unlimited for premium
       },
       { new: true }
     );
+
+    console.log(`[verifyPayment] Premium activated for user ${req.user._id}. VoiceAI reset to unlimited.`);
 
     return res.json({
       success: true,
       message: `🎉 Payment successful! Your ${plan.label} is now active.`,
       subscription_end: subscriptionEnd,
       plan_type,
-      isPremiumActive: user.isPremiumActive
+      isPremiumActive: user.isPremiumActive,
+      // Send fresh voiceAI status so frontend can update WakeWordEngine
+      voiceAI: {
+        enabled: true,
+        monthlyCommandsUsed: 0,
+        monthlyLimit: -1,
+        disabledReason: null
+      }
     });
   } catch (error) {
     console.error('[verifyPayment] Error:', error);

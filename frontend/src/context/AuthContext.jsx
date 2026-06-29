@@ -14,12 +14,25 @@ export function AuthProvider({ children }) {
   const [subscriptionStatus, setSubscriptionStatus] = useState(null);
   const [isPremiumActive, setIsPremiumActive] = useState(false);
 
-  /** Fetch and cache the latest subscription status from the backend */
+  /** Fetch and cache the latest subscription status from the backend.
+   * Also re-fetches the full user profile so voiceAI limits are updated instantly. */
   const refreshSubscription = useCallback(async () => {
     try {
-      const status = await subscriptionApi.getStatus();
+      const [status, freshUser] = await Promise.all([
+        subscriptionApi.getStatus(),
+        auth.getMe()
+      ]);
       setSubscriptionStatus(status);
       setIsPremiumActive(status.isPremiumActive || false);
+      // Update the full user object so voiceAI limits/plan changes take effect immediately
+      if (freshUser) {
+        setUser(freshUser);
+        setIsPremiumActive(freshUser.isPremiumActive || false);
+        // Update local plan cache
+        if (freshUser.plan) localStorage.setItem('resq-plan', freshUser.plan);
+        // Sync the WakeWordEngine with the fresh premium status
+        wakeWordEngine.refreshState(freshUser);
+      }
     } catch (err) {
       console.warn('[AuthContext] Failed to refresh subscription status:', err);
     }

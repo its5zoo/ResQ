@@ -1,8 +1,14 @@
 import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
 
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  console.error('[FATAL] JWT_SECRET environment variable is not set. App cannot start securely.');
+  // Allow dev fallback but warn loudly
+}
+
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'your_jwt_super_secret_key_12345', {
+  return jwt.sign({ id }, JWT_SECRET || 'resq-dev-only-secret-change-in-prod', {
     expiresIn: '7d',
   });
 };
@@ -146,7 +152,7 @@ export const refreshUserToken = async (req, res) => {
   }
   const token = authHeader.split(' ')[1];
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_super_secret_key_12345', {
+    const decoded = jwt.verify(token, JWT_SECRET || 'resq-dev-only-secret-change-in-prod', {
       ignoreExpiration: true
     });
     const newToken = generateToken(decoded.id);

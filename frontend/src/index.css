@@ -1480,6 +1480,12 @@ html.light .voice-mic-idle             { background-color: #F9FAFB !important; b
 html.light .voice-input                { background-color: #FFFFFF !important; border-color: #E5E7EB !important; color: #9CA3AF !important; box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important; }
 html.light .voice-input-icon           { color: #D1D5DB !important; }
 
-
-
-
+/* ---- Smart Planner Animations ---- */
+@keyframes checkmarkScale {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-checkmark {
+  animation: checkmarkScale 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}

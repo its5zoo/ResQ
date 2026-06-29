@@ -1,81 +1,208 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import { API_BASE_URL as API_URL } from '../config/apiConfig.js';
 
 class VoicePersonality {
   constructor() {
     this.currentAudio = null;
   }
 
-  speak(text, options = {}) {
+  async speak(text, options = {}) {
     this.currentSpokenText = text;
-    // Fire voice-start IMMEDIATELY so WakeWordEngine mutes the mic right away.
-    // This closes the 1-2 second gap while TTS audio is being fetched from the server.
+    window.dispatchEvent(new CustomEvent('resq:voice-start'));
+
+    // ALWAYS cancel browser TTS and current audio first
+    if ('speechSynthesis' in window) {
+      try { window.speechSynthesis.cancel(); } catch {}
+    }
+    if (this.currentAudio) {
+      try {
+        this.currentAudio.pause();
+        this.currentAudio.currentTime = 0;
+      } catch (_err) {}
+      this.currentAudio = null;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/voice/tts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ text })
+      });
+
+      if (response.ok) {
+        // Use ElevenLabs — do NOT also call speechSynthesis
+        const arrayBuffer = await response.arrayBuffer();
+        const blob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
+        const url = URL.createObjectURL(blob);
+        
+        this.currentAudio = new Audio(url);
+        this.currentAudio.volume = 0.95;
+
+        this.currentAudio.onended = () => {
+          window.dispatchEvent(new CustomEvent('resq:voice-end'));
+          URL.revokeObjectURL(url);
+          this.currentAudio = null;
+          if (options.onEnd) try { options.onEnd(); } catch {}
+        };
+        
+        this.currentAudio.onerror = () => {
+          window.dispatchEvent(new CustomEvent('resq:voice-end'));
+          URL.revokeObjectURL(url);
+          this.currentAudio = null;
+          if (options.onEnd) try { options.onEnd(); } catch {}
+        };
+
+        await this.currentAudio.play();
+        // STOP HERE — do not fall through to speechSynthesis
+        return;
+      }
+    } catch (error) {
+      console.warn('[VoicePersonality] ElevenLabs failed, falling back to TTS', error);
+    }
+
+    // Only reach here if ElevenLabs failed or unavailable
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.95;
+      utterance.pitch = 1.0;
+      
+      utterance.onend = () => {
+        window.dispatchEvent(new CustomEvent('resq:voice-end'));
+        if (options.onEnd) try { options.onEnd(); } catch {}
+      };
+      
+      utterance.onerror = () => {
+        window.dispatchEvent(new CustomEvent('resq:voice-end'));
+        if (options.onEnd) try { options.onEnd(); } catch {}
+      };
+      
+      window.speechSynthesis.speak(utterance);
+    } else {
+      window.dispatchEvent(new CustomEvent('resq:voice-end'));
+      if (options.onEnd) try { options.onEnd(); } catch {}
+    }
+  }
+
+  playAudioBuffer(base64Audio, mimeType, text) {
+    this.currentSpokenText = text;
     window.dispatchEvent(new CustomEvent('resq:voice-start'));
 
     return new Promise((resolve) => {
-      // Cancel any ongoing speech first
       this.cancel();
 
-      // 120ms delay before speaking (feels more natural, not instant)
-      setTimeout(async () => {
-        try {
-          const token = localStorage.getItem('token');
-          const response = await fetch(`${API_URL}/voice/tts`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ text })
-          });
-
-          if (!response.ok) {
-            console.error('[VoicePersonality] TTS API failed', response.status);
-            window.dispatchEvent(new CustomEvent('resq:voice-end'));
-            resolve();
-            return;
-          }
-
-          const arrayBuffer = await response.arrayBuffer();
-          const blob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
-          const url = URL.createObjectURL(blob);
-
-          this.currentAudio = new Audio(url);
-          this.currentAudio.volume = 0.95;
-
-          this.currentAudio.onended = () => {
-            window.dispatchEvent(new CustomEvent('resq:voice-end'));
-            if (options.onEnd) {
-              try { options.onEnd(); } catch { /* ignore */ }
-            }
-            URL.revokeObjectURL(url);
-            this.currentAudio = null;
-            resolve();
-          };
-
-          this.currentAudio.onerror = (e) => {
-            console.warn('[VoicePersonality] Audio playback error:', e);
-            window.dispatchEvent(new CustomEvent('resq:voice-end'));
-            URL.revokeObjectURL(url);
-            this.currentAudio = null;
-            resolve();
-          };
-
-          await this.currentAudio.play();
-        } catch (error) {
-          console.error('[VoicePersonality] Error playing ElevenLabs TTS:', error);
-          window.dispatchEvent(new CustomEvent('resq:voice-end'));
-          resolve();
+      try {
+        const binary = atob(base64Audio);
+        const array = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+          array[i] = binary.charCodeAt(i);
         }
-      }, 120);
+        const blob = new Blob([array], { type: mimeType || 'audio/mpeg' });
+        const url = URL.createObjectURL(blob);
+
+        this.currentAudio = new Audio(url);
+        this.currentAudio.volume = 0.95;
+
+        this.currentAudio.onended = () => {
+          window.dispatchEvent(new CustomEvent('resq:voice-end'));
+          URL.revokeObjectURL(url);
+          this.currentAudio = null;
+          resolve();
+        };
+
+        this.currentAudio.onerror = (e) => {
+          console.warn('[VoicePersonality] Audio buffer playback error:', e);
+          window.dispatchEvent(new CustomEvent('resq:voice-end'));
+          URL.revokeObjectURL(url);
+          this.currentAudio = null;
+          resolve();
+        };
+
+        this.currentAudio.play().catch(() => {
+          window.dispatchEvent(new CustomEvent('resq:voice-end'));
+          this.currentAudio = null;
+          resolve();
+        });
+      } catch (err) {
+        console.error('[VoicePersonality] Error playing audio buffer:', err);
+        window.dispatchEvent(new CustomEvent('resq:voice-end'));
+        resolve();
+      }
     });
+  }
+
+  speakFallback(text, options = {}) {
+    this.currentSpokenText = text;
+    window.dispatchEvent(new CustomEvent('resq:voice-start'));
+    this.cancel();
+
+    let safetyTimeout = null;
+    const clearSafety = () => {
+      if (safetyTimeout) {
+        clearTimeout(safetyTimeout);
+        safetyTimeout = null;
+      }
+    };
+
+    safetyTimeout = setTimeout(() => {
+      console.warn('[VoicePersonality] Fallback speech synthesis timeout reached — releasing state.');
+      if ('speechSynthesis' in window) {
+        try { window.speechSynthesis.cancel(); } catch {}
+      }
+      window.dispatchEvent(new CustomEvent('resq:voice-end'));
+      if (options.onEnd) {
+        try { options.onEnd(); } catch {}
+      }
+    }, Math.max(8000, text.length * 120));
+
+    if ('speechSynthesis' in window) {
+      try { window.speechSynthesis.cancel(); } catch {}
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.95;
+      utterance.pitch = 1.0;
+
+      utterance.onend = () => {
+        clearSafety();
+        window.dispatchEvent(new CustomEvent('resq:voice-end'));
+        if (options.onEnd) {
+          try { options.onEnd(); } catch (_e) {}
+        }
+      };
+
+      utterance.onerror = () => {
+        clearSafety();
+        window.dispatchEvent(new CustomEvent('resq:voice-end'));
+        if (options.onEnd) {
+          try { options.onEnd(); } catch (_e) {}
+        }
+      };
+
+      window.speechSynthesis.speak(utterance);
+    } else {
+      clearSafety();
+      window.dispatchEvent(new CustomEvent('resq:voice-end'));
+      if (options.onEnd) {
+        try { options.onEnd(); } catch (_e) {}
+      }
+    }
   }
 
   cancel() {
     if (this.currentAudio) {
-      this.currentAudio.pause();
-      this.currentAudio.currentTime = 0;
+      try {
+        this.currentAudio.pause();
+        this.currentAudio.currentTime = 0;
+      } catch (_err) {}
       this.currentAudio = null;
       window.dispatchEvent(new CustomEvent('resq:voice-end'));
+    }
+    if ('speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch (_err) {}
     }
   }
 

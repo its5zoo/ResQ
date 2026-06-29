@@ -2,9 +2,10 @@
  * ResQ Web Push Notification Service
  * Registers the Service Worker, subscribes the user, and keeps the subscription synced with the backend.
  */
+import { API_BASE_URL as API_URL } from '../config/apiConfig.js';
 
-const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || 'BKIR78kw4trsF3OhEWo5s_ffh0euwPrJ8OcUGUq21AgjVW3YWwcz2wHkyCYTtPe7o28xtyjb-O7CoRdCvZUUsuY';
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+
 
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -20,6 +21,11 @@ function urlBase64ToUint8Array(base64String) {
 export async function initPushNotifications() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     console.warn('[Push] Push notifications not supported in this browser.');
+    return;
+  }
+
+  if (!VAPID_PUBLIC_KEY) {
+    console.warn('[Push] VITE_VAPID_PUBLIC_KEY is not set — push notifications disabled.');
     return;
   }
 

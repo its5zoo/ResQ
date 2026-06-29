@@ -13,6 +13,9 @@ import FocusSessionPage from '../components/Dashboard/FocusSessionPage';
 import SettingsPage from '../components/Dashboard/SettingsPage';
 import NotificationsPage from '../components/Dashboard/NotificationsPage';
 import SubscriptionPage from '../components/Dashboard/SubscriptionPage';
+import PlansPage from '../components/Dashboard/PlansPage';
+import ShieldPage from '../components/Dashboard/ShieldPage';
+import voicePersonality from '../services/VoicePersonality.js';
 import { tasks as apiTasks, habits as apiHabits } from '../services/api';
 import { 
   Mic, 
@@ -21,11 +24,13 @@ import {
   X, 
   LogOut,
   ChevronRight,
-  Zap
+  Zap,
+  Shield
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../context/AuthContext.jsx';
 import LogoutModal from '../components/Shared/LogoutModal.jsx';
+import PriorityResolutionModal from '../components/Shared/PriorityResolutionModal.jsx';
 
 export default function Dashboard({ currentTab: propTab, setCurrentTab: propSetTab }) {
   const [localTab, setLocalTab] = useState('dashboard');
@@ -65,6 +70,38 @@ export default function Dashboard({ currentTab: propTab, setCurrentTab: propSetT
       window.setCurrentTab = null;
     };
   }, [setCurrentTab]);
+
+  // Listen for plan:created → switch to plans tab and navigate to plan page
+  useEffect(() => {
+    const handlePlanCreated = (e) => {
+      const { planId, topic } = e.detail || {};
+      
+      if (topic) {
+        voicePersonality.speak(`Yes, I have completed generating your plan for ${topic}! Redirecting you to the roadmap now.`);
+      } else {
+        voicePersonality.speak("Yes, I have completed generating your plan! Redirecting you to the roadmap now.");
+      }
+
+      setCurrentTab('plans');
+      if (planId) {
+        // Navigate to the individual plan page after a short delay
+        setTimeout(() => navigate(`/plans/${planId}`), 2200);
+      }
+    };
+    window.addEventListener('resq:plan-created', handlePlanCreated);
+    return () => window.removeEventListener('resq:plan-created', handlePlanCreated);
+  }, [navigate, setCurrentTab]);
+
+  // Listen for plan:error → show an alert
+  useEffect(() => {
+    const handlePlanError = (e) => {
+      const msg = e.detail?.message || 'Plan generation failed. Please try again.';
+      voicePersonality.speak("Sorry, plan generation failed. Please check the alert details.");
+      alert(msg);
+    };
+    window.addEventListener('resq:plan-error', handlePlanError);
+    return () => window.removeEventListener('resq:plan-error', handlePlanError);
+  }, []);
 
   // Load and apply theme and plan states on mount
   useEffect(() => {
@@ -185,6 +222,8 @@ export default function Dashboard({ currentTab: propTab, setCurrentTab: propSetT
             setCurrentTab={setCurrentTab}
           />
         );
+      case 'shield':
+        return <ShieldPage />;
       case 'tasks':
         return (
           <TasksPage 
@@ -206,6 +245,8 @@ export default function Dashboard({ currentTab: propTab, setCurrentTab: propSetT
         return <FocusSessionPage />;
       case 'notifications':
         return <NotificationsPage />;
+      case 'plans':
+        return <PlansPage />;
       case 'settings':
         return <SettingsPage />;
       case 'subscription':
@@ -216,6 +257,7 @@ export default function Dashboard({ currentTab: propTab, setCurrentTab: propSetT
   };
 
   const moreMenuItems = [
+    { id: 'shield', label: 'ResQ Shield', icon: Shield },
     { id: 'focus', label: 'Focus Session', icon: Zap },
     { id: 'voice', label: 'Command & Ask', icon: Mic },
     { id: 'notifications', label: 'Notifications', icon: Bell },
@@ -341,6 +383,8 @@ export default function Dashboard({ currentTab: propTab, setCurrentTab: propSetT
           navigate('/');
         }}
       />
+      
+      <PriorityResolutionModal />
     </div>
   );
 }

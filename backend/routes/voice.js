@@ -18,7 +18,10 @@ router.get('/gemini-test', async (req, res) => {
     res.json({ ok: true, response: text });
   } catch (error) {
     console.error('Gemini test route failed:', error);
-    res.status(500).json({ ok: false, error: error.message, stack: error.stack });
+    res.status(500).json({
+      ok: false,
+      error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message
+    });
   }
 });
 
